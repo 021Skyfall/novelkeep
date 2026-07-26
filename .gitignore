@@ -2,7 +2,6 @@
 target/
 *.class
 *.jar
-!.mvn/wrapper/maven-wrapper.jar
 *.war
 *.ear
 *.log
@@ -11,7 +10,6 @@ logs/
 # Environment variables and local configuration
 .env
 .env.*
-!.env.example
 src/main/resources/application-local.properties
 src/main/resources/application-local.yml
 src/main/resources/application-local.yaml

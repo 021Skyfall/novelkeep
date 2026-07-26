@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: novelkeep
+  datasource:
+    url: jdbc:mariadb://${DB_HOST:localhost}:${DB_PORT:3307}/${DB_NAME:novelkeep}
+    username: ${DB_USER:novelkeep}
+    password: ${DB_PASSWORD:novelkeep}
+    driver-class-name: org.mariadb.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false

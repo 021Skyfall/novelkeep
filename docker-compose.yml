@@ -1,0 +1,37 @@
+services:
+  db:
+    image: mariadb:11.8.8
+    environment:
+      MARIADB_DATABASE: ${DB_NAME:-novelkeep}
+      MARIADB_USER: ${DB_USER:-novelkeep}
+      MARIADB_PASSWORD: ${DB_PASSWORD:-novelkeep}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-novelkeep-root}
+    ports:
+      - "${DB_PORT:-3307}:3306"
+    volumes:
+      - novelkeep-db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-novelkeep}
+      DB_USER: ${DB_USER:-novelkeep}
+      DB_PASSWORD: ${DB_PASSWORD:-novelkeep}
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  novelkeep-db-data:
