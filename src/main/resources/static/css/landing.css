@@ -1,0 +1,251 @@
+:root {
+    --novelkeep-ink: #28231f;
+    --novelkeep-paper: #fbf7f0;
+    --novelkeep-accent: #a4485d;
+    --novelkeep-accent-dark: #843648;
+    --novelkeep-gold: #c99a56;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    color: var(--novelkeep-ink);
+    background: #fff;
+    word-break: keep-all;
+}
+
+.brand-mark,
+.role-symbol,
+.notice-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.brand-mark {
+    width: 2rem;
+    height: 2rem;
+    color: #fff;
+    background: var(--novelkeep-accent);
+    border-radius: 0.55rem;
+    font-family: Georgia, serif;
+}
+
+.hero-section {
+    padding: 6rem 0;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 85% 15%, rgba(201, 154, 86, 0.2), transparent 24rem),
+        var(--novelkeep-paper);
+}
+
+.eyebrow {
+    color: var(--novelkeep-accent);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+}
+
+.text-accent {
+    color: var(--novelkeep-accent);
+}
+
+.btn-accent {
+    color: #fff;
+    background: var(--novelkeep-accent);
+    border-color: var(--novelkeep-accent);
+}
+
+.btn-accent:hover,
+.btn-accent:focus {
+    color: #fff;
+    background: var(--novelkeep-accent-dark);
+    border-color: var(--novelkeep-accent-dark);
+}
+
+.book-stage {
+    position: relative;
+    width: 18rem;
+    height: 23rem;
+}
+
+.book-cover {
+    position: absolute;
+    width: 15rem;
+    height: 21rem;
+    border-radius: 0.4rem 1rem 1rem 0.4rem;
+    box-shadow: 0 1.5rem 3rem rgba(57, 43, 33, 0.2);
+}
+
+.book-cover-back {
+    top: 1rem;
+    left: 0;
+    background: var(--novelkeep-gold);
+    transform: rotate(-7deg);
+}
+
+.book-cover-front {
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 2.25rem;
+    color: #fff;
+    background: linear-gradient(145deg, #392f2a, #171311);
+    transform: rotate(4deg);
+}
+
+.book-cover-front::before {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0.7rem;
+    width: 1px;
+    content: "";
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.book-label {
+    color: #dfbd89;
+    font-size: 0.65rem;
+    letter-spacing: 0.16em;
+}
+
+.book-cover-front strong {
+    margin-top: auto;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.75rem;
+    line-height: 1.4;
+}
+
+.book-line {
+    width: 2.5rem;
+    height: 2px;
+    margin: 1rem 0;
+    background: var(--novelkeep-accent);
+}
+
+.role-section {
+    background: #fff;
+}
+
+.role-card {
+    outline: 2px solid transparent;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, outline-color 0.2s ease;
+}
+
+.role-card:is(:hover, :focus-within) {
+    outline-color: rgba(164, 72, 93, 0.35);
+    transform: translateY(-0.35rem);
+    box-shadow: 0 1rem 2.5rem rgba(52, 43, 37, 0.12) !important;
+}
+
+.role-button {
+    transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.role-card:is(:hover, :focus-within) .role-button {
+    color: #fff;
+    background: var(--novelkeep-accent);
+    border-color: var(--novelkeep-accent);
+}
+
+.role-symbol {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.9rem;
+    font-family: Georgia, serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.reader-symbol {
+    color: #345e74;
+    background: #e5f2f7;
+}
+
+.writer-symbol {
+    color: #8a364a;
+    background: #f8e8ec;
+}
+
+.admin-symbol {
+    color: #6a552f;
+    background: #f5eddd;
+}
+
+.process-section {
+    background: #f4f1ec;
+}
+
+.process-card {
+    padding: 1.5rem;
+    background: #fff;
+    border: 1px solid #e6dfd5;
+    border-radius: 0.8rem;
+}
+
+.process-card span,
+.process-card strong {
+    display: block;
+}
+
+.process-card span {
+    margin-bottom: 1.25rem;
+    color: var(--novelkeep-accent);
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.process-card strong {
+    margin-bottom: 0.6rem;
+}
+
+.process-card p {
+    margin-bottom: 0;
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.demo-notice {
+    color: #534536;
+    background: #fff8e8;
+    border-color: #ecd7ad;
+}
+
+.notice-mark {
+    width: 1.5rem;
+    height: 1.5rem;
+    color: #fff;
+    background: var(--novelkeep-gold);
+    border-radius: 50%;
+    font-family: Georgia, serif;
+    font-weight: 700;
+}
+
+@media (max-width: 767.98px) {
+    .hero-section {
+        padding: 4rem 0;
+    }
+
+    .hero-section .display-4 {
+        font-size: 2.5rem;
+    }
+
+    .role-card:is(:hover, :focus-within) {
+        transform: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    .role-card {
+        transition: none;
+    }
+}

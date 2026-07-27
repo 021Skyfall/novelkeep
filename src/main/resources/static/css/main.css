@@ -1,0 +1,397 @@
+:root {
+    --main-ink: #28231f;
+    --main-paper: #fbf7f0;
+    --main-accent: #a4485d;
+    --main-accent-soft: #f8e8ec;
+    --main-border: #e7e0d7;
+}
+
+html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 5rem;
+}
+
+body {
+    color: var(--main-ink);
+    background: #fff;
+    word-break: keep-all;
+}
+
+.navbar {
+    z-index: 1030;
+}
+
+.brand-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    color: #fff;
+    background: var(--main-accent);
+    border-radius: 0.55rem;
+    font-family: Georgia, serif;
+}
+
+.role-badge {
+    color: #843648;
+    background: var(--main-accent-soft);
+    border: 1px solid #ebc9d1;
+}
+
+.role-menu {
+    background: #f8f6f2;
+}
+
+.role-menu-inner,
+.role-menu-group,
+.role-links {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.role-menu-inner {
+    min-height: 2rem;
+    flex-wrap: wrap;
+}
+
+.role-links {
+    flex-wrap: wrap;
+}
+
+.role-menu-group + .role-menu-group {
+    padding-left: 1rem;
+    border-left: 1px solid #ded7ce;
+}
+
+.role-menu-actions {
+    margin-left: auto;
+}
+
+.role-menu-actions .btn-outline-primary {
+    color: var(--main-accent);
+    border-color: var(--main-accent);
+}
+
+.role-menu-actions .btn-outline-primary:hover,
+.role-menu-actions .btn-outline-primary:focus {
+    color: #fff;
+    background: var(--main-accent);
+    border-color: var(--main-accent);
+}
+
+.role-link {
+    color: #5f5750;
+    font-size: 0.85rem;
+}
+
+.role-link small {
+    color: #9b9289;
+    font-size: 0.65rem;
+}
+
+.main-hero {
+    background:
+        radial-gradient(circle at 85% 10%, rgba(201, 154, 86, 0.18), transparent 22rem),
+        var(--main-paper);
+    border-bottom: 1px solid #eee6db;
+}
+
+.featured-card,
+.funding-card {
+    padding: 2rem;
+    background: #fff;
+    border: 1px solid var(--main-border);
+    border-radius: 1rem;
+    box-shadow: 0 1rem 2.5rem rgba(52, 43, 37, 0.08);
+}
+
+.preview-badge {
+    margin-bottom: 1.5rem;
+    color: #843648;
+    background: var(--main-accent-soft);
+    border: 1px solid #ebc9d1;
+}
+
+.featured-genre {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #6c757d;
+    font-size: 0.85rem;
+}
+
+.progress {
+    height: 0.65rem;
+    background: #eee9e2;
+}
+
+.progress-bar {
+    background: var(--main-accent);
+}
+
+.eyebrow {
+    color: var(--main-accent);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+}
+
+.content-section {
+    scroll-margin-top: 5rem;
+}
+
+.section-muted {
+    background: #f7f5f1;
+    border-block: 1px solid #ece6dd;
+}
+
+.section-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.novel-card {
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid var(--main-border);
+    border-radius: 0.9rem;
+    box-shadow: 0 0.5rem 1.5rem rgba(52, 43, 37, 0.06);
+}
+
+.novel-cover {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    height: 11rem;
+    padding: 1.25rem;
+    overflow: hidden;
+}
+
+.novel-cover::after {
+    position: absolute;
+    inset: 0;
+    content: "";
+    background: linear-gradient(transparent 30%, rgba(0, 0, 0, 0.55));
+}
+
+.novel-cover span {
+    position: relative;
+    z-index: 1;
+    color: #fff;
+    font-family: Georgia, serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.cover-one {
+    background: linear-gradient(135deg, #233240, #7993a4);
+}
+
+.cover-two {
+    background: linear-gradient(135deg, #4c3157, #c99a8b);
+}
+
+.cover-three {
+    background: linear-gradient(135deg, #5f392c, #cf9d61);
+}
+
+.novel-card-body {
+    padding: 1.5rem;
+}
+
+.novel-card-body p {
+    min-height: 3rem;
+    color: #6c757d;
+}
+
+.novel-meta {
+    color: #8a8179;
+    font-size: 0.8rem;
+}
+
+.status-serializing {
+    color: #345e74;
+    background: #e5f2f7;
+    border: 1px solid #c7e1eb;
+}
+
+.status-completed {
+    color: #6a552f;
+    background: #f5eddd;
+    border: 1px solid #e5d3af;
+}
+
+.episode-list {
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid var(--main-border);
+    border-radius: 0.9rem;
+}
+
+.episode-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 1rem;
+    align-items: center;
+    padding: 1rem 1.25rem;
+}
+
+.episode-item + .episode-item {
+    border-top: 1px solid #eee9e2;
+}
+
+.episode-item p {
+    margin: 0.2rem 0 0;
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.episode-item time {
+    color: #8a8179;
+    font-size: 0.8rem;
+}
+
+.compact-card {
+    display: flex;
+    gap: 1.25rem;
+    align-items: center;
+    height: 100%;
+    padding: 1.5rem;
+    border: 1px solid var(--main-border);
+    border-radius: 0.9rem;
+}
+
+.compact-card p {
+    color: #6c757d;
+}
+
+.compact-number {
+    color: var(--main-accent);
+    font-family: Georgia, serif;
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.funding-section {
+    scroll-margin-top: 5rem;
+    background:
+        radial-gradient(circle at 10% 90%, rgba(164, 72, 93, 0.12), transparent 25rem),
+        var(--main-paper);
+    border-top: 1px solid #eee6db;
+}
+
+.funding-price {
+    font-size: 1.25rem;
+}
+
+.funding-condition {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    overflow: hidden;
+    border: 1px solid var(--main-border);
+    border-radius: 0.7rem;
+}
+
+.funding-condition div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 1rem;
+}
+
+.funding-condition div + div {
+    border-left: 1px solid var(--main-border);
+}
+
+.funding-condition span {
+    color: #6c757d;
+    font-size: 0.75rem;
+}
+
+.funding-condition strong {
+    font-size: 0.95rem;
+}
+
+.role-reader .role-badge {
+    color: #345e74;
+    background: #e5f2f7;
+    border-color: #c7e1eb;
+}
+
+.role-admin .role-badge {
+    color: #6a552f;
+    background: #f5eddd;
+    border-color: #e5d3af;
+}
+
+@media (max-width: 991.98px) {
+    .navbar-collapse {
+        padding-top: 1rem;
+    }
+
+    .role-menu-inner {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.35rem;
+    }
+
+    .role-menu-group + .role-menu-group {
+        padding-top: 0.35rem;
+        padding-left: 0;
+        border-top: 1px solid #ded7ce;
+        border-left: 0;
+    }
+
+    .role-menu-actions {
+        margin-top: 0.35rem;
+        margin-left: 0;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .role-menu-group {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .section-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .main-hero .display-5,
+    .funding-section .display-6 {
+        font-size: 2rem;
+    }
+
+    .novel-card-body p {
+        min-height: auto;
+    }
+
+    .episode-item {
+        grid-template-columns: auto 1fr;
+    }
+
+    .episode-item time {
+        display: none;
+    }
+
+    .funding-condition {
+        grid-template-columns: 1fr;
+    }
+
+    .funding-condition div + div {
+        border-top: 1px solid var(--main-border);
+        border-left: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+}

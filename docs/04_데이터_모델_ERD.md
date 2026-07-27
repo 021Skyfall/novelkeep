@@ -5,7 +5,9 @@
 ## 1. 모델링 기준
 
 - 로그인은 구현하지 않지만 작품 소유자, 펀딩 참여자, 주문 소유자와 관리자 체험 역할을 구분하기 위해 최소 회원 데이터를 둔다.
-- 랜딩페이지에서 선택한 시드 회원 ID와 역할은 HTTP 세션에 저장하며 별도 세션 테이블은 만들지 않는다.
+- 역할별 고정 체험 회원을 하나씩 두고 랜딩페이지에서 선택한 회원 ID·역할을 HTTP 세션에 저장하며 별도 세션 테이블은 만들지 않는다.
+- `역할 변경`은 세션 무효화(로그아웃)로 처리한다.
+- `member_type`은 최고 권한 하나만 저장하고 `READER < AUTHOR < ADMIN` 순서로 하위 기능을 포함한다.
 - 작가는 부 묶음 사용 여부를 선택한다.
 - DB에서는 부를 사용하지 않는 작품도 숨겨진 기본 부 `본편`을 자동 생성해 `작품 → 부 → 회차` 구조를 유지한다.
 - 실제 책 한 `권`은 같은 부에 속한 여러 회차를 순서대로 묶는다.
@@ -33,10 +35,8 @@ erDiagram
 
     MEMBER {
         BIGINT id PK
-        VARCHAR nickname
         VARCHAR member_type
         DATETIME created_at
-        DATETIME updated_at
     }
 
     NOVEL {
@@ -133,10 +133,11 @@ erDiagram
 ### MEMBER — 회원
 
 - 인증이 아닌 데이터 소유자 구분을 위한 최소 회원 정보다.
-- `member_type`: `AUTHOR`, `READER`, `ADMIN`
+- `member_type`: 최고 권한을 나타내는 `READER`, `AUTHOR`, `ADMIN`
 - 비밀번호, 이메일과 로그인 토큰은 저장하지 않는다.
-- 시드 데이터로 작가·독자·관리자를 제공하고 랜딩페이지의 체험 역할 선택 결과를 세션에 저장한다.
+- 역할별 고정 체험 회원을 최초 1회 생성하고 이후 역할 선택에서는 같은 회원을 재사용한다.
 - 세션 역할은 데모 화면 분기용이며 실제 인증·인가 수단이 아니다.
+- `AUTHOR`는 독자 기능을, `ADMIN`은 독자·작가 기능을 모두 포함한다.
 
 ### NOVEL — 작품
 
@@ -152,6 +153,7 @@ erDiagram
 - `MULTI` 작품은 작가가 부 제목과 순서를 관리한다.
 - 같은 작품 안에서 `part_number`는 중복될 수 없다.
 - 상태: `DRAFT`, `SERIALIZING`, `COMPLETED`
+- 독자 화면의 부 완결 표시는 `part_number`와 `COMPLETED`를 조합해 `1부 완결`, `2부 완결`처럼 만든다.
 
 ### EPISODE — 회차
 
@@ -197,6 +199,7 @@ erDiagram
 
 | 테이블 | 키·제약조건 |
 |---|---|
+| MEMBER | `UNIQUE(member_type)` — 역할별 고정 체험 회원 1명 |
 | NOVEL | `author_id NOT NULL` |
 | STORY_PART | `UNIQUE(novel_id, part_number)` |
 | EPISODE | `UNIQUE(story_part_id, episode_number)` |
@@ -209,8 +212,8 @@ erDiagram
 
 DB 제약조건으로 표현하기 어려운 아래 규칙은 Service에서 검증한다.
 
-- `AUTHOR` 회원만 작품을 만들 수 있다.
-- `READER` 회원만 펀딩에 참여할 수 있다.
+- `AUTHOR`와 `ADMIN` 회원은 작품을 만들 수 있다.
+- 모든 회원은 독자 기능으로 펀딩에 참여할 수 있다.
 - `ADMIN` 회원만 전체 주문 상태를 변경하고 운영 통계·내보내기를 사용할 수 있다.
 - 작품 생성 시 `SINGLE`이면 `1 / 본편` 부를 자동 생성한다.
 - `SINGLE` 작품은 부를 하나만 가질 수 있다.

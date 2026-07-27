@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="완결 조건부 웹소설 소장본 펀딩 플랫폼 노벨킵">
+    <title>노벨킵 | 이야기를 끝까지, 소장까지</title>
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/landing.css}">
+</head>
+<body>
+<nav class="navbar navbar-expand bg-white border-bottom" aria-label="랜딩페이지 메뉴">
+    <div class="container py-2">
+        <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" th:href="@{/}">
+            <span class="brand-mark" aria-hidden="true">N</span>
+            <span>노벨킵</span>
+        </a>
+        <span class="badge rounded-pill text-bg-light border fw-medium">체험 서비스</span>
+    </div>
+</nav>
+
+<main>
+    <section class="hero-section">
+        <div class="container">
+            <div class="row align-items-center g-5">
+                <div class="col-lg-7">
+                    <span class="eyebrow">WEB NOVEL TO PAPER BOOK</span>
+                    <h1 class="display-4 fw-bold lh-sm mt-3 mb-4">
+                        좋아하는 이야기를<br>
+                        <span class="text-accent">끝까지, 소장까지.</span>
+                    </h1>
+                    <p class="lead text-secondary mb-4">
+                        노벨킵은 웹소설을 연재하고 읽는 콘텐츠 플랫폼입니다.
+                        완결과 펀딩 조건을 모두 충족한 이야기는 한 권의 소장본으로 이어집니다.
+                    </p>
+                    <a class="btn btn-dark btn-lg px-4" href="#role-selection">체험 역할 선택하기</a>
+                    <p class="small text-secondary mt-3 mb-0">
+                        회원가입 없이 준비된 시드 데이터로 바로 체험할 수 있습니다.
+                    </p>
+                </div>
+                <div class="col-lg-5 d-none d-lg-flex justify-content-center" aria-hidden="true">
+                    <div class="book-stage">
+                        <div class="book-cover book-cover-back"></div>
+                        <div class="book-cover book-cover-front">
+                            <span class="book-label">NOVELKEEP</span>
+                            <strong>끝까지 쓴<br>이야기의 자리</strong>
+                            <span class="book-line"></span>
+                            <small>완결 조건부 소장본</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="role-selection" class="role-section py-5" aria-labelledby="role-title">
+        <div class="container py-3">
+            <div class="text-center mb-5">
+                <span class="eyebrow">TRY NOVELKEEP</span>
+                <h2 id="role-title" class="fw-bold mt-2">어떤 역할로 체험하시겠어요?</h2>
+                <p class="text-secondary mb-0">역할에 따라 필요한 메뉴와 정보를 다르게 보여드립니다.</p>
+            </div>
+
+            <div th:if="${roleError}" class="alert alert-warning text-center" role="alert" th:text="${roleError}"></div>
+            <div th:if="${param.roleRequired}" class="alert alert-warning text-center" role="alert">
+                먼저 체험할 역할을 선택해 주세요.
+            </div>
+
+            <div class="row g-4 justify-content-center">
+                <div class="col-md-6 col-xl-4">
+                    <article class="card role-card h-100 border-0 shadow-sm">
+                        <div class="card-body p-4 p-lg-5 d-flex flex-column">
+                            <span class="role-symbol reader-symbol" aria-hidden="true">R</span>
+                            <h3 class="h4 fw-bold mt-4">독자로 체험</h3>
+                            <p class="text-secondary flex-grow-1">
+                                작품을 읽고 완결·분량·목표 수량을 확인한 뒤 안전하게 소장본 펀딩에 참여합니다.
+                            </p>
+                            <form th:action="@{/experience/reader}" method="post">
+                                <button class="btn btn-outline-dark role-button w-100" type="submit">독자 화면 시작</button>
+                            </form>
+                        </div>
+                    </article>
+                </div>
+
+                <div class="col-md-6 col-xl-4">
+                    <article class="card role-card h-100 border-0 shadow-sm">
+                        <div class="card-body p-4 p-lg-5 d-flex flex-column">
+                            <span class="role-symbol writer-symbol" aria-hidden="true">W</span>
+                            <h3 class="h4 fw-bold mt-4">작가로 체험</h3>
+                            <p class="text-secondary flex-grow-1">
+                                작품과 회차를 연재하고 권별 예상 분량과 소장본 펀딩 진행 상황을 관리합니다.
+                            </p>
+                            <form th:action="@{/experience/writer}" method="post">
+                                <button class="btn btn-outline-dark role-button w-100" type="submit">작가 화면 시작</button>
+                            </form>
+                        </div>
+                    </article>
+                </div>
+
+                <div class="col-md-6 col-xl-4">
+                    <article class="card role-card h-100 border-0 shadow-sm">
+                        <div class="card-body p-4 p-lg-5 d-flex flex-column">
+                            <span class="role-symbol admin-symbol" aria-hidden="true">A</span>
+                            <h3 class="h4 fw-bold mt-4">관리자로 체험</h3>
+                            <p class="text-secondary flex-grow-1">
+                                전체 주문과 제작 상태를 관리하고 펀딩·주문 운영 통계를 확인합니다.
+                            </p>
+                            <form th:action="@{/experience/admin}" method="post">
+                                <button class="btn btn-outline-dark role-button w-100" type="submit">관리자 화면 시작</button>
+                            </form>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="process-section py-5" aria-labelledby="process-title">
+        <div class="container py-3">
+            <div class="row g-4 align-items-center">
+                <div class="col-lg-4">
+                    <span class="eyebrow">HOW IT WORKS</span>
+                    <h2 id="process-title" class="fw-bold mt-2 mb-3">이야기가 책이 되는<br>세 단계</h2>
+                    <p class="text-secondary mb-0">
+                        콘텐츠를 먼저 즐기고, 조건을 투명하게 확인한 뒤 책 제작 주문으로 연결합니다.
+                    </p>
+                </div>
+                <div class="col-lg-8">
+                    <ol class="row g-3 list-unstyled mb-0">
+                        <li class="col-md-4">
+                            <div class="process-card h-100">
+                                <span>01</span>
+                                <strong>연재·열람</strong>
+                                <p>작가는 쓰고 독자는 온라인으로 읽습니다.</p>
+                            </div>
+                        </li>
+                        <li class="col-md-4">
+                            <div class="process-card h-100">
+                                <span>02</span>
+                                <strong>조건부 펀딩</strong>
+                                <p>완결·분량·목표 수량을 함께 확인합니다.</p>
+                            </div>
+                        </li>
+                        <li class="col-md-4">
+                            <div class="process-card h-100">
+                                <span>03</span>
+                                <strong>책 주문 전환</strong>
+                                <p>모든 조건을 충족한 참여만 주문이 됩니다.</p>
+                            </div>
+                        </li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="container py-5">
+        <div class="alert demo-notice d-flex gap-3 align-items-start mb-0" role="note">
+            <span class="notice-mark" aria-hidden="true">i</span>
+            <div>
+                <strong class="d-block mb-1">과제용 모의 서비스 안내</strong>
+                <span>실제 결제·환불·인쇄·배송은 진행하지 않으며 화면과 데이터 상태로만 체험합니다.</span>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer class="border-top py-4">
+    <div class="container d-flex flex-column flex-sm-row justify-content-between gap-2 small text-secondary">
+        <span>NovelKeep · 이야기를 끝까지, 소장까지</span>
+        <span>Sweetbook Full-stack Assignment</span>
+    </div>
+</footer>
+
+<script th:src="@{/vendor/bootstrap/js/bootstrap.bundle.min.js}"></script>
+</body>
+</html>

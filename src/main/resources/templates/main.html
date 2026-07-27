@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="노벨킵 역할별 체험 메인">
+    <title th:text="${roleName + ' 체험 | 노벨킵'}">노벨킵</title>
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+</head>
+<body th:classappend="| role-${#strings.toLowerCase(roleKey)}|">
+<nav class="navbar navbar-expand-lg bg-white border-bottom sticky-top" aria-label="메인 메뉴">
+    <div class="container py-2">
+        <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" th:href="@{/main}">
+            <span class="brand-mark" aria-hidden="true">N</span>
+            <span>노벨킵</span>
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar"
+                aria-controls="mainNavbar" aria-expanded="false" aria-label="메뉴 열기">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div id="mainNavbar" class="collapse navbar-collapse">
+            <ul class="navbar-nav me-auto ms-lg-4 mb-3 mb-lg-0">
+                <li class="nav-item"><a class="nav-link active" th:href="@{/main}">홈</a></li>
+                <li class="nav-item"><a class="nav-link" href="#popular">인기작</a></li>
+                <li class="nav-item"><a class="nav-link" href="#new">신작</a></li>
+                <li class="nav-item"><a class="nav-link" href="#completed">완결작</a></li>
+                <li class="nav-item"><a class="nav-link" href="#funding">소장본 펀딩</a></li>
+            </ul>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge role-badge rounded-pill"
+                      th:text="|${roleName} 체험 중|">체험 중</span>
+                <form th:action="@{/logout}" method="post">
+                    <button class="btn btn-sm btn-outline-secondary" type="submit">역할 변경</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<main>
+    <section class="role-menu border-bottom">
+        <div class="container py-2">
+            <div class="role-menu-inner">
+                <div class="role-menu-group">
+                    <strong class="small">독자 메뉴</strong>
+                    <div class="role-links">
+                        <span class="role-link disabled">내 서재 <small>준비 중</small></span>
+                        <span class="role-link disabled">내 펀딩·주문 <small>준비 중</small></span>
+                    </div>
+                </div>
+                <div th:if="${roleKey == 'WRITER' or roleKey == 'ADMIN'}" class="role-menu-group">
+                    <strong class="small">작가 메뉴</strong>
+                    <div class="role-links">
+                        <span class="role-link disabled">내 작품 <small>준비 중</small></span>
+                        <span class="role-link disabled">작품 등록 <small>준비 중</small></span>
+                        <span class="role-link disabled">출판·펀딩 관리 <small>준비 중</small></span>
+                    </div>
+                </div>
+                <div th:if="${roleKey == 'ADMIN'}" class="role-menu-group">
+                    <strong class="small">관리자 메뉴</strong>
+                    <div class="role-links">
+                        <span class="role-link disabled">운영 통계 <small>준비 중</small></span>
+                        <span class="role-link disabled">전체 주문 관리 <small>준비 중</small></span>
+                        <span class="role-link disabled">데이터 내보내기 <small>준비 중</small></span>
+                    </div>
+                </div>
+                <div class="role-menu-actions">
+                    <form th:if="${roleKey == 'READER'}" th:action="@{/experience/writer}" method="post">
+                        <button class="btn btn-sm btn-outline-primary" type="submit">작가 권한 활성화 체험</button>
+                    </form>
+                    <form th:if="${roleKey == 'WRITER'}" th:action="@{/experience/reader}" method="post">
+                        <button class="btn btn-sm btn-outline-secondary" type="submit">독자 권한으로 테스트</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="main-hero">
+        <div class="container py-5">
+            <div class="row align-items-center g-4">
+                <div class="col-lg-7">
+                    <span class="eyebrow">STORIES WORTH KEEPING</span>
+                    <h1 class="display-5 fw-bold mt-2 mb-3">완결까지 함께 읽고,<br>좋아한 이야기는 소장하세요.</h1>
+                    <p class="lead text-secondary mb-4">
+                        노벨킵은 연재와 열람이 중심인 웹소설 플랫폼입니다.
+                        완결·분량·목표 수량을 모두 충족한 작품만 소장본 주문으로 이어집니다.
+                    </p>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a class="btn btn-dark px-4" href="#popular">인기 작품 보기</a>
+                        <a class="btn btn-outline-dark px-4" href="#funding">펀딩 둘러보기</a>
+                    </div>
+                </div>
+                <div class="col-lg-5">
+                    <article class="featured-card">
+                        <span class="badge preview-badge">샘플 콘텐츠</span>
+                        <span class="featured-genre">현대 판타지 · 1부 완결</span>
+                        <h2 class="h3 fw-bold">달빛 아래 마지막 우체국</h2>
+                        <p>사라진 사람에게 편지를 보낼 수 있는 우체국에서 시작된 마지막 배달 이야기.</p>
+                        <div class="d-flex justify-content-between small text-secondary">
+                            <span>28화 공개</span>
+                            <span>소장본 준비 84%</span>
+                        </div>
+                        <div class="progress mt-2" role="progressbar" aria-label="소장본 준비율" aria-valuenow="84"
+                             aria-valuemin="0" aria-valuemax="100">
+                            <div class="progress-bar" style="width: 84%">84%</div>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="popular" class="content-section container py-5" aria-labelledby="popular-title">
+        <div class="section-heading">
+            <div>
+                <span class="eyebrow">POPULAR NOW</span>
+                <h2 id="popular-title" class="h3 fw-bold mt-2">지금 인기 있는 작품</h2>
+            </div>
+            <span class="text-secondary small">샘플 콘텐츠 · 작품 DB 연결 예정</span>
+        </div>
+        <div class="row g-4 mt-1">
+            <div class="col-md-6 col-xl-4">
+                <article class="novel-card h-100">
+                    <div class="novel-cover cover-one" aria-hidden="true"><span>01</span></div>
+                    <div class="novel-card-body">
+                        <div class="d-flex gap-2 mb-2">
+                            <span class="badge status-serializing">연재 중</span>
+                            <span class="badge text-bg-light border">판타지</span>
+                        </div>
+                        <h3 class="h5 fw-bold">회귀한 서기관의 기록</h3>
+                        <p>제국의 멸망을 기록한 서기관이 열두 해 전으로 돌아왔다.</p>
+                        <span class="novel-meta">필명 푸른잉크 · 42화</span>
+                    </div>
+                </article>
+            </div>
+            <div class="col-md-6 col-xl-4">
+                <article class="novel-card h-100">
+                    <div class="novel-cover cover-two" aria-hidden="true"><span>02</span></div>
+                    <div class="novel-card-body">
+                        <div class="d-flex gap-2 mb-2">
+                            <span class="badge status-completed">1부 완결</span>
+                            <span class="badge text-bg-light border">현대 판타지</span>
+                        </div>
+                        <h3 class="h5 fw-bold">달빛 아래 마지막 우체국</h3>
+                        <p>사라진 사람에게 보내는 편지를 배달하는 야간 우체국.</p>
+                        <span class="novel-meta">필명 새벽편지 · 28화</span>
+                    </div>
+                </article>
+            </div>
+            <div class="col-md-6 col-xl-4">
+                <article class="novel-card h-100">
+                    <div class="novel-cover cover-three" aria-hidden="true"><span>03</span></div>
+                    <div class="novel-card-body">
+                        <div class="d-flex gap-2 mb-2">
+                            <span class="badge status-serializing">연재 중</span>
+                            <span class="badge text-bg-light border">로맨스 판타지</span>
+                        </div>
+                        <h3 class="h5 fw-bold">북부 공작의 계약 서재</h3>
+                        <p>책을 펼칠 때마다 계약 상대의 기억이 한 장씩 나타난다.</p>
+                        <span class="novel-meta">필명 은하수책방 · 65화</span>
+                    </div>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section id="new" class="content-section section-muted py-5" aria-labelledby="new-title">
+        <div class="container">
+            <div class="section-heading">
+                <div>
+                    <span class="eyebrow">NEW EPISODES</span>
+                    <h2 id="new-title" class="h3 fw-bold mt-2">새 회차가 올라왔어요</h2>
+                </div>
+                <span class="text-secondary small">최신 공개 회차 기준</span>
+            </div>
+            <div class="episode-list mt-4">
+                <article class="episode-item">
+                    <span class="badge status-serializing">UP</span>
+                    <div>
+                        <strong>회귀한 서기관의 기록</strong>
+                        <p>42화. 잿빛 성벽의 증언</p>
+                    </div>
+                    <time>10분 전</time>
+                </article>
+                <article class="episode-item">
+                    <span class="badge status-serializing">UP</span>
+                    <div>
+                        <strong>북부 공작의 계약 서재</strong>
+                        <p>65화. 사라진 장서의 주인</p>
+                    </div>
+                    <time>1시간 전</time>
+                </article>
+                <article class="episode-item">
+                    <span class="badge status-serializing">UP</span>
+                    <div>
+                        <strong>검은 파도의 항해일지</strong>
+                        <p>19화. 등대가 꺼진 밤</p>
+                    </div>
+                    <time>3시간 전</time>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section id="completed" class="content-section container py-5" aria-labelledby="completed-title">
+        <div class="section-heading">
+            <div>
+                <span class="eyebrow">COMPLETED STORIES</span>
+                <h2 id="completed-title" class="h3 fw-bold mt-2">완결 후 몰아보기</h2>
+            </div>
+            <span class="text-secondary small">완결 작품</span>
+        </div>
+        <div class="row g-3 mt-2">
+            <div class="col-lg-6">
+                <article class="compact-card">
+                    <span class="compact-number">01</span>
+                    <div>
+                        <span class="badge status-completed mb-2">1부 완결</span>
+                        <h3 class="h5 fw-bold mb-1">달빛 아래 마지막 우체국</h3>
+                        <p class="mb-0">1부 28화 · 현대 판타지</p>
+                    </div>
+                </article>
+            </div>
+            <div class="col-lg-6">
+                <article class="compact-card">
+                    <span class="compact-number">02</span>
+                    <div>
+                        <span class="badge status-completed mb-2">전체 완결</span>
+                        <h3 class="h5 fw-bold mb-1">별을 접는 방법</h3>
+                        <p class="mb-0">총 74화 · 로맨스</p>
+                    </div>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section id="funding" class="funding-section py-5" aria-labelledby="funding-title">
+        <div class="container py-3">
+            <div class="row align-items-center g-5">
+                <div class="col-lg-5">
+                    <span class="eyebrow">BOOK FUNDING</span>
+                    <h2 id="funding-title" class="display-6 fw-bold mt-2">완결된 이야기를<br>내 책장으로.</h2>
+                    <p class="text-secondary">
+                        목표 수량뿐 아니라 완결 상태와 한 권 예상 분량까지 모두 충족해야 주문으로 전환됩니다.
+                    </p>
+                    <span class="badge text-bg-light border">모의 결제 · 실제 금액 결제 없음</span>
+                </div>
+                <div class="col-lg-7">
+                    <article class="funding-card">
+                        <div class="d-flex flex-column flex-sm-row justify-content-between gap-2">
+                            <div>
+                                <span class="badge status-completed mb-2">1부 완결</span>
+                                <h3 class="h4 fw-bold mb-1">달빛 아래 마지막 우체국 1권</h3>
+                                <p class="text-secondary mb-0">1화~28화 수록 예정</p>
+                            </div>
+                            <strong class="funding-price">18,000원</strong>
+                        </div>
+                        <div class="funding-condition mt-4">
+                            <div><span>완결 조건</span><strong>충족</strong></div>
+                            <div><span>예상 분량</span><strong>84%</strong></div>
+                            <div><span>펀딩 수량</span><strong>36 / 50권</strong></div>
+                        </div>
+                        <div class="progress mt-3" role="progressbar" aria-label="펀딩 달성률" aria-valuenow="72"
+                             aria-valuemin="0" aria-valuemax="100">
+                            <div class="progress-bar" style="width: 72%">72%</div>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer class="border-top py-4">
+    <div class="container d-flex flex-column flex-sm-row justify-content-between gap-2 small text-secondary">
+        <span>NovelKeep · 이야기를 끝까지, 소장까지</span>
+        <span th:text="|현재 체험 역할: ${roleName}|">현재 체험 역할</span>
+    </div>
+</footer>
+
+<script th:src="@{/vendor/bootstrap/js/bootstrap.bundle.min.js}"></script>
+</body>
+</html>
