@@ -17,6 +17,10 @@ body {
     word-break: keep-all;
 }
 
+.theme-toggle {
+    min-width: 6.5rem;
+}
+
 .navbar {
     z-index: 1030;
 }
@@ -84,6 +88,14 @@ body {
 .role-link {
     color: #5f5750;
     font-size: 0.85rem;
+    text-decoration: none;
+}
+
+a.role-link:hover,
+a.role-link:focus {
+    color: var(--main-accent);
+    text-decoration: underline;
+    text-underline-offset: 0.2rem;
 }
 
 .role-link small {
@@ -315,6 +327,93 @@ body {
     font-size: 0.95rem;
 }
 
+[data-bs-theme="dark"] {
+    --main-ink: #f1ece6;
+    --main-paper: #1d1a18;
+    --main-accent: #d77d92;
+    --main-accent-soft: #352429;
+    --main-border: #413a35;
+}
+
+[data-bs-theme="dark"] body {
+    background: #12100f;
+}
+
+[data-bs-theme="dark"] .navbar.bg-white {
+    background: #171412 !important;
+}
+
+[data-bs-theme="dark"] .role-menu,
+[data-bs-theme="dark"] .section-muted {
+    background: #161311;
+    border-color: #36302c !important;
+}
+
+[data-bs-theme="dark"] .role-menu-group + .role-menu-group {
+    border-color: #4a423c;
+}
+
+[data-bs-theme="dark"] .role-link {
+    color: #d5cec7;
+}
+
+[data-bs-theme="dark"] .role-link small,
+[data-bs-theme="dark"] .novel-meta,
+[data-bs-theme="dark"] .episode-item time {
+    color: #a69d95;
+}
+
+[data-bs-theme="dark"] .main-hero,
+[data-bs-theme="dark"] .funding-section {
+    background:
+        radial-gradient(circle at 85% 10%, rgba(213, 170, 105, 0.12), transparent 22rem),
+        var(--main-paper);
+    border-color: #36302c;
+}
+
+[data-bs-theme="dark"] .featured-card,
+[data-bs-theme="dark"] .funding-card,
+[data-bs-theme="dark"] .novel-card,
+[data-bs-theme="dark"] .episode-list,
+[data-bs-theme="dark"] .compact-card {
+    background: #201c1a;
+    border-color: var(--main-border);
+    box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.2);
+}
+
+[data-bs-theme="dark"] .episode-item + .episode-item,
+[data-bs-theme="dark"] .funding-condition div + div {
+    border-color: var(--main-border);
+}
+
+[data-bs-theme="dark"] .novel-card-body p,
+[data-bs-theme="dark"] .episode-item p,
+[data-bs-theme="dark"] .compact-card p,
+[data-bs-theme="dark"] .funding-condition span,
+[data-bs-theme="dark"] .featured-genre {
+    color: #b9b0a8;
+}
+
+[data-bs-theme="dark"] .progress {
+    background: #3a3430;
+}
+
+[data-bs-theme="dark"] .text-bg-light {
+    color: #e8e1da !important;
+    background: #2a2522 !important;
+}
+
+[data-bs-theme="dark"] .btn-dark {
+    color: #1b1715;
+    background: #f1ece6;
+    border-color: #f1ece6;
+}
+
+[data-bs-theme="dark"] .btn-outline-dark {
+    color: #f1ece6;
+    border-color: #b9b0a8;
+}
+
 .role-reader .role-badge {
     color: #345e74;
     background: #e5f2f7;
@@ -325,6 +424,24 @@ body {
     color: #6a552f;
     background: #f5eddd;
     border-color: #e5d3af;
+}
+
+[data-bs-theme="dark"] .role-reader .role-badge {
+    color: #b9dae8;
+    background: #21343d;
+    border-color: #345563;
+}
+
+[data-bs-theme="dark"] .role-writer .role-badge {
+    color: #efbac6;
+    background: #3b252b;
+    border-color: #63404a;
+}
+
+[data-bs-theme="dark"] .role-admin .role-badge {
+    color: #e5c995;
+    background: #382f20;
+    border-color: #5f5137;
 }
 
 @media (max-width: 991.98px) {
@@ -352,6 +469,14 @@ body {
 }
 
 @media (max-width: 767.98px) {
+    .theme-toggle {
+        min-width: auto;
+    }
+
+    .theme-toggle [data-theme-label] {
+        display: none;
+    }
+
     .role-menu-group {
         align-items: flex-start;
         flex-direction: column;

@@ -16,6 +16,10 @@ body {
     word-break: keep-all;
 }
 
+.theme-toggle {
+    min-width: 6.5rem;
+}
+
 .brand-mark,
 .role-symbol,
 .notice-mark {
@@ -226,6 +230,65 @@ body {
     font-weight: 700;
 }
 
+[data-bs-theme="dark"] {
+    --novelkeep-ink: #f1ece6;
+    --novelkeep-paper: #1d1a18;
+    --novelkeep-accent: #d77d92;
+    --novelkeep-accent-dark: #e59aae;
+    --novelkeep-gold: #d5aa69;
+}
+
+[data-bs-theme="dark"] body {
+    background: #12100f;
+}
+
+[data-bs-theme="dark"] .navbar.bg-white,
+[data-bs-theme="dark"] .role-section {
+    background: #171412 !important;
+}
+
+[data-bs-theme="dark"] .hero-section {
+    background:
+        radial-gradient(circle at 85% 15%, rgba(213, 170, 105, 0.13), transparent 24rem),
+        var(--novelkeep-paper);
+}
+
+[data-bs-theme="dark"] .role-card,
+[data-bs-theme="dark"] .process-card {
+    background: #201c1a;
+    border-color: #413a35 !important;
+}
+
+[data-bs-theme="dark"] .process-section {
+    background: #161311;
+}
+
+[data-bs-theme="dark"] .process-card p {
+    color: #b9b0a8;
+}
+
+[data-bs-theme="dark"] .demo-notice {
+    color: #eadcc8;
+    background: #302718;
+    border-color: #665332;
+}
+
+[data-bs-theme="dark"] .text-bg-light {
+    color: #e8e1da !important;
+    background: #2a2522 !important;
+}
+
+[data-bs-theme="dark"] .btn-dark {
+    color: #1b1715;
+    background: #f1ece6;
+    border-color: #f1ece6;
+}
+
+[data-bs-theme="dark"] .btn-outline-dark {
+    color: #f1ece6;
+    border-color: #b9b0a8;
+}
+
 @media (max-width: 767.98px) {
     .hero-section {
         padding: 4rem 0;
@@ -237,6 +300,14 @@ body {
 
     .role-card:is(:hover, :focus-within) {
         transform: none;
+    }
+
+    .theme-toggle {
+        min-width: auto;
+    }
+
+    .theme-toggle [data-theme-label] {
+        display: none;
     }
 }
 

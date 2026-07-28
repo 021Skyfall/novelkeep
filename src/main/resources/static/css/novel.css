@@ -1,0 +1,255 @@
+:root {
+    --novel-ink: #28231f;
+    --novel-paper: #fbf7f0;
+    --novel-accent: #a4485d;
+    --novel-border: #e7e0d7;
+}
+
+body {
+    color: var(--novel-ink);
+    background: #fff;
+    word-break: keep-all;
+}
+
+.navbar {
+    z-index: 1030;
+}
+
+.brand-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    color: #fff;
+    background: var(--novel-accent);
+    border-radius: 0.55rem;
+    font-family: Georgia, serif;
+}
+
+.theme-toggle {
+    min-width: 6.5rem;
+}
+
+.role-badge,
+.status-badge {
+    color: #843648;
+    background: #f8e8ec;
+    border: 1px solid #ebc9d1;
+}
+
+.part-badge {
+    color: #6a552f;
+    background: #f5eddd;
+    border: 1px solid #e5d3af;
+}
+
+.eyebrow {
+    color: var(--novel-accent);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+}
+
+.novel-card,
+.detail-panel,
+.form-panel,
+.writer-list,
+.part-list,
+.empty-state {
+    border: 1px solid var(--novel-border);
+    border-radius: 0.9rem;
+}
+
+.novel-card {
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 0.5rem 1.5rem rgba(52, 43, 37, 0.06);
+}
+
+.novel-cover {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    height: 11rem;
+    padding: 1.25rem;
+    overflow: hidden;
+}
+
+.novel-cover::after {
+    position: absolute;
+    inset: 0;
+    content: "";
+    background: linear-gradient(transparent 30%, rgba(0, 0, 0, 0.55));
+}
+
+.novel-cover span {
+    position: relative;
+    z-index: 1;
+    color: #fff;
+    font-family: Georgia, serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.cover-one {
+    background: linear-gradient(135deg, #233240, #7993a4);
+}
+
+.cover-two {
+    background: linear-gradient(135deg, #4c3157, #c99a8b);
+}
+
+.cover-three {
+    background: linear-gradient(135deg, #5f392c, #cf9d61);
+}
+
+.novel-card-body {
+    padding: 1.5rem;
+}
+
+.synopsis {
+    min-height: 4.5rem;
+}
+
+.detail-panel,
+.form-panel {
+    padding: 2rem;
+    background: var(--novel-paper);
+}
+
+.detail-synopsis {
+    line-height: 1.8;
+    white-space: pre-line;
+}
+
+.section-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.part-list,
+.writer-list {
+    overflow: hidden;
+    background: #fff;
+}
+
+.part-item,
+.writer-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.5rem;
+}
+
+.part-item + .part-item,
+.writer-item + .writer-item {
+    border-top: 1px solid var(--novel-border);
+}
+
+.empty-state {
+    padding: 3rem 1.5rem;
+    color: #665d55;
+    background: #f8f6f2;
+    text-align: center;
+}
+
+.empty-state strong {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--novel-ink);
+}
+
+.form-container {
+    max-width: 56rem;
+}
+
+[data-bs-theme="dark"] {
+    --novel-ink: #f1ece6;
+    --novel-paper: #1d1a18;
+    --novel-accent: #d77d92;
+    --novel-border: #413a35;
+}
+
+[data-bs-theme="dark"] body {
+    background: #12100f;
+}
+
+[data-bs-theme="dark"] .navbar.bg-white {
+    background: #171412 !important;
+}
+
+[data-bs-theme="dark"] .novel-card,
+[data-bs-theme="dark"] .detail-panel,
+[data-bs-theme="dark"] .form-panel,
+[data-bs-theme="dark"] .writer-list,
+[data-bs-theme="dark"] .part-list {
+    background: #201c1a;
+    border-color: var(--novel-border);
+}
+
+[data-bs-theme="dark"] .empty-state {
+    color: #b9b0a8;
+    background: #1b1816;
+    border-color: var(--novel-border);
+}
+
+[data-bs-theme="dark"] .part-item + .part-item,
+[data-bs-theme="dark"] .writer-item + .writer-item {
+    border-color: var(--novel-border);
+}
+
+[data-bs-theme="dark"] .role-badge,
+[data-bs-theme="dark"] .status-badge {
+    color: #efbac6;
+    background: #3b252b;
+    border-color: #63404a;
+}
+
+[data-bs-theme="dark"] .part-badge {
+    color: #e5c995;
+    background: #382f20;
+    border-color: #5f5137;
+}
+
+[data-bs-theme="dark"] .text-bg-light {
+    color: #e8e1da !important;
+    background: #2a2522 !important;
+}
+
+[data-bs-theme="dark"] .btn-dark {
+    color: #1b1715;
+    background: #f1ece6;
+    border-color: #f1ece6;
+}
+
+[data-bs-theme="dark"] .btn-outline-dark {
+    color: #f1ece6;
+    border-color: #b9b0a8;
+}
+
+@media (max-width: 767.98px) {
+    .theme-toggle {
+        min-width: auto;
+    }
+
+    .theme-toggle [data-theme-label],
+    .role-badge {
+        display: none;
+    }
+
+    .section-heading,
+    .part-item,
+    .writer-item {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .detail-panel,
+    .form-panel {
+        padding: 1.5rem;
+    }
+}

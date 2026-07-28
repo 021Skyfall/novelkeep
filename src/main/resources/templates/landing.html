@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="완결 조건부 웹소설 소장본 펀딩 플랫폼 노벨킵">
     <title>노벨킵 | 이야기를 끝까지, 소장까지</title>
+    <script th:src="@{/js/theme.js}"></script>
     <link rel="stylesheet" th:href="@{/vendor/bootstrap/css/bootstrap.min.css}">
     <link rel="stylesheet" th:href="@{/css/landing.css}">
 </head>
@@ -15,7 +16,14 @@
             <span class="brand-mark" aria-hidden="true">N</span>
             <span>노벨킵</span>
         </a>
-        <span class="badge rounded-pill text-bg-light border fw-medium">체험 서비스</span>
+        <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-sm btn-outline-secondary theme-toggle" type="button"
+                    data-theme-toggle aria-label="다크 모드로 전환" aria-pressed="false">
+                <span aria-hidden="true">◐</span>
+                <span data-theme-label>다크 모드</span>
+            </button>
+            <span class="badge rounded-pill text-bg-light border fw-medium">체험 서비스</span>
+        </div>
     </div>
 </nav>
 

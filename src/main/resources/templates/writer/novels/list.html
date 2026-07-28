@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="노벨킵 내 작품 관리">
+    <title>내 작품 | 노벨킵</title>
+    <script th:src="@{/js/theme.js}"></script>
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/novel.css}">
+</head>
+<body>
+<nav class="navbar bg-white border-bottom sticky-top" aria-label="내 작품 메뉴">
+    <div class="container py-2">
+        <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" th:href="@{/main}">
+            <span class="brand-mark" aria-hidden="true">N</span>
+            <span>노벨킵</span>
+        </a>
+        <div class="d-flex align-items-center gap-2">
+            <a class="btn btn-sm btn-outline-secondary" th:href="@{/novels}">공개 작품</a>
+            <button class="btn btn-sm btn-outline-secondary theme-toggle" type="button"
+                    data-theme-toggle aria-label="다크 모드로 전환" aria-pressed="false">
+                <span aria-hidden="true">◐</span>
+                <span data-theme-label>다크 모드</span>
+            </button>
+            <span class="badge role-badge rounded-pill" th:text="|${roleName} 체험 중|">체험 중</span>
+        </div>
+    </div>
+</nav>
+
+<main class="container py-5">
+    <div th:if="${param.deleted}" class="alert alert-success">작품을 삭제했습니다.</div>
+
+    <header class="page-heading d-flex flex-column flex-sm-row justify-content-between align-items-sm-end gap-3 mb-4">
+        <div>
+            <span class="eyebrow">WRITER WORKSPACE</span>
+            <h1 class="display-6 fw-bold mt-2">내 작품</h1>
+            <p class="text-secondary mb-0">현재 체험 회원이 소유한 작품만 관리합니다.</p>
+        </div>
+        <a class="btn btn-dark" th:href="@{/writer/novels/new}">새 작품 등록</a>
+    </header>
+
+    <div th:if="${#lists.isEmpty(novels)}" class="empty-state">
+        <strong>아직 등록한 작품이 없습니다.</strong>
+        <p>첫 작품을 등록하고 연재 준비를 시작해 보세요.</p>
+        <a class="btn btn-dark" th:href="@{/writer/novels/new}">첫 작품 등록</a>
+    </div>
+
+    <div th:unless="${#lists.isEmpty(novels)}" class="writer-list">
+        <article th:each="novel : ${novels}" class="writer-item">
+            <div>
+                <div class="d-flex flex-wrap gap-2 mb-2">
+                    <span class="badge status-badge" th:text="${novel.status.displayName}">초안</span>
+                    <span class="badge text-bg-light border" th:text="${novel.partMode.displayName}">부 구분</span>
+                    <span class="badge text-bg-light border" th:text="${novel.genre}">장르</span>
+                </div>
+                <h2 class="h5 fw-bold mb-1" th:text="${novel.title}">작품명</h2>
+                <p class="text-secondary mb-0" th:text="|필명 ${novel.penName}|">필명</p>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <a class="btn btn-sm btn-outline-secondary"
+                   th:href="@{/novels/{id}(id=${novel.id})}">상세</a>
+                <a class="btn btn-sm btn-outline-dark"
+                   th:href="@{/writer/novels/{id}/edit(id=${novel.id})}">수정</a>
+                <form th:action="@{/writer/novels/{id}/delete(id=${novel.id})}" method="post"
+                      onsubmit="return confirm('이 작품과 하위 데이터를 삭제하시겠습니까?');">
+                    <button class="btn btn-sm btn-outline-danger" type="submit">삭제</button>
+                </form>
+            </div>
+        </article>
+    </div>
+</main>
+</body>
+</html>

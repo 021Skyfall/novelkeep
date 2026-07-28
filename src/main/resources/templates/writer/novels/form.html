@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="노벨킵 작품 작성과 수정">
+    <title th:text="${editing ? '작품 수정 | 노벨킵' : '새 작품 등록 | 노벨킵'}">작품 작성 | 노벨킵</title>
+    <script th:src="@{/js/theme.js}"></script>
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/novel.css}">
+</head>
+<body>
+<nav class="navbar bg-white border-bottom sticky-top" aria-label="작품 작성 메뉴">
+    <div class="container py-2">
+        <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" th:href="@{/main}">
+            <span class="brand-mark" aria-hidden="true">N</span>
+            <span>노벨킵</span>
+        </a>
+        <div class="d-flex align-items-center gap-2">
+            <a class="btn btn-sm btn-outline-secondary" th:href="@{/writer/novels}">내 작품</a>
+            <button class="btn btn-sm btn-outline-secondary theme-toggle" type="button"
+                    data-theme-toggle aria-label="다크 모드로 전환" aria-pressed="false">
+                <span aria-hidden="true">◐</span>
+                <span data-theme-label>다크 모드</span>
+            </button>
+        </div>
+    </div>
+</nav>
+
+<main class="container form-container py-5">
+    <header class="mb-4">
+        <span class="eyebrow">WRITER EDITOR</span>
+        <h1 class="display-6 fw-bold mt-2" th:text="${editing ? '작품 수정' : '새 작품 등록'}">작품 등록</h1>
+        <p class="text-secondary mb-0">독자에게 공개할 작품 정보와 연재 구조를 설정합니다.</p>
+    </header>
+
+    <form class="form-panel" th:object="${novelForm}"
+          th:action="${editing}
+              ? @{/writer/novels/{id}/edit(id=${novelId})}
+              : @{/writer/novels}"
+          method="post" novalidate>
+        <div class="mb-4">
+            <label class="form-label fw-semibold" for="title">작품 제목</label>
+            <input id="title" class="form-control" th:classappend="${#fields.hasErrors('title')} ? 'is-invalid'"
+                   type="text" th:field="*{title}" maxlength="100" placeholder="작품 제목을 입력하세요">
+            <div class="invalid-feedback" th:errors="*{title}">제목 오류</div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-md-6">
+                <label class="form-label fw-semibold" for="penName">공개 필명</label>
+                <input id="penName" class="form-control"
+                       th:classappend="${#fields.hasErrors('penName')} ? 'is-invalid'"
+                       type="text" th:field="*{penName}" maxlength="50" placeholder="독자에게 보일 필명">
+                <div class="invalid-feedback" th:errors="*{penName}">필명 오류</div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold" for="genre">장르</label>
+                <input id="genre" class="form-control" th:classappend="${#fields.hasErrors('genre')} ? 'is-invalid'"
+                       type="text" th:field="*{genre}" maxlength="30" placeholder="예: 현대 판타지">
+                <div class="invalid-feedback" th:errors="*{genre}">장르 오류</div>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label fw-semibold" for="synopsis">작품 소개</label>
+            <textarea id="synopsis" class="form-control" rows="6"
+                      th:classappend="${#fields.hasErrors('synopsis')} ? 'is-invalid'"
+                      th:field="*{synopsis}" maxlength="2000"
+                      placeholder="작품의 배경과 매력을 소개해 주세요."></textarea>
+            <div class="invalid-feedback" th:errors="*{synopsis}">소개 오류</div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-md-6">
+                <label class="form-label fw-semibold" for="status">작품 상태</label>
+                <select id="status" class="form-select" th:field="*{status}">
+                    <option th:each="statusOption : ${statuses}"
+                            th:value="${statusOption}" th:text="${statusOption.displayName}">초안</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold" for="partMode">부 구분</label>
+                <select th:unless="${editing}" id="partMode" class="form-select"
+                        th:field="*{partMode}" data-part-mode>
+                    <option th:each="partModeOption : ${partModes}"
+                            th:value="${partModeOption}" th:text="${partModeOption.displayName}">부 구분 없음</option>
+                </select>
+                <input th:if="${editing}" type="hidden" th:field="*{partMode}" data-part-mode>
+                <div th:if="${editing}" class="form-control bg-body-secondary"
+                     th:text="${novelForm.partMode.displayName}">부 구분 없음</div>
+                <div class="form-text">작품 생성 후 부 구분 방식은 변경하지 않습니다.</div>
+            </div>
+        </div>
+
+        <div class="mb-4" data-first-part-field>
+            <label class="form-label fw-semibold" for="firstPartTitle">첫 부 제목</label>
+            <input id="firstPartTitle" class="form-control"
+                   th:classappend="${#fields.hasErrors('firstPartTitle')} ? 'is-invalid'"
+                   type="text" th:field="*{firstPartTitle}" maxlength="100"
+                   th:readonly="${editing}" placeholder="예: 잃어버린 왕국">
+            <div class="invalid-feedback" th:errors="*{firstPartTitle}">첫 부 제목 오류</div>
+            <div class="form-text">부 구분을 사용할 때 1부 제목으로 저장됩니다.</div>
+        </div>
+
+        <div class="alert alert-light border small">
+            부 구분을 사용하지 않으면 내부에 기본 부 `본편`을 만들고 독자 화면에서는 부 이름을 숨깁니다.
+        </div>
+
+        <div class="d-flex justify-content-end gap-2">
+            <a class="btn btn-outline-secondary" th:href="@{/writer/novels}">취소</a>
+            <button class="btn btn-dark" type="submit" th:text="${editing ? '수정 저장' : '작품 등록'}">저장</button>
+        </div>
+    </form>
+</main>
+
+<script th:src="@{/js/novel-form.js}"></script>
+</body>
+</html>

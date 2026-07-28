@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="노벨킵 역할별 체험 메인">
     <title th:text="${roleName + ' 체험 | 노벨킵'}">노벨킵</title>
+    <script th:src="@{/js/theme.js}"></script>
     <link rel="stylesheet" th:href="@{/vendor/bootstrap/css/bootstrap.min.css}">
     <link rel="stylesheet" th:href="@{/css/main.css}">
 </head>
@@ -28,6 +29,11 @@
                 <li class="nav-item"><a class="nav-link" href="#funding">소장본 펀딩</a></li>
             </ul>
             <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-sm btn-outline-secondary theme-toggle" type="button"
+                        data-theme-toggle aria-label="다크 모드로 전환" aria-pressed="false">
+                    <span aria-hidden="true">◐</span>
+                    <span data-theme-label>다크 모드</span>
+                </button>
                 <span class="badge role-badge rounded-pill"
                       th:text="|${roleName} 체험 중|">체험 중</span>
                 <form th:action="@{/logout}" method="post">
@@ -45,15 +51,15 @@
                 <div class="role-menu-group">
                     <strong class="small">독자 메뉴</strong>
                     <div class="role-links">
-                        <span class="role-link disabled">내 서재 <small>준비 중</small></span>
+                        <a class="role-link" th:href="@{/novels}">작품 둘러보기</a>
                         <span class="role-link disabled">내 펀딩·주문 <small>준비 중</small></span>
                     </div>
                 </div>
                 <div th:if="${roleKey == 'WRITER' or roleKey == 'ADMIN'}" class="role-menu-group">
                     <strong class="small">작가 메뉴</strong>
                     <div class="role-links">
-                        <span class="role-link disabled">내 작품 <small>준비 중</small></span>
-                        <span class="role-link disabled">작품 등록 <small>준비 중</small></span>
+                        <a class="role-link" th:href="@{/writer/novels}">내 작품</a>
+                        <a class="role-link" th:href="@{/writer/novels/new}">작품 등록</a>
                         <span class="role-link disabled">출판·펀딩 관리 <small>준비 중</small></span>
                     </div>
                 </div>
@@ -68,9 +74,6 @@
                 <div class="role-menu-actions">
                     <form th:if="${roleKey == 'READER'}" th:action="@{/experience/writer}" method="post">
                         <button class="btn btn-sm btn-outline-primary" type="submit">작가 권한 활성화 체험</button>
-                    </form>
-                    <form th:if="${roleKey == 'WRITER'}" th:action="@{/experience/reader}" method="post">
-                        <button class="btn btn-sm btn-outline-secondary" type="submit">독자 권한으로 테스트</button>
                     </form>
                 </div>
             </div>
