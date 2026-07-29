@@ -1,7 +1,10 @@
 package com.novelkeep.novel.domain;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -12,6 +15,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -51,6 +56,10 @@ public class StoryPart {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @OneToMany(mappedBy = "storyPart", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("episodeNumber ASC")
+    private List<Episode> episodes = new ArrayList<>();
+
     protected StoryPart() {
     }
 
@@ -64,6 +73,11 @@ public class StoryPart {
 
     void assignNovel(Novel novel) {
         this.novel = novel;
+    }
+
+    public void addEpisode(Episode episode) {
+        episodes.add(episode);
+        episode.assignStoryPart(this);
     }
 
     @PrePersist
@@ -92,5 +106,9 @@ public class StoryPart {
 
     public StoryPartStatus getStatus() {
         return status;
+    }
+
+    public List<Episode> getEpisodes() {
+        return episodes;
     }
 }

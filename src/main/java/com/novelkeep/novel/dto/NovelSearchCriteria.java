@@ -1,5 +1,6 @@
 package com.novelkeep.novel.dto;
 
+import com.novelkeep.novel.domain.NovelGenre;
 import com.novelkeep.novel.domain.NovelVisibility;
 
 public class NovelSearchCriteria {
@@ -9,7 +10,7 @@ public class NovelSearchCriteria {
     public static final String PROGRESS_COMPLETED = "COMPLETED";
 
     private String keyword;
-    private String genre;
+    private NovelGenre genre;
     private String progress;
     private NovelVisibility visibility;
     private Boolean favorite;
@@ -24,11 +25,11 @@ public class NovelSearchCriteria {
         this.keyword = keyword;
     }
 
-    public String getGenre() {
+    public NovelGenre getGenre() {
         return genre;
     }
 
-    public void setGenre(String genre) {
+    public void setGenre(NovelGenre genre) {
         this.genre = genre;
     }
 

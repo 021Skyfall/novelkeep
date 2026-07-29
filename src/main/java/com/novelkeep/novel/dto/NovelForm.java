@@ -1,6 +1,7 @@
 package com.novelkeep.novel.dto;
 
 import com.novelkeep.novel.domain.Novel;
+import com.novelkeep.novel.domain.NovelGenre;
 import com.novelkeep.novel.domain.NovelStatus;
 import com.novelkeep.novel.domain.NovelVisibility;
 import com.novelkeep.novel.domain.PartMode;
@@ -19,9 +20,8 @@ public class NovelForm {
     @Size(max = 50, message = "공개 필명은 50자 이내로 입력해 주세요.")
     private String penName;
 
-    @NotBlank(message = "장르를 입력해 주세요.")
-    @Size(max = 30, message = "장르는 30자 이내로 입력해 주세요.")
-    private String genre;
+    @NotNull(message = "장르를 선택해 주세요.")
+    private NovelGenre genre = NovelGenre.FANTASY;
 
     @NotBlank(message = "작품 소개를 입력해 주세요.")
     @Size(max = 2000, message = "작품 소개는 2,000자 이내로 입력해 주세요.")
@@ -68,11 +68,11 @@ public class NovelForm {
         this.penName = penName;
     }
 
-    public String getGenre() {
+    public NovelGenre getGenre() {
         return genre;
     }
 
-    public void setGenre(String genre) {
+    public void setGenre(NovelGenre genre) {
         this.genre = genre;
     }
 

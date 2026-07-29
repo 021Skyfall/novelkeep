@@ -1,13 +1,13 @@
 package com.novelkeep.novel.domain;
 
-public enum PartMode {
+public enum EpisodeStatus {
 
-    SINGLE("단권 구성"),
-    MULTI("여러 권 구성");
+    DRAFT("초안"),
+    PUBLISHED("공개");
 
     private final String displayName;
 
-    PartMode(String displayName) {
+    EpisodeStatus(String displayName) {
         this.displayName = displayName;
     }
 

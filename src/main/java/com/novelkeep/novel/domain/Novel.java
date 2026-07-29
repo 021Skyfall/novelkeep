@@ -41,8 +41,9 @@ public class Novel {
     @Column(name = "pen_name", nullable = false, length = 50)
     private String penName;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
-    private String genre;
+    private NovelGenre genre;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String synopsis;
@@ -79,7 +80,7 @@ public class Novel {
             Member author,
             String title,
             String penName,
-            String genre,
+            NovelGenre genre,
             String synopsis,
             NovelStatus status,
             NovelVisibility visibility,
@@ -116,7 +117,7 @@ public class Novel {
     public void update(
             String title,
             String penName,
-            String genre,
+            NovelGenre genre,
             String synopsis,
             NovelStatus status,
             NovelVisibility visibility
@@ -191,7 +192,7 @@ public class Novel {
         return penName;
     }
 
-    public String getGenre() {
+    public NovelGenre getGenre() {
         return genre;
     }
 

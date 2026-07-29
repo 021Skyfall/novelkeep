@@ -39,7 +39,7 @@ public class HomeController {
     ) {
         return ExperienceRole.fromPath(role)
                 .map(selectedRole -> {
-                    Member member = memberService.getOrCreateExperienceMember(selectedRole.getMemberType());
+                    Member member = memberService.findExperienceMember(selectedRole.getMemberType());
                     session.setAttribute(SESSION_ROLE, selectedRole);
                     session.setAttribute(SESSION_MEMBER_ID, member.getId());
                     return "redirect:/main";

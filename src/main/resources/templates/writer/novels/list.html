@@ -42,7 +42,7 @@
                             <option value="">전체</option>
                             <option th:each="genreOption : ${genres}"
                                     th:value="${genreOption}"
-                                    th:text="${genreOption}"
+                                    th:text="${genreOption.displayName}"
                                     th:selected="${criteria.genre == genreOption}">장르</option>
                         </select>
                     </div>
@@ -100,7 +100,8 @@
                         <span th:if="${novel.partMode.name() == 'MULTI' and novel.latestCompletedPartLabel() != null}"
                               class="badge part-badge"
                               th:text="${novel.latestCompletedPartLabel()}">1부 완결</span>
-                        <span class="badge text-bg-light border" th:text="${novel.genre}">장르</span>
+                        <span class="badge text-bg-light border"
+                              th:text="${novel.genre.displayName}">장르</span>
                         <span class="badge recommend-badge"
                               th:text="|추천 ${novel.recommendationCount}|">추천 0</span>
                     </div>

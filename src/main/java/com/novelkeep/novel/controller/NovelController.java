@@ -4,6 +4,7 @@ import java.util.Set;
 
 import com.novelkeep.home.domain.ExperienceRole;
 import com.novelkeep.novel.domain.Novel;
+import com.novelkeep.novel.domain.NovelGenre;
 import com.novelkeep.novel.domain.NovelStatus;
 import com.novelkeep.novel.domain.NovelVisibility;
 import com.novelkeep.novel.domain.PartMode;
@@ -304,14 +305,14 @@ public class NovelController {
         }
         if (criteria.isCompletedProgress()
                 && isBlank(criteria.getKeyword())
-                && isBlank(criteria.getGenre())
+                && criteria.getGenre() == null
                 && criteria.getVisibility() == null) {
             return "completed";
         }
         if (!criteria.isTitleSort()
                 && !criteria.isRecommendSort()
                 && isBlank(criteria.getKeyword())
-                && isBlank(criteria.getGenre())
+                && criteria.getGenre() == null
                 && isBlank(criteria.getProgress())
                 && criteria.getVisibility() == null
                 && !criteria.isFavoriteOnly()
@@ -337,6 +338,7 @@ public class NovelController {
     }
 
     private void addFormOptions(Model model, boolean editing, Long novelId) {
+        model.addAttribute("genres", NovelGenre.values());
         model.addAttribute("statuses", NovelStatus.values());
         model.addAttribute("visibilities", NovelVisibility.values());
         model.addAttribute("partModes", PartMode.values());

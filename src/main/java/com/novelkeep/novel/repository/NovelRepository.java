@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 
 import com.novelkeep.novel.domain.Novel;
+import com.novelkeep.novel.domain.NovelGenre;
 import com.novelkeep.novel.domain.NovelVisibility;
 
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -28,7 +29,7 @@ public interface NovelRepository extends JpaRepository<Novel, Long>, JpaSpecific
              where n.visibility = :visibility
              order by n.genre asc
             """)
-    List<String> findDistinctGenresByVisibility(@Param("visibility") NovelVisibility visibility);
+    List<NovelGenre> findDistinctGenresByVisibility(@Param("visibility") NovelVisibility visibility);
 
     @Query("""
             select distinct n.genre
@@ -36,10 +37,10 @@ public interface NovelRepository extends JpaRepository<Novel, Long>, JpaSpecific
              where n.author.id = :authorId
              order by n.genre asc
             """)
-    List<String> findDistinctGenresByAuthorId(@Param("authorId") Long authorId);
+    List<NovelGenre> findDistinctGenresByAuthorId(@Param("authorId") Long authorId);
 
     @Query("select distinct n.genre from Novel n order by n.genre asc")
-    List<String> findDistinctGenres();
+    List<NovelGenre> findDistinctGenres();
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""

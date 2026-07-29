@@ -33,8 +33,9 @@
                     <span th:if="${novel.partMode.name() == 'MULTI' and novel.latestCompletedPartLabel() != null}"
                           class="badge part-badge"
                           th:text="${novel.latestCompletedPartLabel()}">1부 완결</span>
-                    <span class="badge text-bg-light border" th:text="${novel.genre}">장르</span>
-                    <span class="badge text-bg-light border" th:text="${novel.partMode.displayName}">부 구분</span>
+                    <span class="badge text-bg-light border"
+                          th:text="${novel.genre.displayName}">장르</span>
+                    <span class="badge text-bg-light border" th:text="${novel.partMode.displayName}">권 구성</span>
                     <span class="badge recommend-badge" data-recommend-count
                           th:text="|추천 ${novel.recommendationCount}|">추천 0</span>
                 </div>
@@ -81,7 +82,7 @@
         <div class="section-heading">
             <div>
                 <span class="eyebrow">STORY PARTS</span>
-                <h2 id="parts-title" class="h3 fw-bold mt-2">부·회차 구성</h2>
+                <h2 id="parts-title" class="h3 fw-bold mt-2">권(부)·회차 구성</h2>
             </div>
             <span class="small text-secondary">회차 기능은 다음 구현 단계에서 연결됩니다.</span>
         </div>
