@@ -7,68 +7,151 @@
     <title>내 작품 | 노벨킵</title>
     <script th:src="@{/js/theme.js}"></script>
     <link rel="stylesheet" th:href="@{/vendor/bootstrap/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/navigation.css}">
     <link rel="stylesheet" th:href="@{/css/novel.css}">
 </head>
-<body>
-<nav class="navbar bg-white border-bottom sticky-top" aria-label="내 작품 메뉴">
-    <div class="container py-2">
-        <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" th:href="@{/main}">
-            <span class="brand-mark" aria-hidden="true">N</span>
-            <span>노벨킵</span>
-        </a>
-        <div class="d-flex align-items-center gap-2">
-            <a class="btn btn-sm btn-outline-secondary" th:href="@{/novels}">공개 작품</a>
-            <button class="btn btn-sm btn-outline-secondary theme-toggle" type="button"
-                    data-theme-toggle aria-label="다크 모드로 전환" aria-pressed="false">
-                <span aria-hidden="true">◐</span>
-                <span data-theme-label>다크 모드</span>
-            </button>
-            <span class="badge role-badge rounded-pill" th:text="|${roleName} 체험 중|">체험 중</span>
-        </div>
-    </div>
-</nav>
+<body th:classappend="${roleKey != null} ? | role-${#strings.toLowerCase(roleKey)}|">
+<div th:replace="~{fragments/navigation :: siteNav('writer')}"></div>
 
 <main class="container py-5">
-    <div th:if="${param.deleted}" class="alert alert-success">작품을 삭제했습니다.</div>
-
-    <header class="page-heading d-flex flex-column flex-sm-row justify-content-between align-items-sm-end gap-3 mb-4">
-        <div>
-            <span class="eyebrow">WRITER WORKSPACE</span>
-            <h1 class="display-6 fw-bold mt-2">내 작품</h1>
-            <p class="text-secondary mb-0">현재 체험 회원이 소유한 작품만 관리합니다.</p>
-        </div>
-        <a class="btn btn-dark" th:href="@{/writer/novels/new}">새 작품 등록</a>
+    <header class="page-heading mb-3">
+        <span class="eyebrow">WRITER WORKS</span>
+        <h1 class="display-6 fw-bold mt-2">내 작품</h1>
+        <p class="text-secondary mb-0">내가 소유한 작품만 관리합니다. 공개·미공개와 연재 상태를 바로 확인하세요.</p>
     </header>
 
-    <div th:if="${#lists.isEmpty(novels)}" class="empty-state">
-        <strong>아직 등록한 작품이 없습니다.</strong>
-        <p>첫 작품을 등록하고 연재 준비를 시작해 보세요.</p>
-        <a class="btn btn-dark" th:href="@{/writer/novels/new}">첫 작품 등록</a>
-    </div>
+    <div th:if="${param.deleted}" class="alert alert-success">작품을 삭제했습니다.</div>
 
-    <div th:unless="${#lists.isEmpty(novels)}" class="writer-list">
-        <article th:each="novel : ${novels}" class="writer-item">
-            <div>
-                <div class="d-flex flex-wrap gap-2 mb-2">
-                    <span class="badge status-badge" th:text="${novel.status.displayName}">초안</span>
-                    <span class="badge text-bg-light border" th:text="${novel.partMode.displayName}">부 구분</span>
-                    <span class="badge text-bg-light border" th:text="${novel.genre}">장르</span>
+    <div th:fragment="asyncContent" data-async-content data-async-base="/writer/novels" aria-live="polite">
+        <div class="search-panel mb-4">
+            <div class="d-flex justify-content-end mb-3">
+                <a class="btn btn-create-novel" th:href="@{/writer/novels/new}">＋ 작품 등록</a>
+            </div>
+            <form method="get" th:action="@{/writer/novels}" th:object="${criteria}"
+                  data-auto-search-form data-async-search>
+                <div class="row g-3 align-items-end">
+                    <div class="col-lg-4">
+                        <label class="form-label fw-semibold" for="keyword">제목 검색</label>
+                        <input id="keyword" class="form-control" type="search" name="keyword"
+                               th:value="*{keyword}" placeholder="작품 제목"
+                               data-auto-search-keyword>
+                    </div>
+                    <div class="col-md-6 col-lg-2">
+                        <label class="form-label fw-semibold" for="genre">장르</label>
+                        <select id="genre" class="form-select" name="genre" data-auto-search>
+                            <option value="">전체</option>
+                            <option th:each="genreOption : ${genres}"
+                                    th:value="${genreOption}"
+                                    th:text="${genreOption}"
+                                    th:selected="${criteria.genre == genreOption}">장르</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 col-lg-2">
+                        <label class="form-label fw-semibold" for="progress">연재 상태</label>
+                        <select id="progress" class="form-select" name="progress" data-auto-search>
+                            <option value="" th:selected="${criteria.progress == null or criteria.progress == ''}">전체</option>
+                            <option value="SERIALIZING" th:selected="${criteria.serializingProgress}">연재 중</option>
+                            <option value="PART_COMPLETED" th:selected="${criteria.partCompletedProgress}">부 완결</option>
+                            <option value="COMPLETED" th:selected="${criteria.completedProgress}">전체 완결</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 col-lg-2">
+                        <label class="form-label fw-semibold" for="visibility">공개 여부</label>
+                        <select id="visibility" class="form-select" name="visibility" data-auto-search>
+                            <option value="">전체</option>
+                            <option th:each="visibilityOption : ${visibilities}"
+                                    th:value="${visibilityOption}"
+                                    th:text="${visibilityOption.displayName}"
+                                    th:selected="${criteria.visibility == visibilityOption}">공개</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 col-lg-2">
+                        <label class="form-label fw-semibold" for="sort">정렬</label>
+                        <select id="sort" class="form-select" name="sort" data-auto-search>
+                            <option value="latest" th:selected="${!criteria.titleSort and !criteria.recommendSort}">수정일순</option>
+                            <option value="recommend" th:selected="${criteria.recommendSort}">추천순</option>
+                            <option value="title" th:selected="${criteria.titleSort}">제목순</option>
+                        </select>
+                    </div>
+                    <div class="col-12 d-flex justify-content-end">
+                        <a class="btn btn-outline-secondary" data-async-reset th:href="@{/writer/novels}">초기화</a>
+                    </div>
                 </div>
-                <h2 class="h5 fw-bold mb-1" th:text="${novel.title}">작품명</h2>
-                <p class="text-secondary mb-0" th:text="|필명 ${novel.penName}|">필명</p>
-            </div>
-            <div class="d-flex flex-wrap gap-2">
-                <a class="btn btn-sm btn-outline-secondary"
-                   th:href="@{/novels/{id}(id=${novel.id})}">상세</a>
-                <a class="btn btn-sm btn-outline-dark"
-                   th:href="@{/writer/novels/{id}/edit(id=${novel.id})}">수정</a>
-                <form th:action="@{/writer/novels/{id}/delete(id=${novel.id})}" method="post"
-                      onsubmit="return confirm('이 작품과 하위 데이터를 삭제하시겠습니까?');">
-                    <button class="btn btn-sm btn-outline-danger" type="submit">삭제</button>
-                </form>
-            </div>
-        </article>
+            </form>
+        </div>
+
+        <div th:if="${novels.totalElements == 0}" class="empty-state">
+            <strong>조건에 맞는 내 작품이 없습니다.</strong>
+            <p class="mb-3">새 작품을 등록하거나 검색 조건을 바꿔 보세요.</p>
+            <a class="btn btn-create-novel" th:href="@{/writer/novels/new}">＋ 작품 등록</a>
+        </div>
+
+        <div th:unless="${novels.totalElements == 0}" class="writer-list position-relative">
+            <div class="position-absolute top-50 start-50 translate-middle z-3
+                        fs-4 fw-bold text-secondary d-none"
+                 data-async-status aria-label="목록 불러오는 중">...</div>
+            <article th:each="novel : ${novels.content}" class="writer-item">
+                <div class="flex-grow-1">
+                    <div class="d-flex flex-wrap gap-2 mb-2">
+                        <span class="badge status-badge" th:text="${novel.status.displayName}">연재 중</span>
+                        <span class="badge"
+                              th:classappend="${novel.visibility.name() == 'PUBLIC'} ? ' visibility-public' : ' visibility-private'"
+                              th:text="${novel.visibility.displayName}">공개</span>
+                        <span th:if="${novel.partMode.name() == 'MULTI' and novel.latestCompletedPartLabel() != null}"
+                              class="badge part-badge"
+                              th:text="${novel.latestCompletedPartLabel()}">1부 완결</span>
+                        <span class="badge text-bg-light border" th:text="${novel.genre}">장르</span>
+                        <span class="badge recommend-badge"
+                              th:text="|추천 ${novel.recommendationCount}|">추천 0</span>
+                    </div>
+                    <h2 class="h5 fw-bold mb-1">
+                        <a class="novel-title-link"
+                           th:href="@{/novels/{id}(id=${novel.id}, from='writer')}"
+                           th:text="${novel.title}">작품명</a>
+                    </h2>
+                    <p class="text-secondary small mb-0"
+                       th:text="|필명 ${novel.penName} · 수정 ${#temporals.format(novel.updatedAt, 'yyyy-MM-dd HH:mm')}|">정보</p>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <a class="btn btn-sm btn-outline-secondary"
+                       th:href="@{/novels/{id}(id=${novel.id}, from='writer')}">상세</a>
+                    <a class="btn btn-sm btn-outline-dark"
+                       th:href="@{/writer/novels/{id}/edit(id=${novel.id})}">수정</a>
+                    <form th:action="@{/writer/novels/{id}/delete(id=${novel.id})}" method="post"
+                          data-confirm-delete="작품을 삭제할까요? 삭제 후에는 되돌릴 수 없습니다.">
+                        <button class="btn btn-sm btn-outline-danger" type="submit">삭제</button>
+                    </form>
+                </div>
+            </article>
+        </div>
+
+        <nav th:if="${novels.totalPages > 1}" class="mt-4" aria-label="내 작품 페이지" data-async-pagination>
+            <ul class="pagination justify-content-center flex-wrap">
+                <li class="page-item" th:classappend="${novels.first} ? ' disabled'">
+                    <a class="page-link" data-async-page
+                       th:href="@{/writer/novels(keyword=${criteria.keyword}, genre=${criteria.genre}, progress=${criteria.progress}, visibility=${criteria.visibility}, sort=${criteria.sort}, page=${novels.number - 1})}">이전</a>
+                </li>
+                <li class="page-item"
+                    th:each="pageNumber : ${#numbers.sequence(0, novels.totalPages - 1)}"
+                    th:classappend="${pageNumber == novels.number} ? ' active'">
+                    <a class="page-link" data-async-page
+                       th:text="${pageNumber + 1}"
+                       th:href="@{/writer/novels(keyword=${criteria.keyword}, genre=${criteria.genre}, progress=${criteria.progress}, visibility=${criteria.visibility}, sort=${criteria.sort}, page=${pageNumber})}">1</a>
+                </li>
+                <li class="page-item" th:classappend="${novels.last} ? ' disabled'">
+                    <a class="page-link" data-async-page
+                       th:href="@{/writer/novels(keyword=${criteria.keyword}, genre=${criteria.genre}, progress=${criteria.progress}, visibility=${criteria.visibility}, sort=${criteria.sort}, page=${novels.number + 1})}">다음</a>
+                </li>
+            </ul>
+        </nav>
     </div>
 </main>
+
+<footer class="border-top py-4">
+    <div class="container small text-secondary">NovelKeep · 소유 작품만 관리합니다.</div>
+</footer>
+<script th:src="@{/vendor/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/js/novel-search.js}"></script>
+<script th:src="@{/js/novel-confirm.js}"></script>
 </body>
 </html>

@@ -26,8 +26,12 @@ erDiagram
     direction LR
 
     MEMBER ||--o{ NOVEL : "작품을 작성한다"
+    MEMBER ||--o{ NOVEL_RECOMMENDATION : "작품을 추천한다"
+    MEMBER ||--o{ NOVEL_FAVORITE : "작품을 즐겨찾기한다"
     MEMBER ||--o{ FUNDING_PARTICIPATION : "펀딩에 참여한다"
     NOVEL ||--|{ STORY_PART : "부를 가진다"
+    NOVEL ||--o{ NOVEL_RECOMMENDATION : "추천을 받는다"
+    NOVEL ||--o{ NOVEL_FAVORITE : "즐겨찾기된다"
     STORY_PART ||--o{ EPISODE : "회차를 가진다"
     STORY_PART ||--o{ PUBLICATION_VOLUME : "권을 계획한다"
     PUBLICATION_VOLUME ||--o{ VOLUME_EPISODE : "회차를 묶는다"
@@ -50,9 +54,25 @@ erDiagram
         VARCHAR genre
         TEXT synopsis
         VARCHAR status
+        VARCHAR visibility
         VARCHAR part_mode
+        BIGINT recommendation_count
         DATETIME created_at
         DATETIME updated_at
+    }
+
+    NOVEL_RECOMMENDATION {
+        BIGINT id PK
+        BIGINT member_id FK
+        BIGINT novel_id FK
+        DATETIME created_at
+    }
+
+    NOVEL_FAVORITE {
+        BIGINT id PK
+        BIGINT member_id FK
+        BIGINT novel_id FK
+        DATETIME created_at
     }
 
     STORY_PART {
@@ -147,10 +167,23 @@ erDiagram
 
 ### NOVEL — 작품
 
-- 작품 기본 정보와 전체 연재 상태를 관리한다.
+- 작품 기본 정보, 연재 상태와 공개 여부를 관리한다.
 - `author_id`로 작품 소유자를 구분하고 `pen_name`은 화면에 공개할 필명이다.
-- 상태: `DRAFT`, `SERIALIZING`, `COMPLETED`
+- 연재 상태: `SERIALIZING`, `COMPLETED`
+- 공개 여부: `PUBLIC`, `PRIVATE` (새 작품 기본값 `PRIVATE`, 목 데이터는 `PUBLIC`)
 - `part_mode`: `SINGLE`(부 구분 없음), `MULTI`(1부·2부 사용)
+- `recommendation_count`: 추천순 조회용 비정규화 카운트다. 추천 토글 시 작품 수정일과 분리된 bulk update로 변경한다.
+
+### NOVEL_RECOMMENDATION — 작품 추천
+
+- 회원이 공개 작품을 추천한 기록이다.
+- `(member_id, novel_id)`를 유일하게 유지해 회원당 작품별 1회만 허용한다.
+- 자신의 작품 추천은 Service에서 차단한다.
+
+### NOVEL_FAVORITE — 내 즐겨찾기
+
+- 회원이 공개 작품을 내 즐겨찾기에 저장한 기록이다.
+- `(member_id, novel_id)`를 유일하게 유지해 중복 저장을 차단한다.
 
 ### STORY_PART — 부
 
@@ -207,6 +240,8 @@ erDiagram
 |---|---|
 | MEMBER | `UNIQUE(member_type)` — 역할별 고정 체험 회원 1명 |
 | NOVEL | `author_id NOT NULL` |
+| NOVEL_RECOMMENDATION | `UNIQUE(member_id, novel_id)` |
+| NOVEL_FAVORITE | `UNIQUE(member_id, novel_id)` |
 | STORY_PART | `UNIQUE(novel_id, part_number)` |
 | EPISODE | `UNIQUE(story_part_id, episode_number)` |
 | PUBLICATION_VOLUME | `UNIQUE(story_part_id, volume_number)` |
@@ -221,8 +256,9 @@ DB 제약조건으로 표현하기 어려운 아래 규칙은 Service에서 검�
 - `AUTHOR`와 `ADMIN` 회원은 작품을 만들 수 있다.
 - 모든 회원은 독자 기능으로 펀딩에 참여할 수 있다.
 - `ADMIN` 회원만 전체 주문 상태를 변경하고 운영 통계·내보내기를 사용할 수 있다.
-- 공개 콘텐츠 조회는 역할과 소유자와 관계없이 동일 원본을 반환한다. `NOVEL.DRAFT`와 `EPISODE.DRAFT`는 공개하지 않는다.
-- 작품 수정·삭제는 `novel.id + novel.author_id == session.memberId`로 소유권을 검증한다.
+- 공개 콘텐츠 조회는 역할별 복제 없이 동일 원본을 반환한다. `NOVEL.visibility=PRIVATE`는 소유자와 관리자만 조회하고, `EPISODE.DRAFT`는 공개하지 않는다.
+- 추천과 내 즐겨찾기는 `NOVEL.visibility=PUBLIC`인 작품에만 허용하고, 자신의 작품 추천은 차단한다.
+- 작품 수정·삭제는 `novel.id + novel.author_id == session.memberId`로 소유권을 검증한다. 관리자도 타 작가 작품은 수정하지 못한다.
 - 부·회차·권·펀딩 변경은 상위 `NOVEL.author_id`까지 조인해 같은 소유권 규칙을 적용한다.
 - AUTHOR 권한만으로 다른 작가의 리소스를 수정할 수 없다.
 - 작품 생성 시 `SINGLE`이면 `1 / 본편` 부를 자동 생성한다.
@@ -253,6 +289,8 @@ DB 제약조건으로 표현하기 어려운 아래 규칙은 Service에서 검�
 |---|---|---|
 | NOVEL | `(status, updated_at)` | 독자 작품 목록 |
 | NOVEL | `(author_id, updated_at)` | 작가 작품 관리 |
+| NOVEL_RECOMMENDATION | `UNIQUE(member_id, novel_id)` | 추천 토글·추천 여부 조회 |
+| NOVEL_FAVORITE | `UNIQUE(member_id, novel_id)` | 내 즐겨찾기 토글·목록 조회 |
 | STORY_PART | `(novel_id, part_number)` | 작품 상세 |
 | EPISODE | `(story_part_id, episode_number)` | 회차 목록·읽기 |
 | FUNDING_CAMPAIGN | `(status, end_at)` | 진행 중 펀딩 목록 |
@@ -289,7 +327,14 @@ DB 제약조건으로 표현하기 어려운 아래 규칙은 Service에서 검�
 
 ## 7. 상태 전이
 
-### 작품·부
+### 작품
+
+```text
+SERIALIZING → COMPLETED
+PUBLIC / PRIVATE (공개 여부, 연재 상태와 별도)
+```
+
+### 부
 
 ```text
 DRAFT → SERIALIZING → COMPLETED

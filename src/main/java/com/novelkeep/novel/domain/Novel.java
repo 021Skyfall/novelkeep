@@ -52,8 +52,15 @@ public class Novel {
     private NovelStatus status;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20, columnDefinition = "varchar(20) not null default 'PUBLIC'")
+    private NovelVisibility visibility;
+
+    @Enumerated(EnumType.STRING)
     @Column(name = "part_mode", nullable = false, length = 20)
     private PartMode partMode;
+
+    @Column(name = "recommendation_count", nullable = false, columnDefinition = "bigint not null default 0")
+    private long recommendationCount;
 
     @OneToMany(mappedBy = "novel", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("partNumber ASC")
@@ -75,6 +82,7 @@ public class Novel {
             String genre,
             String synopsis,
             NovelStatus status,
+            NovelVisibility visibility,
             PartMode partMode
     ) {
         Novel novel = new Novel();
@@ -84,8 +92,20 @@ public class Novel {
         novel.genre = genre;
         novel.synopsis = synopsis;
         novel.status = status;
+        novel.visibility = visibility;
         novel.partMode = partMode;
+        novel.recommendationCount = 0L;
         return novel;
+    }
+
+    public void increaseRecommendationCount() {
+        this.recommendationCount += 1;
+    }
+
+    public void decreaseRecommendationCount() {
+        if (this.recommendationCount > 0) {
+            this.recommendationCount -= 1;
+        }
     }
 
     public void addPart(StoryPart part) {
@@ -93,12 +113,48 @@ public class Novel {
         part.assignNovel(this);
     }
 
-    public void update(String title, String penName, String genre, String synopsis, NovelStatus status) {
+    public void update(
+            String title,
+            String penName,
+            String genre,
+            String synopsis,
+            NovelStatus status,
+            NovelVisibility visibility
+    ) {
         this.title = title;
         this.penName = penName;
         this.genre = genre;
         this.synopsis = synopsis;
         this.status = status;
+        this.visibility = visibility;
+    }
+
+    public boolean hasCompletedPart() {
+        return parts.stream().anyMatch(part -> part.getStatus() == StoryPartStatus.COMPLETED);
+    }
+
+    public Integer latestCompletedPartNumber() {
+        return parts.stream()
+                .filter(part -> part.getStatus() == StoryPartStatus.COMPLETED)
+                .map(StoryPart::getPartNumber)
+                .max(Integer::compareTo)
+                .orElse(null);
+    }
+
+    public String latestCompletedPartLabel() {
+        Integer partNumber = latestCompletedPartNumber();
+        return partNumber == null ? null : partNumber + "부 완결";
+    }
+
+    public boolean isOwnedBy(Long memberId) {
+        return author != null && author.getId().equals(memberId);
+    }
+
+    public boolean isReadableBy(Long memberId, boolean admin) {
+        if (visibility == NovelVisibility.PUBLIC) {
+            return true;
+        }
+        return admin || isOwnedBy(memberId);
     }
 
     @PrePersist
@@ -106,6 +162,12 @@ public class Novel {
         LocalDateTime now = LocalDateTime.now();
         this.createdAt = now;
         this.updatedAt = now;
+        if (this.visibility == null) {
+            this.visibility = NovelVisibility.PRIVATE;
+        }
+        if (this.recommendationCount < 0) {
+            this.recommendationCount = 0L;
+        }
     }
 
     @PreUpdate
@@ -141,8 +203,16 @@ public class Novel {
         return status;
     }
 
+    public NovelVisibility getVisibility() {
+        return visibility;
+    }
+
     public PartMode getPartMode() {
         return partMode;
+    }
+
+    public long getRecommendationCount() {
+        return recommendationCount;
     }
 
     public List<StoryPart> getParts() {

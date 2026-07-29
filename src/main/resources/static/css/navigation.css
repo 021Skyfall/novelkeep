@@ -1,0 +1,243 @@
+.brand-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    color: #fff;
+    background: #a4485d;
+    border-radius: 0.55rem;
+    font-family: Georgia, serif;
+}
+
+.nk-navbar {
+    z-index: 1030;
+}
+
+.nk-navbar .nav-link {
+    font-size: 1.05rem;
+}
+
+.theme-toggle {
+    min-width: 6.5rem;
+}
+
+.role-badge {
+    color: #843648;
+    background: #f8e8ec;
+    border: 1px solid #ebc9d1;
+}
+
+.role-menu {
+    background: #f8f6f2;
+}
+
+.role-menu-inner,
+.role-menu-group,
+.role-links {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.role-menu-inner {
+    min-height: 2.75rem;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+}
+
+.role-links {
+    flex-wrap: wrap;
+    gap: 0.85rem;
+}
+
+.role-menu-group + .role-menu-group {
+    padding-left: 1rem;
+    border-left: 2px solid #ded7ce;
+}
+
+.role-menu-actions {
+    margin-left: auto;
+}
+
+.role-menu-actions .btn-outline-primary {
+    color: #a4485d;
+    border-color: #a4485d;
+}
+
+.role-menu-actions .btn-outline-primary:hover,
+.role-menu-actions .btn-outline-primary:focus {
+    color: #fff;
+    background: #a4485d;
+    border-color: #a4485d;
+}
+
+.role-menu-group {
+    align-items: flex-start;
+}
+
+.role-menu-title {
+    display: block;
+    margin-bottom: 0.15rem;
+    color: #3f3832;
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.role-link {
+    color: #5f5750;
+    font-size: 1.05rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.role-menu-actions .btn {
+    font-size: 1rem;
+}
+
+a.role-link:hover,
+a.role-link:focus,
+a.role-link.is-active {
+    color: #a4485d;
+    text-decoration: underline;
+    text-underline-offset: 0.2rem;
+}
+
+.role-link.disabled,
+.role-link:disabled {
+    color: #9a928a;
+    cursor: default;
+    pointer-events: none;
+}
+
+.role-link small {
+    color: #9a928a;
+}
+
+.role-reader .role-badge {
+    color: #345e74;
+    background: #e5f2f7;
+    border-color: #c7e1eb;
+}
+
+.role-admin .role-badge {
+    color: #6a552f;
+    background: #f5eddd;
+    border-color: #e5d3af;
+}
+
+[data-bs-theme="dark"] .nk-navbar.bg-white {
+    background: #1b1715 !important;
+    border-color: #3a342f !important;
+}
+
+[data-bs-theme="dark"] .role-menu {
+    background: #221e1b;
+    border-color: #3a342f !important;
+}
+
+[data-bs-theme="dark"] .role-menu-group + .role-menu-group {
+    border-left-color: #3a342f;
+}
+
+[data-bs-theme="dark"] .role-link {
+    color: #d7cfc6;
+}
+
+[data-bs-theme="dark"] .role-menu-title {
+    color: #f1ece6;
+}
+
+[data-bs-theme="dark"] a.role-link.is-active {
+    color: #efbac6;
+}
+
+[data-bs-theme="dark"] .role-link small,
+[data-bs-theme="dark"] .role-link.disabled {
+    color: #9a9188;
+}
+
+[data-bs-theme="dark"] .role-badge {
+    color: #efbac6;
+    background: #3b252b;
+    border-color: #63404a;
+}
+
+[data-bs-theme="dark"] .role-reader .role-badge {
+    color: #b9dae8;
+    background: #21343d;
+    border-color: #345563;
+}
+
+[data-bs-theme="dark"] .role-admin .role-badge {
+    color: #e5c995;
+    background: #382f20;
+    border-color: #5f5137;
+}
+
+@media (max-width: 991.98px) {
+    .role-menu-inner {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.35rem;
+    }
+
+    .role-menu-group + .role-menu-group {
+        padding-top: 0.35rem;
+        padding-left: 0;
+        border-top: 2px solid #ded7ce;
+        border-left: 0;
+    }
+
+    .role-menu-actions {
+        margin-top: 0.35rem;
+        margin-left: 0;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .theme-toggle {
+        min-width: auto;
+    }
+
+    .theme-toggle [data-theme-label] {
+        display: none;
+    }
+
+    .role-menu-group {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+}
+
+[data-bs-theme="dark"] .role-menu-group + .role-menu-group {
+    border-top-color: #3a342f;
+}
+
+.back-to-top {
+    position: fixed;
+    right: 1.25rem;
+    bottom: 1.25rem;
+    z-index: 1040;
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    border-radius: 999px;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(0.5rem);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.back-to-top.is-visible {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+[data-bs-theme="dark"] .back-to-top {
+    color: #1b1715;
+    background: #f1ece6;
+    border-color: #f1ece6;
+}

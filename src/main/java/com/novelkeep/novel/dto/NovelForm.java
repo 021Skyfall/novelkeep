@@ -2,6 +2,7 @@ package com.novelkeep.novel.dto;
 
 import com.novelkeep.novel.domain.Novel;
 import com.novelkeep.novel.domain.NovelStatus;
+import com.novelkeep.novel.domain.NovelVisibility;
 import com.novelkeep.novel.domain.PartMode;
 
 import jakarta.validation.constraints.NotBlank;
@@ -27,7 +28,10 @@ public class NovelForm {
     private String synopsis;
 
     @NotNull(message = "작품 상태를 선택해 주세요.")
-    private NovelStatus status = NovelStatus.DRAFT;
+    private NovelStatus status = NovelStatus.SERIALIZING;
+
+    @NotNull(message = "공개 여부를 선택해 주세요.")
+    private NovelVisibility visibility = NovelVisibility.PRIVATE;
 
     @NotNull(message = "부 구분 사용 여부를 선택해 주세요.")
     private PartMode partMode = PartMode.SINGLE;
@@ -42,6 +46,7 @@ public class NovelForm {
         form.genre = novel.getGenre();
         form.synopsis = novel.getSynopsis();
         form.status = novel.getStatus();
+        form.visibility = novel.getVisibility();
         form.partMode = novel.getPartMode();
         form.firstPartTitle = novel.getParts().isEmpty() ? null : novel.getParts().getFirst().getTitle();
         return form;
@@ -85,6 +90,14 @@ public class NovelForm {
 
     public void setStatus(NovelStatus status) {
         this.status = status;
+    }
+
+    public NovelVisibility getVisibility() {
+        return visibility;
+    }
+
+    public void setVisibility(NovelVisibility visibility) {
+        this.visibility = visibility;
     }
 
     public PartMode getPartMode() {

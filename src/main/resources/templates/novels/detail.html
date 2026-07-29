@@ -7,28 +7,18 @@
     <title th:text="${novel.title + ' | 노벨킵'}">작품 상세 | 노벨킵</title>
     <script th:src="@{/js/theme.js}"></script>
     <link rel="stylesheet" th:href="@{/vendor/bootstrap/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/navigation.css}">
     <link rel="stylesheet" th:href="@{/css/novel.css}">
 </head>
-<body>
-<nav class="navbar bg-white border-bottom sticky-top" aria-label="작품 상세 메뉴">
-    <div class="container py-2">
-        <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" th:href="@{/main}">
-            <span class="brand-mark" aria-hidden="true">N</span>
-            <span>노벨킵</span>
-        </a>
-        <div class="d-flex align-items-center gap-2">
-            <a class="btn btn-sm btn-outline-secondary" th:href="@{/novels}">작품 목록</a>
-            <button class="btn btn-sm btn-outline-secondary theme-toggle" type="button"
-                    data-theme-toggle aria-label="다크 모드로 전환" aria-pressed="false">
-                <span aria-hidden="true">◐</span>
-                <span data-theme-label>다크 모드</span>
-            </button>
-            <span class="badge role-badge rounded-pill" th:text="|${roleName} 체험 중|">체험 중</span>
-        </div>
-    </div>
-</nav>
+<body th:classappend="${roleKey != null} ? | role-${#strings.toLowerCase(roleKey)}|">
+<div th:replace="~{fragments/navigation :: siteNav(${fromWriter} ? 'writer' : 'novels')}"></div>
 
 <main class="container py-5">
+    <div class="mb-4">
+        <button class="btn btn-back-list" type="button" data-back-to-list
+                th:attr="data-fallback-url=${fromWriter} ? @{/writer/novels} : @{/novels}">← 목록으로</button>
+    </div>
+
     <div th:if="${param.created}" class="alert alert-success">작품을 등록했습니다.</div>
     <div th:if="${param.updated}" class="alert alert-success">작품 정보를 수정했습니다.</div>
 
@@ -37,15 +27,50 @@
             <div>
                 <div class="d-flex flex-wrap gap-2 mb-3">
                     <span class="badge status-badge" th:text="${novel.status.displayName}">연재 중</span>
+                    <span class="badge"
+                          th:classappend="${novel.visibility.name() == 'PUBLIC'} ? ' visibility-public' : ' visibility-private'"
+                          th:text="${novel.visibility.displayName}">공개</span>
+                    <span th:if="${novel.partMode.name() == 'MULTI' and novel.latestCompletedPartLabel() != null}"
+                          class="badge part-badge"
+                          th:text="${novel.latestCompletedPartLabel()}">1부 완결</span>
                     <span class="badge text-bg-light border" th:text="${novel.genre}">장르</span>
                     <span class="badge text-bg-light border" th:text="${novel.partMode.displayName}">부 구분</span>
+                    <span class="badge recommend-badge" data-recommend-count
+                          th:text="|추천 ${novel.recommendationCount}|">추천 0</span>
                 </div>
                 <h1 class="display-6 fw-bold" th:text="${novel.title}">작품명</h1>
                 <p class="text-secondary mb-0" th:text="|필명 ${novel.penName}|">필명</p>
             </div>
-            <div th:if="${owned}">
-                <a class="btn btn-outline-dark"
+            <div class="d-flex flex-wrap gap-2 align-items-start" data-detail-actions>
+                <div class="small text-danger w-100 d-none" data-action-error role="alert"></div>
+                <form th:if="${canFavorite}"
+                      th:action="@{/novels/{id}/favorite(id=${novel.id}, from=${fromWriter} ? 'writer' : null)}"
+                      method="post"
+                      data-novel-action="favorite"
+                      th:attr="data-novel-id=${novel.id}">
+                    <button class="btn favorite-toggle" data-action-button
+                            th:classappend="${favorited} ? ' is-active'"
+                            type="submit"
+                            th:aria-label="${favorited} ? '내 즐겨찾기 해제' : '내 즐겨찾기'"
+                            th:text="${favorited} ? '★' : '☆'">☆</button>
+                </form>
+                <form th:if="${canRecommend}"
+                      th:action="@{/novels/{id}/recommend(id=${novel.id}, from=${fromWriter} ? 'writer' : null)}"
+                      method="post"
+                      data-novel-action="recommend"
+                      th:attr="data-novel-id=${novel.id}">
+                    <button class="btn" data-action-button
+                            th:classappend="${recommended} ? 'btn-dark' : 'btn-outline-dark'"
+                            type="submit"
+                            th:text="${recommended} ? '추천 취소' : '추천하기'">추천하기</button>
+                </form>
+                <a th:if="${owned}" class="btn btn-outline-dark"
                    th:href="@{/writer/novels/{id}/edit(id=${novel.id})}">작품 수정</a>
+                <form th:if="${owned}"
+                      th:action="@{/writer/novels/{id}/delete(id=${novel.id})}" method="post"
+                      data-confirm-delete="작품을 삭제할까요? 삭제 후에는 되돌릴 수 없습니다.">
+                    <button class="btn btn-outline-danger" type="submit">작품 삭제</button>
+                </form>
             </div>
         </div>
         <hr class="my-4">
@@ -82,5 +107,23 @@
 <footer class="border-top py-4">
     <div class="container small text-secondary">NovelKeep · 이야기를 끝까지, 소장까지</div>
 </footer>
+<script th:src="@{/vendor/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/js/novel-confirm.js}"></script>
+<script th:src="@{/js/novel-actions.js}"></script>
+<script>
+    (function () {
+        var button = document.querySelector('[data-back-to-list]');
+        if (!button) {
+            return;
+        }
+        button.addEventListener('click', function () {
+            if (window.history.length > 1) {
+                window.history.back();
+                return;
+            }
+            window.location.href = button.getAttribute('data-fallback-url') || '/novels';
+        });
+    })();
+</script>
 </body>
 </html>

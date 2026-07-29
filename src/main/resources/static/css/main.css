@@ -66,7 +66,7 @@ body {
 
 .role-menu-group + .role-menu-group {
     padding-left: 1rem;
-    border-left: 1px solid #ded7ce;
+    border-left: 2px solid #ded7ce;
 }
 
 .role-menu-actions {
@@ -87,7 +87,8 @@ body {
 
 .role-link {
     color: #5f5750;
-    font-size: 0.85rem;
+    font-size: 1.05rem;
+    font-weight: 600;
     text-decoration: none;
 }
 
@@ -458,7 +459,7 @@ a.role-link:focus {
     .role-menu-group + .role-menu-group {
         padding-top: 0.35rem;
         padding-left: 0;
-        border-top: 1px solid #ded7ce;
+        border-top: 2px solid #ded7ce;
         border-left: 0;
     }
 

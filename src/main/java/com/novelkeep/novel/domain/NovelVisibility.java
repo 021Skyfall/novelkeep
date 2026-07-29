@@ -1,13 +1,13 @@
 package com.novelkeep.novel.domain;
 
-public enum NovelStatus {
+public enum NovelVisibility {
 
-    SERIALIZING("연재 중"),
-    COMPLETED("전체 완결");
+    PUBLIC("공개"),
+    PRIVATE("미공개");
 
     private final String displayName;
 
-    NovelStatus(String displayName) {
+    NovelVisibility(String displayName) {
         this.displayName = displayName;
     }
 

@@ -3,75 +3,184 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="노벨킵 공개 작품 목록">
-    <title>작품 둘러보기 | 노벨킵</title>
+    <meta name="description" content="노벨킵 작품 탐색">
+    <title th:text="${criteria.favoriteOnly} ? '내 즐겨찾기 | 노벨킵' : '작품 탐색 | 노벨킵'">작품 탐색 | 노벨킵</title>
     <script th:src="@{/js/theme.js}"></script>
     <link rel="stylesheet" th:href="@{/vendor/bootstrap/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/navigation.css}">
     <link rel="stylesheet" th:href="@{/css/novel.css}">
 </head>
-<body>
-<nav class="navbar bg-white border-bottom sticky-top" aria-label="작품 목록 메뉴">
-    <div class="container py-2">
-        <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" th:href="@{/main}">
-            <span class="brand-mark" aria-hidden="true">N</span>
-            <span>노벨킵</span>
-        </a>
-        <div class="d-flex align-items-center gap-2">
-            <a class="btn btn-sm btn-outline-secondary" th:href="@{/main}">메인</a>
-            <button class="btn btn-sm btn-outline-secondary theme-toggle" type="button"
-                    data-theme-toggle aria-label="다크 모드로 전환" aria-pressed="false">
-                <span aria-hidden="true">◐</span>
-                <span data-theme-label>다크 모드</span>
-            </button>
-            <span class="badge role-badge rounded-pill" th:text="|${roleName} 체험 중|">체험 중</span>
-        </div>
-    </div>
-</nav>
+<body th:classappend="${roleKey != null} ? | role-${#strings.toLowerCase(roleKey)}|">
+<div th:replace="~{fragments/navigation :: siteNav(${navActive})}"></div>
 
 <main class="container py-5">
     <header class="page-heading mb-4">
-        <span class="eyebrow">PUBLIC NOVELS</span>
-        <h1 class="display-6 fw-bold mt-2">작품 둘러보기</h1>
-        <p class="text-secondary mb-0">모든 체험 역할이 같은 공개 작품을 확인합니다.</p>
+        <span class="eyebrow">NOVEL BROWSE</span>
+        <h1 class="display-6 fw-bold mt-2"
+            th:text="${criteria.favoriteOnly} ? '내 즐겨찾기' : '작품 탐색'">작품 탐색</h1>
+        <p class="text-secondary mb-0"
+           th:text="${criteria.favoriteOnly}
+               ? '내가 즐겨찾은 공개 작품을 모아서 봅니다.'
+               : '공개 작품을 검색하고 추천·장르·연재 상태로 찾아봅니다.'">안내</p>
     </header>
 
-    <div th:if="${#lists.isEmpty(novels)}" class="empty-state">
-        <strong>아직 공개된 작품이 없습니다.</strong>
-        <p class="mb-0">작가가 작품을 공개하면 이곳에서 확인할 수 있습니다.</p>
-    </div>
+    <div th:fragment="asyncContent" data-async-content data-async-base="/novels" aria-live="polite">
+        <div class="small text-danger mb-2 d-none" data-action-error role="alert"></div>
 
-    <div th:unless="${#lists.isEmpty(novels)}" class="row g-4">
-        <div th:each="novel, iter : ${novels}" class="col-md-6 col-xl-4">
-            <article class="novel-card h-100">
-                <div class="novel-cover"
-                     th:classappend="${iter.index % 3 == 0 ? 'cover-one' : (iter.index % 3 == 1 ? 'cover-two' : 'cover-three')}">
-                    <span th:text="${#numbers.formatInteger(iter.count, 2)}">01</span>
+        <form class="search-panel mb-4" method="get" th:action="@{/novels}" th:object="${criteria}"
+              data-auto-search-form data-async-search>
+            <input th:if="${criteria.favoriteOnly}" type="hidden" name="favorite" value="true">
+            <div class="row g-3 align-items-end">
+                <div class="col-lg-4">
+                    <label class="form-label fw-semibold" for="keyword">검색어</label>
+                    <input id="keyword" class="form-control" type="search" name="keyword"
+                           th:value="*{keyword}" placeholder="제목, 필명, 소개"
+                           data-auto-search-keyword>
                 </div>
-                <div class="novel-card-body">
-                    <div class="d-flex flex-wrap gap-2 mb-2">
-                        <span class="badge status-badge" th:text="${novel.status.displayName}">연재 중</span>
-                        <span th:if="${novel.partMode.name() == 'MULTI'
-                                      and !#lists.isEmpty(novel.parts)
-                                      and novel.parts[0].status.name() == 'COMPLETED'}"
-                              class="badge part-badge"
-                              th:text="|${novel.parts[0].partNumber}부 완결|">1부 완결</span>
-                        <span class="badge text-bg-light border" th:text="${novel.genre}">장르</span>
-                    </div>
-                    <h2 class="h5 fw-bold" th:text="${novel.title}">작품명</h2>
-                    <p class="text-secondary synopsis" th:text="${novel.synopsis}">작품 소개</p>
-                    <div class="d-flex justify-content-between align-items-center gap-2">
-                        <span class="small text-secondary" th:text="|필명 ${novel.penName}|">필명</span>
-                        <a class="btn btn-sm btn-outline-dark"
-                           th:href="@{/novels/{id}(id=${novel.id})}">상세 보기</a>
-                    </div>
+                <div class="col-md-6 col-lg-2">
+                    <label class="form-label fw-semibold" for="genre">장르</label>
+                    <select id="genre" class="form-select" name="genre" data-auto-search>
+                        <option value="">전체</option>
+                        <option th:each="genreOption : ${genres}"
+                                th:value="${genreOption}"
+                                th:text="${genreOption}"
+                                th:selected="${criteria.genre == genreOption}">장르</option>
+                    </select>
                 </div>
-            </article>
+                <div class="col-md-6 col-lg-2">
+                    <label class="form-label fw-semibold" for="progress">연재 상태</label>
+                    <select id="progress" class="form-select" name="progress" data-auto-search>
+                        <option value="" th:selected="${criteria.progress == null or criteria.progress == ''}">전체</option>
+                        <option value="SERIALIZING" th:selected="${criteria.serializingProgress}">연재 중</option>
+                        <option value="PART_COMPLETED" th:selected="${criteria.partCompletedProgress}">부 완결</option>
+                        <option value="COMPLETED" th:selected="${criteria.completedProgress}">전체 완결</option>
+                    </select>
+                </div>
+                <div class="col-md-6 col-lg-2" th:if="${isAdmin}">
+                    <label class="form-label fw-semibold" for="visibility">공개 여부</label>
+                    <select id="visibility" class="form-select" name="visibility" data-auto-search>
+                        <option value="">전체</option>
+                        <option th:each="visibilityOption : ${visibilities}"
+                                th:value="${visibilityOption}"
+                                th:text="${visibilityOption.displayName}"
+                                th:selected="${criteria.visibility == visibilityOption}">공개</option>
+                    </select>
+                </div>
+                <div class="col-md-6 col-lg-2">
+                    <label class="form-label fw-semibold" for="sort">정렬</label>
+                    <select id="sort" class="form-select" name="sort" data-auto-search data-sort-select>
+                        <option value="latest" th:selected="${!criteria.titleSort and !criteria.recommendSort}">최신순</option>
+                        <option value="recommend" th:selected="${criteria.recommendSort}">추천순</option>
+                        <option value="title" th:selected="${criteria.titleSort}">제목순</option>
+                    </select>
+                </div>
+                <div class="col-12 d-flex justify-content-end">
+                    <a class="btn btn-outline-secondary" data-async-reset
+                       th:href="${criteria.favoriteOnly} ? @{/novels(favorite=true)} : @{/novels}">초기화</a>
+                </div>
+            </div>
+        </form>
+
+        <div th:if="${novels.totalElements == 0}" class="empty-state">
+            <strong th:text="${criteria.favoriteOnly} ? '즐겨찾은 작품이 없습니다.' : '검색 결과가 없습니다.'">검색 결과가 없습니다.</strong>
+            <p class="mb-0">조건을 바꾸거나 초기화한 뒤 다시 찾아 보세요.</p>
+        </div>
+
+        <div th:unless="${novels.totalElements == 0}">
+            <p class="small text-secondary mb-3"
+               th:text="|총 ${novels.totalElements}건 · ${novels.number + 1}/${novels.totalPages}페이지|">결과</p>
+            <div class="row g-4 position-relative" data-novel-list
+                 th:attr="data-favorite-view=${criteria.favoriteOnly}, data-recommend-sort=${criteria.recommendSort}">
+                <div class="position-absolute top-50 start-50 translate-middle z-3 w-auto
+                            fs-4 fw-bold text-secondary d-none"
+                     data-async-status aria-label="목록 불러오는 중">...</div>
+                <div th:each="novel, iter : ${novels.content}" class="col-md-6 col-xl-4" data-novel-card
+                     th:attr="data-novel-id=${novel.id}">
+                    <article class="novel-card h-100">
+                        <div class="novel-cover"
+                             th:classappend="${iter.index % 3 == 0 ? 'cover-one' : (iter.index % 3 == 1 ? 'cover-two' : 'cover-three')}">
+                            <span th:text="${#numbers.formatInteger(novels.number * novels.size + iter.count, 2)}">01</span>
+                        </div>
+                        <div class="novel-card-body">
+                            <div class="d-flex flex-wrap gap-2 mb-2">
+                                <span class="badge status-badge" th:text="${novel.status.displayName}">연재 중</span>
+                                <span th:if="${isAdmin}"
+                                      class="badge"
+                                      th:classappend="${novel.visibility.name() == 'PUBLIC'} ? ' visibility-public' : ' visibility-private'"
+                                      th:text="${novel.visibility.displayName}">공개</span>
+                                <span th:if="${novel.partMode.name() == 'MULTI' and novel.latestCompletedPartLabel() != null}"
+                                      class="badge part-badge"
+                                      th:text="${novel.latestCompletedPartLabel()}">1부 완결</span>
+                                <span class="badge text-bg-light border" th:text="${novel.genre}">장르</span>
+                                <span class="badge recommend-badge" data-recommend-count
+                                      th:text="|추천 ${novel.recommendationCount}|">추천 0</span>
+                            </div>
+                            <h2 class="h5 fw-bold">
+                                <a class="novel-title-link"
+                                   th:href="@{/novels/{id}(id=${novel.id})}"
+                                   th:text="${novel.title}">작품명</a>
+                            </h2>
+                            <p class="text-secondary synopsis" th:text="${novel.synopsis}">작품 소개</p>
+                            <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                                <span class="small text-secondary" th:text="|필명 ${novel.penName}|">필명</span>
+                                <div class="d-flex gap-2" th:if="${novel.visibility.name() == 'PUBLIC'}">
+                                    <form th:action="@{/novels/{id}/favorite(id=${novel.id})}" method="post"
+                                          data-novel-action="favorite"
+                                          th:attr="data-novel-id=${novel.id}">
+                                        <input type="hidden" name="returnTo"
+                                               th:value="${criteria.favoriteOnly} ? 'favorites' : 'browse'">
+                                        <button class="btn btn-sm favorite-toggle" data-action-button
+                                                th:classappend="${#sets.contains(favoritedIds, novel.id)} ? ' is-active'"
+                                                type="submit"
+                                                th:aria-label="${#sets.contains(favoritedIds, novel.id) ? '내 즐겨찾기 해제' : '내 즐겨찾기'}"
+                                                th:text="${#sets.contains(favoritedIds, novel.id) ? '★' : '☆'}">☆</button>
+                                    </form>
+                                    <form th:if="${novel.author.id != currentMemberId}"
+                                          th:action="@{/novels/{id}/recommend(id=${novel.id})}" method="post"
+                                          data-novel-action="recommend"
+                                          th:attr="data-novel-id=${novel.id}">
+                                        <input type="hidden" name="returnTo"
+                                               th:value="${criteria.favoriteOnly} ? 'favorites' : 'browse'">
+                                        <button class="btn btn-sm" data-action-button
+                                                th:classappend="${#sets.contains(recommendedIds, novel.id)} ? 'btn-dark' : 'btn-outline-dark'"
+                                                type="submit"
+                                                th:text="${#sets.contains(recommendedIds, novel.id) ? '추천 취소' : '추천'}">추천</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+            </div>
+
+            <nav th:if="${novels.totalPages > 1}" class="mt-4" aria-label="작품 목록 페이지" data-async-pagination>
+                <ul class="pagination justify-content-center flex-wrap">
+                    <li class="page-item" th:classappend="${novels.first} ? ' disabled'">
+                        <a class="page-link" data-async-page
+                           th:href="@{/novels(keyword=${criteria.keyword}, genre=${criteria.genre}, progress=${criteria.progress}, visibility=${criteria.visibility}, favorite=${criteria.favorite}, sort=${criteria.sort}, page=${novels.number - 1})}">이전</a>
+                    </li>
+                    <li class="page-item"
+                        th:each="pageNumber : ${#numbers.sequence(0, novels.totalPages - 1)}"
+                        th:classappend="${pageNumber == novels.number} ? ' active'">
+                        <a class="page-link" data-async-page
+                           th:text="${pageNumber + 1}"
+                           th:href="@{/novels(keyword=${criteria.keyword}, genre=${criteria.genre}, progress=${criteria.progress}, visibility=${criteria.visibility}, favorite=${criteria.favorite}, sort=${criteria.sort}, page=${pageNumber})}">1</a>
+                    </li>
+                    <li class="page-item" th:classappend="${novels.last} ? ' disabled'">
+                        <a class="page-link" data-async-page
+                           th:href="@{/novels(keyword=${criteria.keyword}, genre=${criteria.genre}, progress=${criteria.progress}, visibility=${criteria.visibility}, favorite=${criteria.favorite}, sort=${criteria.sort}, page=${novels.number + 1})}">다음</a>
+                    </li>
+                </ul>
+            </nav>
         </div>
     </div>
 </main>
 
 <footer class="border-top py-4">
-    <div class="container small text-secondary">NovelKeep · 모든 역할이 같은 공개 작품을 봅니다.</div>
+    <div class="container small text-secondary">NovelKeep · 공개 작품을 탐색합니다.</div>
 </footer>
+<script th:src="@{/vendor/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/js/novel-search.js}"></script>
+<script th:src="@{/js/novel-actions.js}"></script>
 </body>
 </html>

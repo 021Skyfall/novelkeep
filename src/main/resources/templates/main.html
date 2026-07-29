@@ -8,78 +8,12 @@
     <script th:src="@{/js/theme.js}"></script>
     <link rel="stylesheet" th:href="@{/vendor/bootstrap/css/bootstrap.min.css}">
     <link rel="stylesheet" th:href="@{/css/main.css}">
+    <link rel="stylesheet" th:href="@{/css/navigation.css}">
 </head>
 <body th:classappend="| role-${#strings.toLowerCase(roleKey)}|">
-<nav class="navbar navbar-expand-lg bg-white border-bottom sticky-top" aria-label="메인 메뉴">
-    <div class="container py-2">
-        <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" th:href="@{/main}">
-            <span class="brand-mark" aria-hidden="true">N</span>
-            <span>노벨킵</span>
-        </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar"
-                aria-controls="mainNavbar" aria-expanded="false" aria-label="메뉴 열기">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div id="mainNavbar" class="collapse navbar-collapse">
-            <ul class="navbar-nav me-auto ms-lg-4 mb-3 mb-lg-0">
-                <li class="nav-item"><a class="nav-link active" th:href="@{/main}">홈</a></li>
-                <li class="nav-item"><a class="nav-link" href="#popular">인기작</a></li>
-                <li class="nav-item"><a class="nav-link" href="#new">신작</a></li>
-                <li class="nav-item"><a class="nav-link" href="#completed">완결작</a></li>
-                <li class="nav-item"><a class="nav-link" href="#funding">소장본 펀딩</a></li>
-            </ul>
-            <div class="d-flex align-items-center gap-2">
-                <button class="btn btn-sm btn-outline-secondary theme-toggle" type="button"
-                        data-theme-toggle aria-label="다크 모드로 전환" aria-pressed="false">
-                    <span aria-hidden="true">◐</span>
-                    <span data-theme-label>다크 모드</span>
-                </button>
-                <span class="badge role-badge rounded-pill"
-                      th:text="|${roleName} 체험 중|">체험 중</span>
-                <form th:action="@{/logout}" method="post">
-                    <button class="btn btn-sm btn-outline-secondary" type="submit">역할 변경</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</nav>
+<div th:replace="~{fragments/navigation :: siteNav('home')}"></div>
 
 <main>
-    <section class="role-menu border-bottom">
-        <div class="container py-2">
-            <div class="role-menu-inner">
-                <div class="role-menu-group">
-                    <strong class="small">독자 메뉴</strong>
-                    <div class="role-links">
-                        <a class="role-link" th:href="@{/novels}">작품 둘러보기</a>
-                        <span class="role-link disabled">내 펀딩·주문 <small>준비 중</small></span>
-                    </div>
-                </div>
-                <div th:if="${roleKey == 'WRITER' or roleKey == 'ADMIN'}" class="role-menu-group">
-                    <strong class="small">작가 메뉴</strong>
-                    <div class="role-links">
-                        <a class="role-link" th:href="@{/writer/novels}">내 작품</a>
-                        <a class="role-link" th:href="@{/writer/novels/new}">작품 등록</a>
-                        <span class="role-link disabled">출판·펀딩 관리 <small>준비 중</small></span>
-                    </div>
-                </div>
-                <div th:if="${roleKey == 'ADMIN'}" class="role-menu-group">
-                    <strong class="small">관리자 메뉴</strong>
-                    <div class="role-links">
-                        <span class="role-link disabled">운영 통계 <small>준비 중</small></span>
-                        <span class="role-link disabled">전체 주문 관리 <small>준비 중</small></span>
-                        <span class="role-link disabled">데이터 내보내기 <small>준비 중</small></span>
-                    </div>
-                </div>
-                <div class="role-menu-actions">
-                    <form th:if="${roleKey == 'READER'}" th:action="@{/experience/writer}" method="post">
-                        <button class="btn btn-sm btn-outline-primary" type="submit">작가 권한 활성화 체험</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </section>
-
     <section class="main-hero">
         <div class="container py-5">
             <div class="row align-items-center g-4">

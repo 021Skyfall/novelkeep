@@ -1,14 +1,23 @@
 package com.novelkeep.novel.controller;
 
+import java.util.Set;
+
 import com.novelkeep.home.domain.ExperienceRole;
 import com.novelkeep.novel.domain.Novel;
 import com.novelkeep.novel.domain.NovelStatus;
+import com.novelkeep.novel.domain.NovelVisibility;
 import com.novelkeep.novel.domain.PartMode;
+import com.novelkeep.novel.dto.NovelActionResult;
 import com.novelkeep.novel.dto.NovelForm;
+import com.novelkeep.novel.dto.NovelSearchCriteria;
 import com.novelkeep.novel.service.NovelService;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
+import org.springframework.data.domain.Page;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -16,6 +25,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.SessionAttribute;
 
 @Controller
@@ -32,20 +43,47 @@ public class NovelController {
 
     @GetMapping("/novels")
     public String publicList(
+            NovelSearchCriteria criteria,
+            @RequestParam(required = false) Integer page,
             @SessionAttribute(name = SESSION_ROLE, required = false) ExperienceRole role,
+            @SessionAttribute(name = SESSION_MEMBER_ID, required = false) Long memberId,
+            HttpServletRequest request,
             Model model
     ) {
-        if (role == null) {
+        if (role == null || memberId == null) {
             return "redirect:/?roleRequired=true";
         }
-        model.addAttribute("novels", novelService.findPublicNovels());
-        model.addAttribute("roleName", role.getDisplayName());
+        if (page != null) {
+            criteria.setPage(page);
+        }
+        if (role != ExperienceRole.ADMIN) {
+            criteria.setVisibility(null);
+        }
+
+        Page<Novel> novels = novelService.searchPublic(criteria, role, memberId);
+        Set<Long> recommendedIds = novelService.findRecommendedNovelIds(memberId, novels);
+        Set<Long> favoritedIds = novelService.findFavoritedNovelIds(memberId, novels);
+        model.addAttribute("novels", novels);
+        model.addAttribute("criteria", criteria);
+        model.addAttribute("genres", role == ExperienceRole.ADMIN
+                ? novelService.findAdminGenres()
+                : novelService.findPublicGenres());
+        model.addAttribute("visibilities", NovelVisibility.values());
+        model.addAttribute("recommendedIds", recommendedIds);
+        model.addAttribute("favoritedIds", favoritedIds);
+        model.addAttribute("currentMemberId", memberId);
+        model.addAttribute("isAdmin", role == ExperienceRole.ADMIN);
+        model.addAttribute("navActive", resolveNavActive(criteria));
+        if (isPartialRequest(request)) {
+            return "novels/list :: asyncContent";
+        }
         return "novels/list";
     }
 
     @GetMapping("/novels/{novelId}")
     public String detail(
             @PathVariable Long novelId,
+            @RequestParam(required = false) String from,
             @SessionAttribute(name = SESSION_ROLE, required = false) ExperienceRole role,
             @SessionAttribute(name = SESSION_MEMBER_ID, required = false) Long memberId,
             Model model
@@ -53,24 +91,84 @@ public class NovelController {
         if (role == null || memberId == null) {
             return "redirect:/?roleRequired=true";
         }
-        Novel novel = novelService.findReadableNovel(novelId, memberId);
+        Novel novel = novelService.findReadableNovel(novelId, memberId, role);
+        boolean owned = novel.isOwnedBy(memberId);
+        boolean publicNovel = novel.getVisibility() == NovelVisibility.PUBLIC;
         model.addAttribute("novel", novel);
-        model.addAttribute("owned", novel.getAuthor().getId().equals(memberId));
-        model.addAttribute("roleName", role.getDisplayName());
+        model.addAttribute("owned", owned);
+        model.addAttribute("recommended", novelService.hasRecommended(novelId, memberId));
+        model.addAttribute("favorited", novelService.hasFavorited(novelId, memberId));
+        model.addAttribute("canRecommend", publicNovel && !owned);
+        model.addAttribute("canFavorite", publicNovel);
+        model.addAttribute("fromWriter", "writer".equalsIgnoreCase(from));
         return "novels/detail";
+    }
+
+    @PostMapping("/novels/{novelId}/recommend")
+    public Object toggleRecommend(
+            @PathVariable Long novelId,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String returnTo,
+            @SessionAttribute(name = SESSION_ROLE, required = false) ExperienceRole role,
+            @SessionAttribute(name = SESSION_MEMBER_ID, required = false) Long memberId,
+            HttpServletRequest request
+    ) {
+        if (role == null || memberId == null) {
+            return redirectOrUnauthorized(request);
+        }
+        novelService.findReadableNovel(novelId, memberId, role);
+        NovelActionResult result = novelService.toggleRecommendation(novelId, memberId);
+        if (wantsJson(request)) {
+            return ResponseEntity.ok(result);
+        }
+        return redirectAfterToggle(novelId, from, returnTo);
+    }
+
+    @PostMapping("/novels/{novelId}/favorite")
+    public Object toggleFavorite(
+            @PathVariable Long novelId,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String returnTo,
+            @SessionAttribute(name = SESSION_ROLE, required = false) ExperienceRole role,
+            @SessionAttribute(name = SESSION_MEMBER_ID, required = false) Long memberId,
+            HttpServletRequest request
+    ) {
+        if (role == null || memberId == null) {
+            return redirectOrUnauthorized(request);
+        }
+        novelService.findReadableNovel(novelId, memberId, role);
+        NovelActionResult result = novelService.toggleFavorite(novelId, memberId);
+        if (wantsJson(request)) {
+            return ResponseEntity.ok(result);
+        }
+        return redirectAfterToggle(novelId, from, returnTo);
     }
 
     @GetMapping("/writer/novels")
     public String writerList(
+            NovelSearchCriteria criteria,
+            @RequestParam(required = false) Integer page,
             @SessionAttribute(name = SESSION_ROLE, required = false) ExperienceRole role,
             @SessionAttribute(name = SESSION_MEMBER_ID, required = false) Long memberId,
+            HttpServletRequest request,
             Model model
     ) {
         if (!canWrite(role) || memberId == null) {
             return "redirect:/?roleRequired=true";
         }
-        model.addAttribute("novels", novelService.findOwnedNovels(memberId));
-        model.addAttribute("roleName", role.getDisplayName());
+        if (page != null) {
+            criteria.setPage(page);
+        }
+
+        Page<Novel> novels = novelService.searchOwned(criteria, memberId);
+        model.addAttribute("novels", novels);
+        model.addAttribute("criteria", criteria);
+        model.addAttribute("genres", novelService.findOwnedGenres(memberId));
+        model.addAttribute("visibilities", NovelVisibility.values());
+        model.addAttribute("navActive", "writer");
+        if (isPartialRequest(request)) {
+            return "writer/novels/list :: asyncContent";
+        }
         return "writer/novels/list";
     }
 
@@ -106,7 +204,7 @@ public class NovelController {
         }
 
         Long novelId = novelService.create(memberId, form);
-        return "redirect:/novels/" + novelId + "?created=true";
+        return "redirect:/novels/" + novelId + "?created=true&from=writer";
     }
 
     @GetMapping("/writer/novels/{novelId}/edit")
@@ -143,7 +241,7 @@ public class NovelController {
         }
 
         novelService.update(novelId, memberId, form);
-        return "redirect:/novels/" + novelId + "?updated=true";
+        return "redirect:/novels/" + novelId + "?updated=true&from=writer";
     }
 
     @PostMapping("/writer/novels/{novelId}/delete")
@@ -159,6 +257,74 @@ public class NovelController {
         return "redirect:/writer/novels?deleted=true";
     }
 
+    private String redirectAfterToggle(Long novelId, String from, String returnTo) {
+        if ("browse".equalsIgnoreCase(returnTo)) {
+            return "redirect:/novels";
+        }
+        if ("favorites".equalsIgnoreCase(returnTo)) {
+            return "redirect:/novels?favorite=true";
+        }
+        if ("writer".equalsIgnoreCase(returnTo)) {
+            return "redirect:/writer/novels";
+        }
+        if ("writer".equalsIgnoreCase(from)) {
+            return "redirect:/novels/" + novelId + "?from=writer";
+        }
+        return "redirect:/novels/" + novelId;
+    }
+
+    private Object redirectOrUnauthorized(HttpServletRequest request) {
+        if (wantsJson(request)) {
+            return ResponseEntity.status(401).build();
+        }
+        return "redirect:/?roleRequired=true";
+    }
+
+    private boolean wantsJson(HttpServletRequest request) {
+        String requestedWith = request.getHeader("X-Requested-With");
+        if ("XMLHttpRequest".equalsIgnoreCase(requestedWith)) {
+            return true;
+        }
+        String accept = request.getHeader("Accept");
+        return accept != null && accept.contains(MediaType.APPLICATION_JSON_VALUE);
+    }
+
+    private boolean isPartialRequest(HttpServletRequest request) {
+        String partial = request.getHeader("X-Novelkeep-Partial");
+        if ("1".equals(partial) || "true".equalsIgnoreCase(partial)) {
+            return true;
+        }
+        return "1".equals(request.getParameter("partial"))
+                || "true".equalsIgnoreCase(request.getParameter("partial"));
+    }
+
+    private String resolveNavActive(NovelSearchCriteria criteria) {
+        if (criteria.isFavoriteOnly()) {
+            return "favorites";
+        }
+        if (criteria.isCompletedProgress()
+                && isBlank(criteria.getKeyword())
+                && isBlank(criteria.getGenre())
+                && criteria.getVisibility() == null) {
+            return "completed";
+        }
+        if (!criteria.isTitleSort()
+                && !criteria.isRecommendSort()
+                && isBlank(criteria.getKeyword())
+                && isBlank(criteria.getGenre())
+                && isBlank(criteria.getProgress())
+                && criteria.getVisibility() == null
+                && !criteria.isFavoriteOnly()
+                && "latest".equalsIgnoreCase(criteria.getSort())) {
+            return "new";
+        }
+        return "novels";
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
     private boolean canWrite(ExperienceRole role) {
         return role == ExperienceRole.WRITER || role == ExperienceRole.ADMIN;
     }
@@ -172,8 +338,10 @@ public class NovelController {
 
     private void addFormOptions(Model model, boolean editing, Long novelId) {
         model.addAttribute("statuses", NovelStatus.values());
+        model.addAttribute("visibilities", NovelVisibility.values());
         model.addAttribute("partModes", PartMode.values());
         model.addAttribute("editing", editing);
         model.addAttribute("novelId", novelId);
+        model.addAttribute("navActive", "writer");
     }
 }

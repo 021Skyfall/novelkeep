@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:fragment="siteNav(active)">
+    <nav class="navbar navbar-expand-lg bg-white border-bottom sticky-top nk-navbar" aria-label="공통 메뉴">
+        <div class="container py-2">
+            <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" th:href="@{/main}">
+                <span class="brand-mark" aria-hidden="true">N</span>
+                <span>노벨킵</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#siteNavbar"
+                    aria-controls="siteNavbar" aria-expanded="false" aria-label="메뉴 열기">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div id="siteNavbar" class="collapse navbar-collapse">
+                <ul class="navbar-nav me-auto ms-lg-4 mb-3 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link" th:classappend="${active == 'home'} ? ' active'" th:href="@{/main}">홈</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:classappend="${active == 'popular'} ? ' active'"
+                           th:href="@{/main#popular}">인기작</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:classappend="${active == 'new'} ? ' active'"
+                           th:href="@{/novels(sort='latest')}">신작</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:classappend="${active == 'completed'} ? ' active'"
+                           th:href="@{/novels(progress='COMPLETED')}">완결작</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:classappend="${active == 'funding'} ? ' active'"
+                           th:href="@{/main#funding}">소장본 펀딩</a>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <button class="btn btn-sm btn-outline-secondary theme-toggle" type="button"
+                            data-theme-toggle aria-label="다크 모드로 전환" aria-pressed="false">
+                        <span aria-hidden="true">◐</span>
+                        <span data-theme-label>다크 모드</span>
+                    </button>
+                    <span class="badge role-badge rounded-pill"
+                          th:text="|${roleName} 체험 중|">체험 중</span>
+                    <form th:action="@{/logout}" method="post" class="m-0">
+                        <button class="btn btn-sm btn-outline-secondary" type="submit">역할 변경</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <section class="role-menu border-bottom" th:if="${roleKey != null}">
+        <div class="container py-2">
+            <div class="role-menu-inner">
+                <div class="role-menu-group">
+                    <div class="role-links">
+                        <a class="role-link" th:classappend="${active == 'novels' or active == 'new' or active == 'completed'} ? ' is-active'"
+                           th:href="@{/novels}">작품 탐색</a>
+                        <a class="role-link" th:classappend="${active == 'favorites'} ? ' is-active'"
+                           th:href="@{/novels(favorite=true)}">내 즐겨찾기</a>
+                        <span class="role-link disabled">내 펀딩·주문 <small>준비 중</small></span>
+                    </div>
+                </div>
+                <div th:if="${canWrite}" class="role-menu-group">
+                    <div class="role-links">
+                        <a class="role-link" th:classappend="${active == 'writer'} ? ' is-active'"
+                           th:href="@{/writer/novels}">내 작품</a>
+                        <a class="role-link" th:href="@{/writer/novels/new}">작품 등록</a>
+                        <span class="role-link disabled">출판·펀딩 관리 <small>준비 중</small></span>
+                    </div>
+                </div>
+                <div th:if="${roleKey == 'ADMIN'}" class="role-menu-group">
+                    <strong class="role-menu-title">관리자 메뉴</strong>
+                    <div class="role-links">
+                        <span class="role-link disabled">운영 통계 <small>준비 중</small></span>
+                        <span class="role-link disabled">전체 주문 관리 <small>준비 중</small></span>
+                        <span class="role-link disabled">데이터 내보내기 <small>준비 중</small></span>
+                    </div>
+                </div>
+                <div class="role-menu-actions">
+                    <form th:if="${roleKey == 'READER'}" th:action="@{/experience/writer}" method="post">
+                        <button class="btn btn-sm btn-outline-primary" type="submit">작가 권한 활성화 체험</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <button class="btn btn-dark back-to-top" type="button" data-back-to-top
+            aria-label="맨 위로 이동">↑</button>
+    <script th:src="@{/js/navigation.js}" defer></script>
+</th:block>
+</body>
+</html>
