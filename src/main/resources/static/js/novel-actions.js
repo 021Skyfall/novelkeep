@@ -1,21 +1,33 @@
 (function () {
-    function showError(root, message) {
-        var box = root ? root.querySelector('[data-action-error]') : document.querySelector('[data-action-error]');
-        if (!box) {
-            window.alert(message);
+    function showActionMessage(action, active) {
+        if (!window.NovelKeepNotification) {
             return;
         }
-        box.textContent = message;
-        box.classList.remove('d-none');
+        if (action === 'favorite') {
+            window.NovelKeepNotification.success(
+                active ? '작품을 내 즐겨찾기에 추가했습니다.' : '작품을 내 즐겨찾기에서 해제했습니다.',
+                { label: active ? '즐겨찾기 추가' : '즐겨찾기 해제' }
+            );
+        } else if (action === 'recommend') {
+            window.NovelKeepNotification.success(
+                active ? '이 작품을 추천했습니다.' : '이 작품의 추천을 취소했습니다.',
+                { label: active ? '작품 추천' : '추천 취소' }
+            );
+        }
     }
 
-    function clearError(root) {
-        var box = root ? root.querySelector('[data-action-error]') : document.querySelector('[data-action-error]');
-        if (!box) {
+    function showError(action) {
+        var favorite = action === 'favorite';
+        var message = favorite
+            ? '즐겨찾기 상태를 변경하지 못했습니다. 잠시 후 다시 시도해 주세요.'
+            : '추천 상태를 변경하지 못했습니다. 잠시 후 다시 시도해 주세요.';
+        if (window.NovelKeepNotification) {
+            window.NovelKeepNotification.error(message, {
+                label: favorite ? '즐겨찾기 처리 실패' : '추천 처리 실패'
+            });
             return;
         }
-        box.textContent = '';
-        box.classList.add('d-none');
+        window.alert(message);
     }
 
     function updateRecommendUi(scope, active, count) {
@@ -81,8 +93,6 @@
 
     function submitAction(form) {
         var action = form.getAttribute('data-novel-action');
-        var root = form.closest('[data-async-content]') || document;
-        clearError(root);
 
         var button = form.querySelector('[data-action-button]');
         if (button) {
@@ -105,11 +115,13 @@
         }).then(function (data) {
             if (action === 'favorite') {
                 handleFavoriteResult(form, !!data.active);
+                showActionMessage(action, !!data.active);
             } else if (action === 'recommend') {
                 handleRecommendResult(form, !!data.active, Number(data.recommendationCount));
+                showActionMessage(action, !!data.active);
             }
         }).catch(function () {
-            showError(root, '잠시 후 다시 시도해 주세요.');
+            showError(action);
         }).finally(function () {
             if (button) {
                 button.disabled = false;

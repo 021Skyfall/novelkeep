@@ -1,0 +1,77 @@
+.genre-filter {
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: 0.75rem;
+    padding: 0.9rem 1rem;
+    background: var(--bs-body-bg, #fff);
+}
+
+.genre-filter-label {
+    font-weight: 600;
+    margin-bottom: 0.55rem;
+}
+
+.genre-badge-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.genre-badge {
+    border: 1px solid #ced4da;
+    background: #fff;
+    color: #212529;
+    border-radius: 999px;
+    padding: 0.28rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.3;
+    cursor: pointer;
+}
+
+.genre-badge.is-active {
+    background: #212529;
+    border-color: #212529;
+    color: #fff;
+}
+
+[data-bs-theme="dark"] .genre-badge {
+    color: #e8e1da;
+    background: #2a2522;
+    border-color: #766d65;
+}
+
+[data-bs-theme="dark"] .genre-badge:hover,
+[data-bs-theme="dark"] .genre-badge:focus {
+    border-color: #c8bdb3;
+}
+
+[data-bs-theme="dark"] .genre-badge.is-active {
+    color: #1b1715;
+    background: #f1ece6;
+    border-color: #f1ece6;
+    box-shadow: 0 0 0 2px #766d65;
+}
+
+.genre-badge:disabled,
+.genre-badge.is-disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.genre-filter-actions {
+    margin-top: 0.65rem;
+}
+
+.genre-form-help {
+    margin-top: 0.45rem;
+}
+
+.genre-form-error {
+    display: none;
+    color: #dc3545;
+    font-size: 0.875rem;
+    margin-top: 0.35rem;
+}
+
+.genre-form-error.is-visible {
+    display: block;
+}

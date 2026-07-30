@@ -1,8 +1,10 @@
 package com.novelkeep.home.service;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 import com.novelkeep.member.domain.Member;
 import com.novelkeep.member.domain.MemberType;
@@ -13,7 +15,6 @@ import com.novelkeep.novel.domain.Novel;
 import com.novelkeep.novel.domain.NovelGenre;
 import com.novelkeep.novel.domain.NovelStatus;
 import com.novelkeep.novel.domain.NovelVisibility;
-import com.novelkeep.novel.domain.PartMode;
 import com.novelkeep.novel.domain.StoryPart;
 import com.novelkeep.novel.domain.StoryPartStatus;
 import com.novelkeep.novel.repository.NovelRepository;
@@ -97,24 +98,22 @@ public class DemoDataInitializer implements ApplicationRunner {
             NovelVisibility visibility = number % 7 == 0
                     ? NovelVisibility.PRIVATE
                     : NovelVisibility.PUBLIC;
-            PartMode partMode = status == NovelStatus.COMPLETED || number % 4 != 1
-                    ? PartMode.MULTI
-                    : PartMode.SINGLE;
+            boolean multipleParts = status == NovelStatus.COMPLETED || number % 4 != 1;
 
-            NovelGenre genre = NovelGenre.values()[(number - 1) % NovelGenre.values().length];
+            List<NovelGenre> genres = pickGenres(number);
             String title = TITLE_PREFIXES[metadataRandom.nextInt(TITLE_PREFIXES.length)]
                     + " " + TITLE_SUBJECTS[metadataRandom.nextInt(TITLE_SUBJECTS.length)]
                     + " " + String.format("%02d", number);
             String penName = PEN_NAMES[metadataRandom.nextInt(PEN_NAMES.length)];
-            String synopsis = genre.getDisplayName() + " 세계에서 "
+            String synopsis = genres.getFirst().getDisplayName() + " 세계에서 "
                     + STORY_KEYWORDS[number % STORY_KEYWORDS.length]
                     + "을 추적하는 인물들의 선택과 성장을 그린 이야기.";
 
             Novel novel = Novel.create(
-                    owner, title, penName, genre, synopsis,
-                    status, visibility, partMode
+                    owner, title, penName, genres, synopsis,
+                    status, visibility
             );
-            if (partMode == PartMode.SINGLE) {
+            if (!multipleParts) {
                 addSinglePart(novel, status, structureRandom);
             } else {
                 addMultipleParts(novel, number, status, structureRandom);
@@ -170,10 +169,20 @@ public class DemoDataInitializer implements ApplicationRunner {
         for (int episodeNumber = 1; episodeNumber <= episodeCount; episodeNumber++) {
             EpisodeStatus status = resolveEpisodeStatus(part.getStatus(), episodeNumber, episodeCount);
             String event = EPISODE_EVENTS[random.nextInt(EPISODE_EVENTS.length)];
-            String title = episodeNumber + "화. " + event;
+            String title = event;
             String content = createEpisodeContent(part.getTitle(), event, episodeNumber);
             part.addEpisode(Episode.create(episodeNumber, title, content, status));
         }
+    }
+
+    private List<NovelGenre> pickGenres(int novelNumber) {
+        NovelGenre[] all = NovelGenre.values();
+        int count = 1 + ((novelNumber - 1) % 3);
+        Set<NovelGenre> selected = new LinkedHashSet<>();
+        for (int offset = 0; selected.size() < count; offset++) {
+            selected.add(all[(novelNumber - 1 + offset * 7) % all.length]);
+        }
+        return new ArrayList<>(selected);
     }
 
     private EpisodeStatus resolveEpisodeStatus(

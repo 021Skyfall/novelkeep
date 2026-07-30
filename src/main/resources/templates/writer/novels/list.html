@@ -9,6 +9,7 @@
     <link rel="stylesheet" th:href="@{/vendor/bootstrap/css/bootstrap.min.css}">
     <link rel="stylesheet" th:href="@{/css/navigation.css}">
     <link rel="stylesheet" th:href="@{/css/novel.css}">
+    <link rel="stylesheet" th:href="@{/css/novel-genre.css}">
 </head>
 <body th:classappend="${roleKey != null} ? | role-${#strings.toLowerCase(roleKey)}|">
 <div th:replace="~{fragments/navigation :: siteNav('writer')}"></div>
@@ -20,7 +21,9 @@
         <p class="text-secondary mb-0">내가 소유한 작품만 관리합니다. 공개·미공개와 연재 상태를 바로 확인하세요.</p>
     </header>
 
-    <div th:if="${param.deleted}" class="alert alert-success">작품을 삭제했습니다.</div>
+    <div th:if="${param.deleted}" class="alert alert-success"
+         data-push-notification data-notification-type="success"
+         data-notification-label="작품 영구 삭제">작품과 포함된 모든 콘텐츠가 삭제되었습니다.</div>
 
     <div th:fragment="asyncContent" data-async-content data-async-base="/writer/novels" aria-live="polite">
         <div class="search-panel mb-4">
@@ -35,16 +38,6 @@
                         <input id="keyword" class="form-control" type="search" name="keyword"
                                th:value="*{keyword}" placeholder="작품 제목"
                                data-auto-search-keyword>
-                    </div>
-                    <div class="col-md-6 col-lg-2">
-                        <label class="form-label fw-semibold" for="genre">장르</label>
-                        <select id="genre" class="form-select" name="genre" data-auto-search>
-                            <option value="">전체</option>
-                            <option th:each="genreOption : ${genres}"
-                                    th:value="${genreOption}"
-                                    th:text="${genreOption.displayName}"
-                                    th:selected="${criteria.genre == genreOption}">장르</option>
-                        </select>
                     </div>
                     <div class="col-md-6 col-lg-2">
                         <label class="form-label fw-semibold" for="progress">연재 상태</label>
@@ -73,9 +66,42 @@
                             <option value="title" th:selected="${criteria.titleSort}">제목순</option>
                         </select>
                     </div>
-                    <div class="col-12 d-flex justify-content-end">
-                        <a class="btn btn-outline-secondary" data-async-reset th:href="@{/writer/novels}">초기화</a>
+                </div>
+
+                <div class="genre-filter mt-3" data-genre-filter>
+                    <div class="genre-filter-label">장르 <span class="fw-normal text-secondary">(모두 포함 · AND)</span></div>
+                    <div data-genre-hidden>
+                        <input th:each="selectedGenre : ${criteria.genres}" type="hidden"
+                               name="genres" th:value="${selectedGenre}">
                     </div>
+                    <div class="genre-badge-list">
+                        <button th:each="genreOption : ${allGenres}"
+                                th:if="${genreOption.primary}"
+                                type="button"
+                                class="genre-badge"
+                                th:classappend="${#lists.contains(criteria.genres, genreOption)} ? ' is-active'"
+                                th:attr="data-genre-value=${genreOption}"
+                                data-genre-badge
+                                th:text="${genreOption.displayName}">장르</button>
+                    </div>
+                    <div class="genre-badge-list mt-2 d-none" data-genre-extra>
+                        <button th:each="genreOption : ${allGenres}"
+                                th:unless="${genreOption.primary}"
+                                type="button"
+                                class="genre-badge"
+                                th:classappend="${#lists.contains(criteria.genres, genreOption)} ? ' is-active'"
+                                th:attr="data-genre-value=${genreOption}"
+                                data-genre-badge
+                                th:text="${genreOption.displayName}">장르</button>
+                    </div>
+                    <div class="genre-filter-actions">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-genre-expand
+                                aria-expanded="false">전체 장르</button>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end mt-3">
+                    <a class="btn btn-outline-secondary" data-async-reset th:href="@{/writer/novels}">초기화</a>
                 </div>
             </form>
         </div>
@@ -90,38 +116,29 @@
             <div class="position-absolute top-50 start-50 translate-middle z-3
                         fs-4 fw-bold text-secondary d-none"
                  data-async-status aria-label="목록 불러오는 중">...</div>
-            <article th:each="novel : ${novels.content}" class="writer-item">
+            <article th:each="novel : ${novels.content}" class="writer-item position-relative">
                 <div class="flex-grow-1">
                     <div class="d-flex flex-wrap gap-2 mb-2">
                         <span class="badge status-badge" th:text="${novel.status.displayName}">연재 중</span>
                         <span class="badge"
                               th:classappend="${novel.visibility.name() == 'PUBLIC'} ? ' visibility-public' : ' visibility-private'"
                               th:text="${novel.visibility.displayName}">공개</span>
-                        <span th:if="${novel.partMode.name() == 'MULTI' and novel.latestCompletedPartLabel() != null}"
+                        <span th:if="${novel.multiPart and novel.latestCompletedPartLabel() != null}"
                               class="badge part-badge"
                               th:text="${novel.latestCompletedPartLabel()}">1부 완결</span>
-                        <span class="badge text-bg-light border"
-                              th:text="${novel.genre.displayName}">장르</span>
+                        <span th:each="genreItem : ${novel.genres}"
+                              class="badge text-bg-light border"
+                              th:text="${genreItem.displayName}">장르</span>
                         <span class="badge recommend-badge"
                               th:text="|추천 ${novel.recommendationCount}|">추천 0</span>
                     </div>
                     <h2 class="h5 fw-bold mb-1">
-                        <a class="novel-title-link"
+                        <a class="novel-title-link stretched-link"
                            th:href="@{/novels/{id}(id=${novel.id}, from='writer')}"
                            th:text="${novel.title}">작품명</a>
                     </h2>
                     <p class="text-secondary small mb-0"
                        th:text="|필명 ${novel.penName} · 수정 ${#temporals.format(novel.updatedAt, 'yyyy-MM-dd HH:mm')}|">정보</p>
-                </div>
-                <div class="d-flex flex-wrap gap-2">
-                    <a class="btn btn-sm btn-outline-secondary"
-                       th:href="@{/novels/{id}(id=${novel.id}, from='writer')}">상세</a>
-                    <a class="btn btn-sm btn-outline-dark"
-                       th:href="@{/writer/novels/{id}/edit(id=${novel.id})}">수정</a>
-                    <form th:action="@{/writer/novels/{id}/delete(id=${novel.id})}" method="post"
-                          data-confirm-delete="작품을 삭제할까요? 삭제 후에는 되돌릴 수 없습니다.">
-                        <button class="btn btn-sm btn-outline-danger" type="submit">삭제</button>
-                    </form>
                 </div>
             </article>
         </div>
@@ -130,18 +147,18 @@
             <ul class="pagination justify-content-center flex-wrap">
                 <li class="page-item" th:classappend="${novels.first} ? ' disabled'">
                     <a class="page-link" data-async-page
-                       th:href="@{/writer/novels(keyword=${criteria.keyword}, genre=${criteria.genre}, progress=${criteria.progress}, visibility=${criteria.visibility}, sort=${criteria.sort}, page=${novels.number - 1})}">이전</a>
+                       th:href="@{/writer/novels(keyword=${criteria.keyword}, genres=${criteria.genres}, progress=${criteria.progress}, visibility=${criteria.visibility}, sort=${criteria.sort}, page=${novels.number - 1})}">이전</a>
                 </li>
                 <li class="page-item"
                     th:each="pageNumber : ${#numbers.sequence(0, novels.totalPages - 1)}"
                     th:classappend="${pageNumber == novels.number} ? ' active'">
                     <a class="page-link" data-async-page
                        th:text="${pageNumber + 1}"
-                       th:href="@{/writer/novels(keyword=${criteria.keyword}, genre=${criteria.genre}, progress=${criteria.progress}, visibility=${criteria.visibility}, sort=${criteria.sort}, page=${pageNumber})}">1</a>
+                       th:href="@{/writer/novels(keyword=${criteria.keyword}, genres=${criteria.genres}, progress=${criteria.progress}, visibility=${criteria.visibility}, sort=${criteria.sort}, page=${pageNumber})}">1</a>
                 </li>
                 <li class="page-item" th:classappend="${novels.last} ? ' disabled'">
                     <a class="page-link" data-async-page
-                       th:href="@{/writer/novels(keyword=${criteria.keyword}, genre=${criteria.genre}, progress=${criteria.progress}, visibility=${criteria.visibility}, sort=${criteria.sort}, page=${novels.number + 1})}">다음</a>
+                       th:href="@{/writer/novels(keyword=${criteria.keyword}, genres=${criteria.genres}, progress=${criteria.progress}, visibility=${criteria.visibility}, sort=${criteria.sort}, page=${novels.number + 1})}">다음</a>
                 </li>
             </ul>
         </nav>
@@ -153,6 +170,6 @@
 </footer>
 <script th:src="@{/vendor/bootstrap/js/bootstrap.bundle.min.js}"></script>
 <script th:src="@{/js/novel-search.js}"></script>
-<script th:src="@{/js/novel-confirm.js}"></script>
+<script th:src="@{/js/novel-genre-filter.js}"></script>
 </body>
 </html>

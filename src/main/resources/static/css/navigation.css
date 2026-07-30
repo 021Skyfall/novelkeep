@@ -1,3 +1,6 @@
+@import url("notification.css");
+@import url("confirm-dialog.css");
+
 .brand-mark {
     display: inline-flex;
     align-items: center;

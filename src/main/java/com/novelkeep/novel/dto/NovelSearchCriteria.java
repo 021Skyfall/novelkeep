@@ -1,5 +1,9 @@
 package com.novelkeep.novel.dto;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+
 import com.novelkeep.novel.domain.NovelGenre;
 import com.novelkeep.novel.domain.NovelVisibility;
 
@@ -10,7 +14,7 @@ public class NovelSearchCriteria {
     public static final String PROGRESS_COMPLETED = "COMPLETED";
 
     private String keyword;
-    private NovelGenre genre;
+    private List<NovelGenre> genres = new ArrayList<>();
     private String progress;
     private NovelVisibility visibility;
     private Boolean favorite;
@@ -25,12 +29,24 @@ public class NovelSearchCriteria {
         this.keyword = keyword;
     }
 
-    public NovelGenre getGenre() {
-        return genre;
+    public List<NovelGenre> getGenres() {
+        return genres;
     }
 
-    public void setGenre(NovelGenre genre) {
-        this.genre = genre;
+    public void setGenres(List<NovelGenre> genres) {
+        LinkedHashSet<NovelGenre> unique = new LinkedHashSet<>();
+        if (genres != null) {
+            for (NovelGenre genre : genres) {
+                if (genre != null) {
+                    unique.add(genre);
+                }
+            }
+        }
+        this.genres = new ArrayList<>(unique);
+    }
+
+    public boolean hasGenres() {
+        return genres != null && !genres.isEmpty();
     }
 
     public String getProgress() {

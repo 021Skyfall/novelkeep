@@ -14,12 +14,12 @@ import com.novelkeep.novel.domain.NovelGenre;
 import com.novelkeep.novel.domain.NovelRecommendation;
 import com.novelkeep.novel.domain.NovelStatus;
 import com.novelkeep.novel.domain.NovelVisibility;
-import com.novelkeep.novel.domain.PartMode;
 import com.novelkeep.novel.domain.StoryPart;
 import com.novelkeep.novel.domain.StoryPartStatus;
 import com.novelkeep.novel.dto.NovelActionResult;
 import com.novelkeep.novel.dto.NovelForm;
 import com.novelkeep.novel.dto.NovelSearchCriteria;
+import com.novelkeep.novel.repository.EpisodeBookmarkRepository;
 import com.novelkeep.novel.repository.NovelFavoriteRepository;
 import com.novelkeep.novel.repository.NovelRecommendationRepository;
 import com.novelkeep.novel.repository.NovelRepository;
@@ -42,17 +42,20 @@ public class NovelService {
     private final NovelRepository novelRepository;
     private final NovelRecommendationRepository recommendationRepository;
     private final NovelFavoriteRepository favoriteRepository;
+    private final EpisodeBookmarkRepository bookmarkRepository;
     private final MemberRepository memberRepository;
 
     public NovelService(
             NovelRepository novelRepository,
             NovelRecommendationRepository recommendationRepository,
             NovelFavoriteRepository favoriteRepository,
+            EpisodeBookmarkRepository bookmarkRepository,
             MemberRepository memberRepository
     ) {
         this.novelRepository = novelRepository;
         this.recommendationRepository = recommendationRepository;
         this.favoriteRepository = favoriteRepository;
+        this.bookmarkRepository = bookmarkRepository;
         this.memberRepository = memberRepository;
     }
 
@@ -98,13 +101,17 @@ public class NovelService {
         if (!novel.isReadableBy(memberId, admin)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
+        initializeGenres(novel);
         return novel;
     }
 
     @Transactional(readOnly = true)
     public Novel findOwnedNovel(Long novelId, Long memberId) {
-        return novelRepository.findByIdAndAuthorId(novelId, memberId)
+        Novel novel = novelRepository.findByIdAndAuthorId(novelId, memberId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        initializeGenres(novel);
+        novel.getParts().size();
+        return novel;
     }
 
     @Transactional(readOnly = true)
@@ -197,7 +204,7 @@ public class NovelService {
         novel.update(
                 normalize(form.getTitle()),
                 normalize(form.getPenName()),
-                form.getGenre(),
+                requireGenres(form),
                 normalize(form.getSynopsis()),
                 form.getStatus(),
                 form.getVisibility()
@@ -209,6 +216,7 @@ public class NovelService {
         Novel novel = findOwnedNovel(novelId, memberId);
         recommendationRepository.deleteByNovelId(novelId);
         favoriteRepository.deleteByNovelId(novelId);
+        bookmarkRepository.deleteByNovelId(novelId);
         novelRepository.delete(novel);
     }
 
@@ -228,7 +236,23 @@ public class NovelService {
         novels.forEach(novel -> {
             novel.getAuthor().getId();
             novel.getParts().size();
+            initializeGenres(novel);
         });
+    }
+
+    private void initializeGenres(Novel novel) {
+        novel.getGenres().size();
+    }
+
+    private List<NovelGenre> requireGenres(NovelForm form) {
+        List<NovelGenre> genres = form.normalizedGenres();
+        if (genres.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "장르를 하나 이상 선택해 주세요.");
+        }
+        if (genres.size() > NovelGenre.MAX_PER_NOVEL) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "장르는 최대 5개까지 선택할 수 있습니다.");
+        }
+        return genres;
     }
 
     private Novel createNovel(Member author, NovelForm form) {
@@ -236,21 +260,13 @@ public class NovelService {
                 author,
                 normalize(form.getTitle()),
                 normalize(form.getPenName()),
-                form.getGenre(),
+                requireGenres(form),
                 normalize(form.getSynopsis()),
                 form.getStatus(),
-                form.getVisibility(),
-                form.getPartMode()
+                form.getVisibility()
         );
 
-        String partTitle = form.getPartMode() == PartMode.SINGLE
-                ? "본편"
-                : normalize(form.getFirstPartTitle());
-        if (form.getPartMode() == PartMode.MULTI && partTitle.isBlank()) {
-            throw new IllegalArgumentException("부 구분을 사용하면 첫 부 제목이 필요합니다.");
-        }
-
-        novel.addPart(StoryPart.create(1, partTitle, toPartStatus(form.getStatus())));
+        novel.addPart(StoryPart.create(1, "본편", toPartStatus(form.getStatus())));
         return novel;
     }
 

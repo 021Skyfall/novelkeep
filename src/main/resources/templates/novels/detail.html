@@ -15,12 +15,17 @@
 
 <main class="container py-5">
     <div class="mb-4">
-        <button class="btn btn-back-list" type="button" data-back-to-list
-                th:attr="data-fallback-url=${fromWriter} ? @{/writer/novels} : @{/novels}">← 목록으로</button>
+        <a class="btn btn-back-list"
+           th:href="${fromWriter} ? @{/writer/novels} : @{/novels}"
+           th:text="${fromWriter} ? '← 내 작품' : '← 작품 목록'">← 목록</a>
     </div>
 
-    <div th:if="${param.created}" class="alert alert-success">작품을 등록했습니다.</div>
-    <div th:if="${param.updated}" class="alert alert-success">작품 정보를 수정했습니다.</div>
+    <div th:if="${param.created}" class="alert alert-success"
+         data-push-notification data-notification-type="success"
+         data-notification-label="작품 등록">작품이 등록되었습니다. 기본 정보와 회차 구성을 확인해 주세요.</div>
+    <div th:if="${param.updated}" class="alert alert-success"
+         data-push-notification data-notification-type="success"
+         data-notification-label="기본 정보 수정">작품 기본 정보가 저장되었습니다.</div>
 
     <section class="detail-panel">
         <div class="d-flex flex-column flex-lg-row justify-content-between gap-4">
@@ -30,20 +35,25 @@
                     <span class="badge"
                           th:classappend="${novel.visibility.name() == 'PUBLIC'} ? ' visibility-public' : ' visibility-private'"
                           th:text="${novel.visibility.displayName}">공개</span>
-                    <span th:if="${novel.partMode.name() == 'MULTI' and novel.latestCompletedPartLabel() != null}"
+                    <span th:if="${novel.multiPart and novel.latestCompletedPartLabel() != null}"
                           class="badge part-badge"
                           th:text="${novel.latestCompletedPartLabel()}">1부 완결</span>
-                    <span class="badge text-bg-light border"
-                          th:text="${novel.genre.displayName}">장르</span>
-                    <span class="badge text-bg-light border" th:text="${novel.partMode.displayName}">권 구성</span>
+                    <span th:each="genreItem : ${novel.genres}"
+                          class="badge text-bg-light border"
+                          th:text="${genreItem.displayName}">장르</span>
+                    <span class="badge text-bg-light border" th:text="|${novel.partCount}권|">1권</span>
                     <span class="badge recommend-badge" data-recommend-count
                           th:text="|추천 ${novel.recommendationCount}|">추천 0</span>
                 </div>
                 <h1 class="display-6 fw-bold" th:text="${novel.title}">작품명</h1>
                 <p class="text-secondary mb-0" th:text="|필명 ${novel.penName}|">필명</p>
+                <div th:if="${continueBookmark != null}" class="mt-3">
+                    <a class="btn btn-dark"
+                       th:href="@{/episodes/{id}(id=${continueBookmark.episode.id})}"
+                       th:text="|${continueBookmark.episode.episodeNumber}화부터 이어 읽기|">이어 읽기</a>
+                </div>
             </div>
             <div class="d-flex flex-wrap gap-2 align-items-start" data-detail-actions>
-                <div class="small text-danger w-100 d-none" data-action-error role="alert"></div>
                 <form th:if="${canFavorite}"
                       th:action="@{/novels/{id}/favorite(id=${novel.id}, from=${fromWriter} ? 'writer' : null)}"
                       method="post"
@@ -60,17 +70,19 @@
                       method="post"
                       data-novel-action="recommend"
                       th:attr="data-novel-id=${novel.id}">
-                    <button class="btn" data-action-button
+                    <button class="btn btn-content-action" data-action-button
                             th:classappend="${recommended} ? 'btn-dark' : 'btn-outline-dark'"
                             type="submit"
                             th:text="${recommended} ? '추천 취소' : '추천하기'">추천하기</button>
                 </form>
-                <a th:if="${owned}" class="btn btn-outline-dark"
-                   th:href="@{/writer/novels/{id}/edit(id=${novel.id})}">작품 수정</a>
+                <a th:if="${owned}" class="btn btn-content-action btn-outline-dark"
+                   th:href="@{/writer/novels/{id}/edit(id=${novel.id})}">기본 정보 수정</a>
                 <form th:if="${owned}"
                       th:action="@{/writer/novels/{id}/delete(id=${novel.id})}" method="post"
-                      data-confirm-delete="작품을 삭제할까요? 삭제 후에는 되돌릴 수 없습니다.">
-                    <button class="btn btn-outline-danger" type="submit">작품 삭제</button>
+                      data-confirm-delete="작품과 모든 권(부)·회차를 영구 삭제합니다. 삭제 후에는 되돌릴 수 없습니다."
+                      data-confirm-title="작품 영구 삭제"
+                      data-confirm-text="예, 작품 삭제">
+                    <button class="btn btn-content-action btn-outline-danger" type="submit">작품 영구 삭제</button>
                 </form>
             </div>
         </div>
@@ -78,28 +90,49 @@
         <p class="lead detail-synopsis mb-0" th:text="${novel.synopsis}">작품 소개</p>
     </section>
 
-    <section class="mt-5" aria-labelledby="parts-title">
-        <div class="section-heading">
-            <div>
-                <span class="eyebrow">STORY PARTS</span>
-                <h2 id="parts-title" class="h3 fw-bold mt-2">권(부)·회차 구성</h2>
-            </div>
-            <span class="small text-secondary">회차 기능은 다음 구현 단계에서 연결됩니다.</span>
+    <section class="mt-5">
+        <div th:if="${owned}" class="d-flex justify-content-start mb-3">
+            <a class="btn btn-content-action btn-dark px-4"
+               th:href="@{/writer/novels/{id}/contents(id=${novel.id})}">전체 관리하기</a>
         </div>
 
         <div class="part-list mt-3">
-            <article th:each="part : ${novel.parts}" class="part-item">
-                <div>
-                    <span th:if="${novel.partMode.name() == 'MULTI'}"
-                          class="badge part-badge mb-2"
-                          th:text="${part.status.name() == 'COMPLETED'
-                              ? part.partNumber + '부 완결'
-                              : part.partNumber + '부 ' + part.status.displayName}">1부 연재 중</span>
-                    <h3 class="h5 fw-bold mb-1"
-                        th:text="${novel.partMode.name() == 'SINGLE' ? '회차 목록' : part.title}">부 제목</h3>
-                    <p class="text-secondary mb-0">아직 등록된 회차가 없습니다.</p>
+            <article th:each="part : ${latestParts}" class="part-item flex-column align-items-stretch">
+                <div th:with="visibleEpisodes=${privileged ? part.episodes : part.episodes.?[status.name() == 'PUBLISHED']}">
+                    <div class="d-flex justify-content-between gap-3 mb-3">
+                        <div>
+                            <span th:if="${novel.multiPart}"
+                                  class="badge part-badge mb-2"
+                                  th:text="${part.status.name() == 'COMPLETED'
+                                      ? part.partNumber + '부 완결'
+                                      : part.partNumber + '부 ' + part.status.displayName}">1부 연재 중</span>
+                            <h3 class="h5 fw-bold mb-0"
+                                th:text="${novel.multiPart ? part.title : '회차 목록'}">부 제목</h3>
+                        </div>
+                        <span class="text-secondary small"
+                              th:text="|${#lists.size(visibleEpisodes)}화|">0화</span>
+                    </div>
+
+                    <p th:if="${#lists.isEmpty(visibleEpisodes)}" class="text-secondary mb-0">
+                        작가가 첫 회차를 준비 중입니다.
+                    </p>
+                    <ul th:unless="${#lists.isEmpty(visibleEpisodes)}" class="list-group list-group-flush border rounded-3">
+                        <li th:each="episode : ${visibleEpisodes}"
+                            class="list-group-item d-flex justify-content-between align-items-center gap-3">
+                            <div>
+                                <a class="novel-title-link fw-semibold"
+                                   th:href="@{/episodes/{id}(id=${episode.id})}"
+                                   th:text="|${episode.episodeNumber}화. ${episode.title}|">1화. 제목</a>
+                                <div class="small text-secondary"
+                                     th:text="|${episode.status.displayName} · ${episode.characterCount}자|">공개 · 0자</div>
+                            </div>
+                            <a th:if="${owned}" class="btn btn-sm btn-outline-dark"
+                               th:href="@{/writer/episodes/{id}/edit(id=${episode.id}, from='detail')}">수정</a>
+                            <a th:unless="${owned}" class="btn btn-sm btn-outline-dark"
+                               th:href="@{/episodes/{id}(id=${episode.id})}">읽기</a>
+                        </li>
+                    </ul>
                 </div>
-                <span class="text-secondary small">0화</span>
             </article>
         </div>
     </section>
@@ -109,22 +142,6 @@
     <div class="container small text-secondary">NovelKeep · 이야기를 끝까지, 소장까지</div>
 </footer>
 <script th:src="@{/vendor/bootstrap/js/bootstrap.bundle.min.js}"></script>
-<script th:src="@{/js/novel-confirm.js}"></script>
 <script th:src="@{/js/novel-actions.js}"></script>
-<script>
-    (function () {
-        var button = document.querySelector('[data-back-to-list]');
-        if (!button) {
-            return;
-        }
-        button.addEventListener('click', function () {
-            if (window.history.length > 1) {
-                window.history.back();
-                return;
-            }
-            window.location.href = button.getAttribute('data-fallback-url') || '/novels';
-        });
-    })();
-</script>
 </body>
 </html>

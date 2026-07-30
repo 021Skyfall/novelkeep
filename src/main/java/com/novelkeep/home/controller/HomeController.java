@@ -45,7 +45,10 @@ public class HomeController {
                     return "redirect:/main";
                 })
                 .orElseGet(() -> {
-                    redirectAttributes.addFlashAttribute("roleError", "선택할 수 없는 체험 역할입니다.");
+                    redirectAttributes.addFlashAttribute(
+                            "roleError",
+                            "요청한 체험 역할을 선택할 수 없습니다. 화면에 표시된 역할 중 하나를 선택해 주세요."
+                    );
                     return "redirect:/";
                 });
     }

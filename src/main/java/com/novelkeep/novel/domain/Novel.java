@@ -2,12 +2,17 @@ package com.novelkeep.novel.domain;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import com.novelkeep.member.domain.Member;
 
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -22,6 +27,7 @@ import jakarta.persistence.OrderBy;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 @Entity
 @Table(name = "novel")
@@ -41,9 +47,18 @@ public class Novel {
     @Column(name = "pen_name", nullable = false, length = 50)
     private String penName;
 
+    @ElementCollection
+    @CollectionTable(
+            name = "novel_genre",
+            joinColumns = @JoinColumn(name = "novel_id"),
+            uniqueConstraints = @UniqueConstraint(
+                    name = "uk_novel_genre",
+                    columnNames = {"novel_id", "genre"}
+            )
+    )
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
-    private NovelGenre genre;
+    @Column(name = "genre", nullable = false, length = 30)
+    private Set<NovelGenre> genres = new LinkedHashSet<>();
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String synopsis;
@@ -55,10 +70,6 @@ public class Novel {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20, columnDefinition = "varchar(20) not null default 'PUBLIC'")
     private NovelVisibility visibility;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "part_mode", nullable = false, length = 20)
-    private PartMode partMode;
 
     @Column(name = "recommendation_count", nullable = false, columnDefinition = "bigint not null default 0")
     private long recommendationCount;
@@ -80,21 +91,19 @@ public class Novel {
             Member author,
             String title,
             String penName,
-            NovelGenre genre,
+            Collection<NovelGenre> genres,
             String synopsis,
             NovelStatus status,
-            NovelVisibility visibility,
-            PartMode partMode
+            NovelVisibility visibility
     ) {
         Novel novel = new Novel();
         novel.author = author;
         novel.title = title;
         novel.penName = penName;
-        novel.genre = genre;
+        novel.replaceGenres(genres);
         novel.synopsis = synopsis;
         novel.status = status;
         novel.visibility = visibility;
-        novel.partMode = partMode;
         novel.recommendationCount = 0L;
         return novel;
     }
@@ -114,20 +123,40 @@ public class Novel {
         part.assignNovel(this);
     }
 
+    public void removePart(StoryPart part) {
+        Long partId = part.getId();
+        parts.removeIf(existing -> partId != null && partId.equals(existing.getId()));
+    }
+
     public void update(
             String title,
             String penName,
-            NovelGenre genre,
+            Collection<NovelGenre> genres,
             String synopsis,
             NovelStatus status,
             NovelVisibility visibility
     ) {
         this.title = title;
         this.penName = penName;
-        this.genre = genre;
+        replaceGenres(genres);
         this.synopsis = synopsis;
         this.status = status;
         this.visibility = visibility;
+    }
+
+    public void replaceGenres(Collection<NovelGenre> genres) {
+        this.genres.clear();
+        if (genres != null) {
+            for (NovelGenre genre : genres) {
+                if (genre != null) {
+                    this.genres.add(genre);
+                }
+            }
+        }
+    }
+
+    public void changeStatus(NovelStatus status) {
+        this.status = status;
     }
 
     public boolean hasCompletedPart() {
@@ -156,6 +185,10 @@ public class Novel {
             return true;
         }
         return admin || isOwnedBy(memberId);
+    }
+
+    public NovelGenre primaryGenre() {
+        return genres.stream().findFirst().orElse(null);
     }
 
     @PrePersist
@@ -192,8 +225,8 @@ public class Novel {
         return penName;
     }
 
-    public NovelGenre getGenre() {
-        return genre;
+    public Set<NovelGenre> getGenres() {
+        return genres;
     }
 
     public String getSynopsis() {
@@ -208,8 +241,12 @@ public class Novel {
         return visibility;
     }
 
-    public PartMode getPartMode() {
-        return partMode;
+    public boolean isMultiPart() {
+        return parts.size() > 1;
+    }
+
+    public int getPartCount() {
+        return parts.size();
     }
 
     public long getRecommendationCount() {

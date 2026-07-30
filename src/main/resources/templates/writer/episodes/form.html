@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="노벨킵 회차 작성">
+    <title th:text="${editing ? '회차 수정 | 노벨킵' : '회차 작성 | 노벨킵'}">회차 작성 | 노벨킵</title>
+    <script th:src="@{/js/theme.js}"></script>
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/navigation.css}">
+    <link rel="stylesheet" th:href="@{/css/novel.css}">
+</head>
+<body th:classappend="${roleKey != null} ? | role-${#strings.toLowerCase(roleKey)}|">
+<div th:replace="~{fragments/navigation :: siteNav('writer')}"></div>
+
+<main class="container form-container py-5">
+    <div class="mb-4">
+        <a class="btn btn-back-list"
+           th:href="${fromRead}
+               ? @{/episodes/{id}(id=${episodeId})}
+               : (${fromDetail}
+                   ? @{/novels/{id}(id=${novel.id}, from='writer')}
+                   : @{/writer/novels/{id}/contents(id=${novel.id})})"
+           th:text="${fromRead} ? '← 회차 읽기' : (${fromDetail} ? '← 작품 상세' : '← 부·회차 관리')">← 이전</a>
+    </div>
+
+    <header class="mb-4">
+        <span class="eyebrow">EPISODE EDITOR</span>
+        <h1 class="display-6 fw-bold mt-2" th:text="${editing ? '회차 수정' : '회차 작성'}">회차 작성</h1>
+        <p class="text-secondary mb-0"
+           th:text="|${novel.title} · ${novel.multiPart ? part.title : '본편'}|">작품 정보</p>
+    </header>
+
+    <form class="form-panel" th:object="${episodeForm}"
+          th:action="${editing}
+              ? @{/writer/episodes/{id}/edit(id=${episodeId})}
+              : @{/writer/parts/{id}/episodes(id=${part.id})}"
+          method="post" novalidate>
+        <input th:if="${fromRead}" type="hidden" name="from" value="read">
+        <input th:if="${fromDetail}" type="hidden" name="from" value="detail">
+        <div class="mb-4">
+            <label class="form-label fw-semibold" for="title">회차 제목</label>
+            <input id="title" class="form-control" th:classappend="${#fields.hasErrors('title')} ? 'is-invalid'"
+                   type="text" th:field="*{title}" maxlength="150" placeholder="예: 시작의 문">
+            <div class="invalid-feedback" th:errors="*{title}">제목 오류</div>
+            <div class="form-text">회차 번호는 자동으로 붙으므로 제목에는 사건이나 장면만 적어 주세요.</div>
+        </div>
+
+        <div class="mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <label class="form-label fw-semibold mb-0" for="content">본문</label>
+                <span class="small text-secondary">글자 수 <strong data-char-count>0</strong>자</span>
+            </div>
+            <textarea id="content" class="form-control" rows="16"
+                      th:classappend="${#fields.hasErrors('content')} ? 'is-invalid'"
+                      th:field="*{content}" data-char-input
+                      placeholder="회차 본문을 입력해 주세요."></textarea>
+            <div class="invalid-feedback" th:errors="*{content}">본문 오류</div>
+            <div class="form-text">줄바꿈은 글자 수에서 제외되며, 저장 시 서버에서 다시 계산합니다.</div>
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label fw-semibold" for="status">공개 상태</label>
+            <select id="status" class="form-select" th:field="*{status}">
+                <option th:each="statusOption : ${episodeStatuses}"
+                        th:value="${statusOption}" th:text="${statusOption.displayName}">초안</option>
+            </select>
+            <div class="form-text">초안은 소유자와 관리자만 볼 수 있고, 공개 회차만 독자에게 노출됩니다.</div>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2">
+            <button class="btn btn-content-action btn-dark" type="submit"
+                    th:text="${editing ? '회차 저장' : '회차 등록'}">회차 등록</button>
+            <a class="btn btn-content-action btn-outline-secondary"
+               th:href="${fromRead}
+                   ? @{/episodes/{id}(id=${episodeId})}
+                   : (${fromDetail}
+                       ? @{/novels/{id}(id=${novel.id}, from='writer')}
+                       : @{/writer/novels/{id}/contents(id=${novel.id})})">취소</a>
+        </div>
+    </form>
+</main>
+
+<footer class="border-top py-4">
+    <div class="container small text-secondary">NovelKeep · 이야기를 끝까지, 소장까지</div>
+</footer>
+<script th:src="@{/vendor/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/js/episode-form.js}"></script>
+</body>
+</html>

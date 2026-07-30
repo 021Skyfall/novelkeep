@@ -1,0 +1,144 @@
+.nk-notification-stack {
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 1090;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    width: min(24rem, calc(100vw - 2rem));
+    pointer-events: none;
+}
+
+.nk-push-notification {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 3.25rem;
+    padding: 0.75rem 0.85rem;
+    color: #302a25;
+    background: #fff;
+    border: 1px solid #d8d0c8;
+    border-left-width: 0.3rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 0.75rem 2rem rgba(32, 26, 22, 0.18);
+    pointer-events: auto;
+    animation: nk-notification-in 0.2s ease-out;
+}
+
+.nk-push-notification.is-leaving {
+    opacity: 0;
+    transform: translateX(-0.75rem);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.nk-notification-type {
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.nk-notification-message {
+    min-width: 0;
+    font-size: 0.925rem;
+    font-weight: 600;
+    line-height: 1.45;
+}
+
+.nk-notification-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    padding: 0;
+    color: inherit;
+    background: transparent;
+    border: 0;
+    border-radius: 999px;
+    font-size: 1.15rem;
+    line-height: 1;
+    opacity: 0.65;
+}
+
+.nk-notification-close:hover,
+.nk-notification-close:focus {
+    background: rgba(0, 0, 0, 0.08);
+    opacity: 1;
+}
+
+.nk-push-notification.is-success {
+    border-left-color: #2f7d55;
+}
+
+.nk-push-notification.is-success .nk-notification-type {
+    color: #225f40;
+    background: #dff3e8;
+}
+
+.nk-push-notification.is-error {
+    border-left-color: #b43c4d;
+}
+
+.nk-push-notification.is-error .nk-notification-type {
+    color: #8f2e3c;
+    background: #f8e0e4;
+}
+
+.nk-push-notification.is-warning {
+    border-left-color: #b27a24;
+}
+
+.nk-push-notification.is-warning .nk-notification-type {
+    color: #775016;
+    background: #f8edcf;
+}
+
+.nk-push-notification.is-info {
+    border-left-color: #3f718b;
+}
+
+.nk-push-notification.is-info .nk-notification-type {
+    color: #315e74;
+    background: #e0eff6;
+}
+
+[data-bs-theme="dark"] .nk-push-notification {
+    color: #f1ece6;
+    background: #292421;
+    border-color: #5a514a;
+    box-shadow: 0 0.75rem 2rem rgba(0, 0, 0, 0.4);
+}
+
+[data-bs-theme="dark"] .nk-notification-close:hover,
+[data-bs-theme="dark"] .nk-notification-close:focus {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+@keyframes nk-notification-in {
+    from {
+        opacity: 0;
+        transform: translateX(-0.75rem);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@media (max-width: 575.98px) {
+    .nk-notification-stack {
+        top: 0.75rem;
+        left: 0.75rem;
+        width: calc(100vw - 1.5rem);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nk-push-notification {
+        animation: none;
+    }
+}

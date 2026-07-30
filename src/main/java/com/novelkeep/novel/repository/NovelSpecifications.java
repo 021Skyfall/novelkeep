@@ -79,8 +79,10 @@ public final class NovelSpecifications {
             }
         }
 
-        if (criteria.getGenre() != null) {
-            predicate = cb.and(predicate, cb.equal(root.get("genre"), criteria.getGenre()));
+        if (criteria.hasGenres()) {
+            for (var genre : criteria.getGenres()) {
+                predicate = cb.and(predicate, cb.isMember(genre, root.get("genres")));
+            }
         }
 
         if (criteria.isSerializingProgress()) {

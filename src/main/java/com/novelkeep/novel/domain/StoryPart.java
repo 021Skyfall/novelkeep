@@ -80,6 +80,35 @@ public class StoryPart {
         episode.assignStoryPart(this);
     }
 
+    public void removeEpisode(Episode episode) {
+        Long episodeId = episode.getId();
+        episodes.removeIf(existing -> episodeId != null && episodeId.equals(existing.getId()));
+    }
+
+    public void update(String title, StoryPartStatus status) {
+        this.title = title;
+        this.status = status;
+    }
+
+    public void changePartNumber(Integer partNumber) {
+        this.partNumber = partNumber;
+    }
+
+    public boolean hasEpisodes() {
+        return !episodes.isEmpty();
+    }
+
+    public boolean allEpisodesPublished() {
+        return hasEpisodes() && episodes.stream()
+                .allMatch(episode -> episode.getStatus() == EpisodeStatus.PUBLISHED);
+    }
+
+    public int totalCharacterCount() {
+        return episodes.stream()
+                .mapToInt(Episode::getCharacterCount)
+                .sum();
+    }
+
     @PrePersist
     void onCreate() {
         LocalDateTime now = LocalDateTime.now();
@@ -96,6 +125,10 @@ public class StoryPart {
         return id;
     }
 
+    public Novel getNovel() {
+        return novel;
+    }
+
     public Integer getPartNumber() {
         return partNumber;
     }
@@ -110,5 +143,9 @@ public class StoryPart {
 
     public List<Episode> getEpisodes() {
         return episodes;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
     }
 }

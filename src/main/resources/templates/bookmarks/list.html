@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="노벨킵 내 책갈피">
+    <title>내 책갈피 | 노벨킵</title>
+    <script th:src="@{/js/theme.js}"></script>
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/navigation.css}">
+    <link rel="stylesheet" th:href="@{/css/novel.css}">
+</head>
+<body th:classappend="${roleKey != null} ? | role-${#strings.toLowerCase(roleKey)}|">
+<div th:replace="~{fragments/navigation :: siteNav('bookmarks')}"></div>
+
+<main class="container py-5">
+    <header class="page-heading mb-4">
+        <span class="eyebrow">MY BOOKMARKS</span>
+        <h1 class="display-6 fw-bold mt-2">내 책갈피</h1>
+        <p class="text-secondary mb-0">작품마다 마지막으로 저장한 회차에서 바로 이어 읽을 수 있습니다.</p>
+    </header>
+
+    <div th:if="${param.deleted}" class="alert alert-success"
+         data-push-notification data-notification-type="success"
+         data-notification-label="책갈피 해제">선택한 작품의 책갈피가 해제되었습니다.</div>
+
+    <div th:if="${#lists.isEmpty(bookmarks)}" class="empty-state">
+        <strong>저장한 책갈피가 없습니다.</strong>
+        <p class="mb-3">회차를 읽다가 책갈피를 저장하면 이곳에서 바로 이어 읽을 수 있습니다.</p>
+        <a class="btn btn-dark" th:href="@{/novels}">작품 둘러보기</a>
+    </div>
+
+    <section th:unless="${#lists.isEmpty(bookmarks)}" class="writer-list" aria-label="책갈피 목록">
+        <article th:each="bookmark : ${bookmarks}" class="writer-item">
+            <div class="flex-grow-1">
+                <a class="novel-title-link h5 fw-bold d-inline-block mb-2"
+                   th:href="@{/novels/{id}(id=${bookmark.novel.id})}"
+                   th:text="${bookmark.novel.title}">작품명</a>
+                <p class="mb-1"
+                   th:text="|${bookmark.episode.episodeNumber}화. ${bookmark.episode.title}|">1화. 회차 제목</p>
+                <p class="small text-secondary mb-0"
+                   th:text="|저장 ${#temporals.format(bookmark.updatedAt, 'yyyy-MM-dd HH:mm')}|">저장 시각</p>
+            </div>
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <a class="btn btn-content-action btn-dark"
+                   th:href="@{/episodes/{id}(id=${bookmark.episode.id})}">이어 읽기</a>
+                <form th:action="@{/bookmarks/{id}/delete(id=${bookmark.novel.id})}" method="post">
+                    <button class="btn btn-content-action btn-outline-danger" type="submit">해제</button>
+                </form>
+            </div>
+        </article>
+    </section>
+</main>
+
+<footer class="border-top py-4">
+    <div class="container small text-secondary">NovelKeep · 저장한 회차부터 이어 읽습니다.</div>
+</footer>
+<script th:src="@{/vendor/bootstrap/js/bootstrap.bundle.min.js}"></script>
+</body>
+</html>

@@ -82,12 +82,31 @@ public class Episode {
         this.storyPart = storyPart;
     }
 
+    public void update(String title, String content, EpisodeStatus status) {
+        this.title = title;
+        this.content = content;
+        this.characterCount = countCharacters(content);
+        this.status = status;
+        if (status == EpisodeStatus.PUBLISHED) {
+            if (this.publishedAt == null) {
+                this.publishedAt = LocalDateTime.now();
+            }
+        } else {
+            this.publishedAt = null;
+        }
+    }
+
+    public void changeEpisodeNumber(Integer episodeNumber) {
+        this.episodeNumber = episodeNumber;
+    }
+
     @PrePersist
     void onCreate() {
         LocalDateTime now = LocalDateTime.now();
         this.createdAt = now;
         this.updatedAt = now;
-        if (status == EpisodeStatus.PUBLISHED) {
+        this.characterCount = countCharacters(content);
+        if (status == EpisodeStatus.PUBLISHED && publishedAt == null) {
             this.publishedAt = now;
         }
     }
@@ -99,9 +118,12 @@ public class Episode {
         if (status == EpisodeStatus.PUBLISHED && publishedAt == null) {
             this.publishedAt = updatedAt;
         }
+        if (status == EpisodeStatus.DRAFT) {
+            this.publishedAt = null;
+        }
     }
 
-    private static int countCharacters(String content) {
+    public static int countCharacters(String content) {
         if (content == null) {
             return 0;
         }
@@ -110,6 +132,10 @@ public class Episode {
 
     public Long getId() {
         return id;
+    }
+
+    public StoryPart getStoryPart() {
+        return storyPart;
     }
 
     public Integer getEpisodeNumber() {
@@ -134,5 +160,9 @@ public class Episode {
 
     public LocalDateTime getPublishedAt() {
         return publishedAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
     }
 }

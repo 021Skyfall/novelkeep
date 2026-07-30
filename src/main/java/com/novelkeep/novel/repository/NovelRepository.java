@@ -24,22 +24,33 @@ public interface NovelRepository extends JpaRepository<Novel, Long>, JpaSpecific
     Optional<Novel> findByIdAndAuthorId(Long id, Long authorId);
 
     @Query("""
-            select distinct n.genre
+            select distinct n
               from Novel n
+              join fetch n.author
+              left join fetch n.parts
+             where n.id = :novelId
+            """)
+    Optional<Novel> findDetailById(@Param("novelId") Long novelId);
+
+    @Query("""
+            select distinct g
+              from Novel n
+              join n.genres g
              where n.visibility = :visibility
-             order by n.genre asc
+             order by g asc
             """)
     List<NovelGenre> findDistinctGenresByVisibility(@Param("visibility") NovelVisibility visibility);
 
     @Query("""
-            select distinct n.genre
+            select distinct g
               from Novel n
+              join n.genres g
              where n.author.id = :authorId
-             order by n.genre asc
+             order by g asc
             """)
     List<NovelGenre> findDistinctGenresByAuthorId(@Param("authorId") Long authorId);
 
-    @Query("select distinct n.genre from Novel n order by n.genre asc")
+    @Query("select distinct g from Novel n join n.genres g order by g asc")
     List<NovelGenre> findDistinctGenres();
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)

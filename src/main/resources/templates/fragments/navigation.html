@@ -59,6 +59,8 @@
                            th:href="@{/novels}">작품 탐색</a>
                         <a class="role-link" th:classappend="${active == 'favorites'} ? ' is-active'"
                            th:href="@{/novels(favorite=true)}">내 즐겨찾기</a>
+                        <a class="role-link" th:classappend="${active == 'bookmarks'} ? ' is-active'"
+                           th:href="@{/bookmarks}">내 책갈피</a>
                         <span class="role-link disabled">내 펀딩·주문 <small>준비 중</small></span>
                     </div>
                 </div>
@@ -66,7 +68,6 @@
                     <div class="role-links">
                         <a class="role-link" th:classappend="${active == 'writer'} ? ' is-active'"
                            th:href="@{/writer/novels}">내 작품</a>
-                        <a class="role-link" th:href="@{/writer/novels/new}">작품 등록</a>
                         <span class="role-link disabled">출판·펀딩 관리 <small>준비 중</small></span>
                     </div>
                 </div>
@@ -89,6 +90,8 @@
 
     <button class="btn btn-dark back-to-top" type="button" data-back-to-top
             aria-label="맨 위로 이동">↑</button>
+    <script th:src="@{/js/notification.js}" defer></script>
+    <script th:src="@{/js/confirm-dialog.js}" defer></script>
     <script th:src="@{/js/navigation.js}" defer></script>
 </th:block>
 </body>

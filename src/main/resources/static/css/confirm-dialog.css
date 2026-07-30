@@ -1,0 +1,99 @@
+.nk-confirm-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(24, 20, 18, 0.62);
+    backdrop-filter: blur(2px);
+    animation: nk-confirm-backdrop-in 0.15s ease-out;
+}
+
+.nk-confirm-dialog {
+    width: min(28rem, 100%);
+    padding: 1.5rem;
+    color: #302a25;
+    background: #fff;
+    border: 1px solid #d8d0c8;
+    border-radius: 1rem;
+    box-shadow: 0 1.25rem 3.5rem rgba(18, 14, 12, 0.35);
+    animation: nk-confirm-dialog-in 0.18s ease-out;
+}
+
+.nk-confirm-dialog.is-danger {
+    border-top: 0.35rem solid #b43c4d;
+}
+
+.nk-confirm-dialog.is-warning {
+    border-top: 0.35rem solid #b27a24;
+}
+
+.nk-confirm-title {
+    margin: 0 0 0.65rem;
+    font-size: 1.25rem;
+    font-weight: 800;
+}
+
+.nk-confirm-message {
+    margin: 0;
+    color: #665e57;
+    line-height: 1.65;
+    white-space: pre-line;
+}
+
+.nk-confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.65rem;
+    margin-top: 1.5rem;
+}
+
+.nk-confirm-button {
+    min-width: 5.5rem;
+}
+
+.nk-confirm-scroll-lock {
+    overflow: hidden;
+}
+
+[data-bs-theme="dark"] .nk-confirm-dialog {
+    color: #f1ece6;
+    background: #292421;
+    border-color: #5a514a;
+}
+
+[data-bs-theme="dark"] .nk-confirm-message {
+    color: #cfc5bc;
+}
+
+@keyframes nk-confirm-backdrop-in {
+    from {
+        opacity: 0;
+    }
+}
+
+@keyframes nk-confirm-dialog-in {
+    from {
+        opacity: 0;
+        transform: translateY(0.5rem) scale(0.98);
+    }
+}
+
+@media (max-width: 575.98px) {
+    .nk-confirm-actions {
+        flex-direction: column-reverse;
+    }
+
+    .nk-confirm-button {
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nk-confirm-backdrop,
+    .nk-confirm-dialog {
+        animation: none;
+    }
+}

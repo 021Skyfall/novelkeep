@@ -4,11 +4,12 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="노벨킵 작품 작성과 수정">
-    <title th:text="${editing ? '작품 수정 | 노벨킵' : '새 작품 등록 | 노벨킵'}">작품 작성 | 노벨킵</title>
+    <title th:text="${editing ? '기본 정보 수정 | 노벨킵' : '새 작품 등록 | 노벨킵'}">작품 작성 | 노벨킵</title>
     <script th:src="@{/js/theme.js}"></script>
     <link rel="stylesheet" th:href="@{/vendor/bootstrap/css/bootstrap.min.css}">
     <link rel="stylesheet" th:href="@{/css/navigation.css}">
     <link rel="stylesheet" th:href="@{/css/novel.css}">
+    <link rel="stylesheet" th:href="@{/css/novel-genre.css}">
 </head>
 <body th:classappend="${roleKey != null} ? | role-${#strings.toLowerCase(roleKey)}|">
 <div th:replace="~{fragments/navigation :: siteNav('novels')}"></div>
@@ -16,7 +17,7 @@
 <main class="container form-container py-5">
     <header class="mb-4">
         <span class="eyebrow">WRITER EDITOR</span>
-        <h1 class="display-6 fw-bold mt-2" th:text="${editing ? '작품 수정' : '새 작품 등록'}">작품 등록</h1>
+        <h1 class="display-6 fw-bold mt-2" th:text="${editing ? '기본 정보 수정' : '새 작품 등록'}">작품 등록</h1>
         <p class="text-secondary mb-0">연재 상태와 공개 여부를 구분해 작품 정보를 설정합니다. 새 작품 기본값은 미공개입니다.</p>
     </header>
 
@@ -32,23 +33,36 @@
             <div class="invalid-feedback" th:errors="*{title}">제목 오류</div>
         </div>
 
-        <div class="row g-4 mb-4">
-            <div class="col-md-6">
-                <label class="form-label fw-semibold" for="penName">공개 필명</label>
-                <input id="penName" class="form-control"
-                       th:classappend="${#fields.hasErrors('penName')} ? 'is-invalid'"
-                       type="text" th:field="*{penName}" maxlength="50" placeholder="독자에게 보일 필명">
-                <div class="invalid-feedback" th:errors="*{penName}">필명 오류</div>
+        <div class="mb-4">
+            <label class="form-label fw-semibold" for="penName">공개 필명</label>
+            <input id="penName" class="form-control"
+                   th:classappend="${#fields.hasErrors('penName')} ? 'is-invalid'"
+                   type="text" th:field="*{penName}" maxlength="50" placeholder="독자에게 보일 필명">
+            <div class="invalid-feedback" th:errors="*{penName}">필명 오류</div>
+        </div>
+
+        <div class="mb-4" data-genre-form th:attr="data-max-genres=${maxGenres}">
+            <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+                <label class="form-label fw-semibold mb-0">장르</label>
+                <span class="small text-secondary" data-genre-count>0 / 5</span>
             </div>
-            <div class="col-md-6">
-                <label class="form-label fw-semibold" for="genre">장르</label>
-                <select id="genre" class="form-select" th:classappend="${#fields.hasErrors('genre')} ? 'is-invalid'"
-                        th:field="*{genre}">
-                    <option th:each="genreOption : ${genres}"
-                            th:value="${genreOption}" th:text="${genreOption.displayName}">판타지</option>
-                </select>
-                <div class="invalid-feedback" th:errors="*{genre}">장르 오류</div>
+            <div data-genre-form-hidden>
+                <input th:each="selectedGenre : *{genres}" type="hidden"
+                       name="genres" th:value="${selectedGenre}">
             </div>
+            <div class="genre-badge-list"
+                 th:classappend="${#fields.hasErrors('genres')} ? ' is-invalid'">
+                <button th:each="genreOption : ${allGenres}"
+                        type="button"
+                        class="genre-badge"
+                        th:classappend="${#lists.contains(novelForm.genres, genreOption)} ? ' is-active'"
+                        th:attr="data-genre-value=${genreOption}"
+                        data-genre-form-badge
+                        th:text="${genreOption.displayName}">장르</button>
+            </div>
+            <div class="genre-form-help form-text">최소 1개, 최대 5개까지 선택할 수 있습니다.</div>
+            <div class="genre-form-error" data-genre-form-error></div>
+            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('genres')}" th:errors="*{genres}">장르 오류</div>
         </div>
 
         <div class="mb-4">
@@ -61,14 +75,14 @@
         </div>
 
         <div class="row g-4 mb-4">
-            <div class="col-md-4">
+            <div class="col-md-6">
                 <label class="form-label fw-semibold" for="status">연재 상태</label>
                 <select id="status" class="form-select" th:field="*{status}">
                     <option th:each="statusOption : ${statuses}"
                             th:value="${statusOption}" th:text="${statusOption.displayName}">연재 중</option>
                 </select>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-6">
                 <label class="form-label fw-semibold" for="visibility">공개 여부</label>
                 <select id="visibility" class="form-select" th:field="*{visibility}">
                     <option th:each="visibilityOption : ${visibilities}"
@@ -76,32 +90,10 @@
                 </select>
                 <div class="form-text">미공개 작품은 소유자와 관리자만 조회할 수 있습니다.</div>
             </div>
-            <div class="col-md-4">
-                <label class="form-label fw-semibold" for="partMode">권 구성</label>
-                <select th:unless="${editing}" id="partMode" class="form-select"
-                        th:field="*{partMode}" data-part-mode>
-                    <option th:each="partModeOption : ${partModes}"
-                            th:value="${partModeOption}" th:text="${partModeOption.displayName}">단권 구성</option>
-                </select>
-                <input th:if="${editing}" type="hidden" th:field="*{partMode}" data-part-mode>
-                <div th:if="${editing}" class="form-control bg-body-secondary"
-                     th:text="${novelForm.partMode.displayName}">단권 구성</div>
-                <div class="form-text">각 부는 소장본 1권 분량이며, 작품 생성 후 권 구성은 변경하지 않습니다.</div>
-            </div>
         </div>
 
-        <div class="mb-4" data-first-part-field>
-            <label class="form-label fw-semibold" for="firstPartTitle">1부(1권) 제목</label>
-            <input id="firstPartTitle" class="form-control"
-                   th:classappend="${#fields.hasErrors('firstPartTitle')} ? 'is-invalid'"
-                   type="text" th:field="*{firstPartTitle}" maxlength="100"
-                   th:readonly="${editing}" placeholder="예: 잃어버린 왕국">
-            <div class="invalid-feedback" th:errors="*{firstPartTitle}">첫 부 제목 오류</div>
-            <div class="form-text">여러 권 구성일 때 1부이자 1권의 제목으로 저장됩니다.</div>
-        </div>
-
-        <div class="alert alert-light border small">
-            단권 구성은 내부에 기본 부 `본편`을 만들며, 여러 권 구성은 각 부를 소장본 1권 단위로 사용합니다.
+        <div th:unless="${editing}" class="alert alert-light border small">
+            작품은 기본 `본편` 1권으로 시작합니다. 추가 권은 작품 상세의 `전체 관리하기`에서 등록할 수 있습니다.
         </div>
 
         <div class="d-flex justify-content-end gap-2">
@@ -109,12 +101,12 @@
                th:href="${editing}
                    ? @{/novels/{id}(id=${novelId}, from='writer')}
                    : @{/writer/novels}">취소</a>
-            <button class="btn btn-dark" type="submit" th:text="${editing ? '수정 저장' : '작품 등록'}">저장</button>
+            <button class="btn btn-dark" type="submit" th:text="${editing ? '정보 저장' : '작품 등록'}">저장</button>
         </div>
     </form>
 </main>
 
-<script th:src="@{/js/novel-form.js}"></script>
+<script th:src="@{/js/novel-genre-form.js}"></script>
 <script th:src="@{/vendor/bootstrap/js/bootstrap.bundle.min.js}"></script>
 </body>
 </html>

@@ -14,8 +14,8 @@
 - 닉네임 컬럼은 두지 않는다. 로그인·프로필 기능이 없고 작품의 `pen_name`으로 공개 필명을 충분하게 표현하기 때문이다.
 - 작가는 부 묶음 사용 여부를 선택한다.
 - DB에서는 부를 사용하지 않는 작품도 숨겨진 기본 부 `본편`을 자동 생성해 `작품 → 부 → 회차` 구조를 유지한다.
-- 실제 책 한 `권`은 같은 부에 속한 여러 회차를 순서대로 묶는다.
-- 한 부를 여러 권으로 나눌 수 있도록 권과 회차 사이에 연결 테이블을 둔다.
+- 실제 책 한 `권`은 부 하나와 1:1로 대응하며, 해당 부의 전체 회차를 수록 범위로 사용한다.
+- 한 부 안에서 다시 여러 권으로 나누지 않는다. 길면 새 부를 추가한다.
 - 펀딩 참여 수량은 참여 데이터의 합계로 계산하며 별도 누적 컬럼을 두지 않는다.
 - 펀딩 성공 건만 참여자별 책 주문으로 전환한다.
 - 실제 결제·환불·PDF·인쇄·배송은 구현하지 않고 상태와 금액만 모의 처리한다.
@@ -29,11 +29,15 @@ erDiagram
     MEMBER ||--o{ NOVEL : "작품을 작성한다"
     MEMBER ||--o{ NOVEL_RECOMMENDATION : "작품을 추천한다"
     MEMBER ||--o{ NOVEL_FAVORITE : "작품을 즐겨찾기한다"
+    MEMBER ||--o{ EPISODE_BOOKMARK : "이어읽기를 저장한다"
     MEMBER ||--o{ FUNDING_PARTICIPATION : "펀딩에 참여한다"
     NOVEL ||--|{ STORY_PART : "부를 가진다"
+    NOVEL ||--|{ NOVEL_GENRE : "장르를 가진다"
     NOVEL ||--o{ NOVEL_RECOMMENDATION : "추천을 받는다"
     NOVEL ||--o{ NOVEL_FAVORITE : "즐겨찾기된다"
+    NOVEL ||--o{ EPISODE_BOOKMARK : "책갈피를 가진다"
     STORY_PART ||--o{ EPISODE : "회차를 가진다"
+    EPISODE ||--o{ EPISODE_BOOKMARK : "책갈피 대상이다"
     STORY_PART ||--o{ PUBLICATION_VOLUME : "권을 계획한다"
     PUBLICATION_VOLUME ||--o{ VOLUME_EPISODE : "회차를 묶는다"
     EPISODE ||--o{ VOLUME_EPISODE : "권에 포함된다"
@@ -52,14 +56,17 @@ erDiagram
         BIGINT author_id FK
         VARCHAR title
         VARCHAR pen_name
-        VARCHAR genre
         TEXT synopsis
         VARCHAR status
         VARCHAR visibility
-        VARCHAR part_mode
         BIGINT recommendation_count
         DATETIME created_at
         DATETIME updated_at
+    }
+
+    NOVEL_GENRE {
+        BIGINT novel_id FK
+        VARCHAR genre
     }
 
     NOVEL_RECOMMENDATION {
@@ -74,6 +81,15 @@ erDiagram
         BIGINT member_id FK
         BIGINT novel_id FK
         DATETIME created_at
+    }
+
+    EPISODE_BOOKMARK {
+        BIGINT id PK
+        BIGINT member_id FK
+        BIGINT novel_id FK
+        BIGINT episode_id FK
+        DATETIME created_at
+        DATETIME updated_at
     }
 
     STORY_PART {
@@ -172,9 +188,15 @@ erDiagram
 - `author_id`로 작품 소유자를 구분하고 `pen_name`은 화면에 공개할 필명이다.
 - 연재 상태: `SERIALIZING`, `COMPLETED`
 - 공개 여부: `PUBLIC`, `PRIVATE` (새 작품 기본값 `PRIVATE`, 목 데이터는 두 상태를 모두 포함)
-- 장르: 별도 조인 테이블 없이 `NovelGenre` enum 값을 `genre` 문자열 컬럼에 저장한다. 입력·검색·목 데이터는 같은 enum을 사용한다.
-- `part_mode`: `SINGLE`(단권 구성), `MULTI`(여러 권 구성)
+- 장르는 단일 컬럼이 아니라 `NOVEL_GENRE` 컬렉션으로 분리한다. 작품당 1~5개다.
+- 권 구성 상태와 권 수 컬럼은 두지 않는다. `STORY_PART` 행 개수를 조회해 1개면 한 권, 2개 이상이면 여러 권으로 표시한다.
 - `recommendation_count`: 추천순 조회용 비정규화 카운트다. 추천 토글 시 작품 수정일과 분리된 bulk update로 변경한다.
+
+### NOVEL_GENRE — 작품 장르
+
+- `NovelGenre` enum 값만 저장한다. 임의 문자열을 차단한다.
+- `(novel_id, genre)`를 유일하게 유지해 같은 장르 중복을 막는다.
+- 검색은 선택 장르마다 포함 여부를 AND로 결합한다.
 
 ### NOVEL_RECOMMENDATION — 작품 추천
 
@@ -187,11 +209,19 @@ erDiagram
 - 회원이 공개 작품을 내 즐겨찾기에 저장한 기록이다.
 - `(member_id, novel_id)`를 유일하게 유지해 중복 저장을 차단한다.
 
+### EPISODE_BOOKMARK — 이어읽기 책갈피
+
+- 회원이 작품마다 현재 읽고 있는 회차 1개를 저장한다.
+- `(member_id, novel_id)`를 유일하게 유지하고 `episode_id`를 덮어쓴다.
+- 같은 회차에서 다시 저장하면 해제한다.
+- 초안·미공개로 열람 권한이 없으면 이어읽기 CTA만 숨기고 행은 유지한다.
+- 회차·부·작품 물리 삭제 시 관련 책갈피를 Service에서 먼저 삭제한다.
+
 ### STORY_PART — 부
 
 - 작품을 1부·2부 같은 이야기 단위로 나누며 각 부는 소장본 한 권과 1:1로 대응한다.
-- `SINGLE` 작품은 시스템이 `1 / 본편` 부를 자동 생성하고 독자 화면에서는 부 이름을 숨기는 단권 구성이다.
-- `MULTI` 작품은 작가가 권 단위의 부 제목과 순서를 관리한다.
+- 작품 생성 시 시스템이 `1 / 본편` 권(부)을 자동 생성하고, 권(부)이 하나뿐이면 독자 화면에서 부 이름을 숨긴다.
+- 권(부)이 2개 이상이면 작가가 권 단위의 제목과 순서를 관리한다.
 - 같은 작품 안에서 `part_number`는 중복될 수 없다.
 - 상태: `DRAFT`, `SERIALIZING`, `COMPLETED`
 - 독자 화면의 부 완결 표시는 `part_number`와 `COMPLETED`를 조합해 `1부 완결`, `2부 완결`처럼 만든다.
@@ -200,20 +230,19 @@ erDiagram
 
 - 특정 부에 속한 웹소설 본문이다.
 - 같은 부 안에서 `episode_number`는 중복될 수 없다.
+- 제목에는 회차 번호를 넣지 않는다. 화면은 `episodeNumber`와 제목을 조합한다.
 - 상태: `DRAFT`, `PUBLISHED`
 - 본문 저장 시 서버가 `character_count`를 다시 계산한다.
 
 ### PUBLICATION_VOLUME — 권 출판계획
 
-- 실제 책 한 권의 번호, 제목과 목표 글자 수를 관리한다.
-- 같은 부 안에서 `volume_number`는 중복될 수 없다.
-- 현재 글자 수와 출판 준비 여부는 연결된 회차를 기준으로 계산한다.
+- 부(1권)의 목표 글자 수와 펀딩 대상 권을 관리한다.
+- 각 부는 기본 권 1개와 대응하며, 현재 글자 수는 해당 부 회차의 `character_count` 합계로 계산한다.
 
 ### VOLUME_EPISODE — 권별 포함 회차
 
-- 한 권에 포함할 회차와 책 안에서의 순서를 관리한다.
+- 초기 ERD에서는 권-회차 연결을 별도 테이블로 두었으나, 현재 정책은 부 전체 회차=1권이므로 펀딩 구현 시 부 단위로 단순화할 수 있다.
 - 같은 권에 같은 회차를 중복 포함할 수 없다.
-- 같은 부의 연속된 공개 회차만 포함하도록 Service에서 검증한다.
 
 ### FUNDING_CAMPAIGN — 소장본 펀딩
 
@@ -242,8 +271,10 @@ erDiagram
 |---|---|
 | MEMBER | `UNIQUE(member_type)` — 역할별 고정 체험 회원 1명 |
 | NOVEL | `author_id NOT NULL` |
+| NOVEL_GENRE | `UNIQUE(novel_id, genre)`, 작품당 1~5행(Service) |
 | NOVEL_RECOMMENDATION | `UNIQUE(member_id, novel_id)` |
 | NOVEL_FAVORITE | `UNIQUE(member_id, novel_id)` |
+| EPISODE_BOOKMARK | `UNIQUE(member_id, novel_id)`, `episode_id NOT NULL` |
 | STORY_PART | `UNIQUE(novel_id, part_number)` |
 | EPISODE | `UNIQUE(story_part_id, episode_number)` |
 | PUBLICATION_VOLUME | `UNIQUE(story_part_id, volume_number)` |
@@ -260,17 +291,17 @@ DB 제약조건으로 표현하기 어려운 아래 규칙은 Service에서 검�
 - `ADMIN` 회원만 전체 주문 상태를 변경하고 운영 통계·내보내기를 사용할 수 있다.
 - 공개 콘텐츠 조회는 역할별 복제 없이 동일 원본을 반환한다. `NOVEL.visibility=PRIVATE`는 소유자와 관리자만 조회하고, `EPISODE.DRAFT`는 공개하지 않는다.
 - 추천과 내 즐겨찾기는 `NOVEL.visibility=PUBLIC`인 작품에만 허용하고, 자신의 작품 추천은 차단한다.
+- 장르 검색은 선택 장르를 모두 포함한 작품만 반환한다(AND).
+- 책갈피 저장은 회차 열람 권한과 동일하게 검증한다. 물리 삭제 시에만 책갈피를 정리한다.
 - 작품 수정·삭제는 `novel.id + novel.author_id == session.memberId`로 소유권을 검증한다. 관리자도 타 작가 작품은 수정하지 못한다.
 - 부·회차·권·펀딩 변경은 상위 `NOVEL.author_id`까지 조인해 같은 소유권 규칙을 적용한다.
 - AUTHOR 권한만으로 다른 작가의 리소스를 수정할 수 없다.
-- 작품 생성 시 `SINGLE`이면 `1 / 본편` 부를 자동 생성한다.
-- `SINGLE` 작품은 부를 하나만 가질 수 있다.
-- 여러 부가 있는 작품은 `SINGLE`로 변경할 수 없다.
-- 공개 회차나 펀딩이 존재하면 부 사용 방식을 변경할 수 없다.
-- 권에 포함된 모든 회차는 해당 권과 같은 부에 속해야 한다.
-- 권의 회차는 빠진 번호 없이 연속되어야 한다.
-- 같은 부에서 서로 다른 권의 회차 범위가 겹치면 안 된다.
-- 공개 회차만 펀딩 대상 권에 포함할 수 있다.
+- 작품 생성 시 `1 / 본편` 권(부)을 자동 생성한다.
+- 별도 `part_mode`와 권 수 컬럼 없이 `STORY_PART` 행 개수로 한 권/여러 권 표시를 계산한다.
+- 2권 이후에 회차가 있으면 해당 추가 권을 삭제할 수 없다. 먼저 회차를 명시적으로 정리해야 한다.
+- 각 부의 전체 회차가 해당 권의 수록 범위다.
+- 펀딩 연결 전 소유 작가는 부·회차 상태 왕복·수정·삭제가 가능하며, 삭제 시 번호를 재정렬한다.
+- 공개 회차만 독자 열람과 펀딩 대상에 포함한다.
 
 ### NULL 정책
 
@@ -291,8 +322,10 @@ DB 제약조건으로 표현하기 어려운 아래 규칙은 Service에서 검�
 |---|---|---|
 | NOVEL | `(status, updated_at)` | 독자 작품 목록 |
 | NOVEL | `(author_id, updated_at)` | 작가 작품 관리 |
+| NOVEL_GENRE | `UNIQUE(novel_id, genre)` | 다중 장르 AND 검색 |
 | NOVEL_RECOMMENDATION | `UNIQUE(member_id, novel_id)` | 추천 토글·추천 여부 조회 |
 | NOVEL_FAVORITE | `UNIQUE(member_id, novel_id)` | 내 즐겨찾기 토글·목록 조회 |
+| EPISODE_BOOKMARK | `UNIQUE(member_id, novel_id)` | 이어읽기 저장·조회 |
 | STORY_PART | `(novel_id, part_number)` | 작품 상세 |
 | EPISODE | `(story_part_id, episode_number)` | 회차 목록·읽기 |
 | FUNDING_CAMPAIGN | `(status, end_at)` | 진행 중 펀딩 목록 |
@@ -371,7 +404,7 @@ PENDING → PROCESSING → COMPLETED
 
 ## 8. 삭제 정책
 
-- 펀딩이 연결되지 않은 초안 작품·부·회차·권 출판계획만 삭제할 수 있다.
+- 펀딩 연결 전에는 소유 작가가 작품·부·회차를 삭제할 수 있다. 펀딩이 연결되면 이력 보존을 위해 삭제를 제한한다.
 - 펀딩 참여나 주문이 존재하면 이력 보존을 위해 삭제하지 않고 상태로 관리한다.
 - FK에는 무조건적인 연쇄 삭제를 설정하지 않는다.
 - 회원은 실제 탈퇴 기능이 없으므로 삭제하지 않는다.
@@ -415,7 +448,7 @@ PENDING → PROCESSING → COMPLETED
 - 작가가 부 구분 사용 여부를 선택
 - 부 구분이 없으면 숨겨진 기본 부 `본편` 자동 생성
 - 한 부와 소장본 한 권의 1:1 출판 지원
-- 권별 회차 선택과 순서 관리
+- 부 전체 회차를 권 수록 범위로 사용
 - 공백 포함·줄바꿈 제외 글자 수 계산
 - 펀딩 성공 시 참여자마다 주문 1건 생성
 - 회원가입·로그인 없이 역할별 고정 체험 회원과 세션으로 역할·소유권 구분

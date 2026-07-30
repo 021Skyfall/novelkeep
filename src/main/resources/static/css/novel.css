@@ -93,6 +93,17 @@ body {
     border-color: #4a433c;
 }
 
+.btn-content-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.75rem;
+    padding: 0.65rem 1.15rem;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
 .btn-create-novel {
     min-height: 2.75rem;
     padding: 0.65rem 1.25rem;
@@ -239,6 +250,15 @@ body {
 .part-item + .part-item,
 .writer-item + .writer-item {
     border-top: 1px solid var(--novel-border);
+}
+
+.writer-item {
+    transition: background-color 0.15s ease;
+}
+
+.writer-item:hover,
+.writer-item:focus-within {
+    background: var(--novel-soft);
 }
 
 .empty-state {

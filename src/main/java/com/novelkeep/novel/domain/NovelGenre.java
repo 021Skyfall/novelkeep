@@ -1,5 +1,8 @@
 package com.novelkeep.novel.domain;
 
+import java.util.EnumSet;
+import java.util.Set;
+
 public enum NovelGenre {
 
     GENERAL_FICTION("일반소설"),
@@ -53,6 +56,23 @@ public enum NovelGenre {
     CHILDREN("아동"),
     FAIRY_TALE("동화");
 
+    public static final int MAX_PER_NOVEL = 5;
+
+    private static final Set<NovelGenre> PRIMARY = EnumSet.of(
+            FANTASY,
+            MODERN_FANTASY,
+            ROMANCE,
+            ROMANCE_FANTASY,
+            MARTIAL_ARTS,
+            SCIENCE_FICTION,
+            MYSTERY,
+            DRAMA,
+            HORROR,
+            HEALING,
+            BOYS_LOVE,
+            ACTION
+    );
+
     private final String displayName;
 
     NovelGenre(String displayName) {
@@ -61,5 +81,9 @@ public enum NovelGenre {
 
     public String getDisplayName() {
         return displayName;
+    }
+
+    public boolean isPrimary() {
+        return PRIMARY.contains(this);
     }
 }

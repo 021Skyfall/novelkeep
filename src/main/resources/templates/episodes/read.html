@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="노벨킵 회차 열람">
+    <title th:text="${episode.title + ' | 노벨킵'}">회차 열람 | 노벨킵</title>
+    <script th:src="@{/js/theme.js}"></script>
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/navigation.css}">
+    <link rel="stylesheet" th:href="@{/css/novel.css}">
+    <link rel="stylesheet" th:href="@{/css/episode-read.css}">
+</head>
+<body th:classappend="${roleKey != null} ? | role-${#strings.toLowerCase(roleKey)}|">
+<div th:replace="~{fragments/navigation :: siteNav('novels')}"></div>
+
+<main class="container py-4 py-md-5">
+    <div class="mb-4 d-flex flex-wrap gap-2">
+        <a class="btn btn-back-list" th:href="@{/novels/{id}(id=${novel.id})}">← 작품 상세</a>
+        <a th:if="${owned}" class="btn btn-content-action btn-outline-dark"
+           th:href="@{/writer/episodes/{id}/edit(id=${episode.id}, from='read')}">수정</a>
+    </div>
+
+    <div th:if="${param.updated}" class="alert alert-success"
+         data-push-notification data-notification-type="success"
+         data-notification-label="회차 수정">회차 제목·본문·공개 상태가 저장되었습니다.</div>
+
+    <article class="episode-reader">
+        <header class="mb-4">
+            <div class="d-flex flex-wrap gap-2 mb-3">
+                <span class="badge status-badge" th:text="${episode.status.displayName}">공개</span>
+                <span th:if="${multiPart}" class="badge part-badge"
+                      th:text="|${part.partNumber}부 · ${part.title}|">1부</span>
+                <span class="badge text-bg-light border"
+                      th:text="|${episode.episodeNumber}화|">1화</span>
+            </div>
+            <p class="text-secondary small mb-2" th:text="${novel.title}">작품명</p>
+            <h1 class="h2 fw-bold" th:text="${episode.title}">회차 제목</h1>
+            <p class="text-secondary small mb-0"
+               th:text="|글자 수 ${episode.characterCount}자|">글자 수</p>
+            <div class="mt-3" data-bookmark-root>
+                <form th:action="@{/episodes/{id}/bookmark(id=${episode.id})}" method="post"
+                      data-bookmark-form>
+                    <button class="btn btn-sm"
+                            th:classappend="${bookmarked} ? 'btn-dark is-active' : 'btn-outline-dark'"
+                            type="submit"
+                            data-bookmark-button
+                            th:attr="aria-pressed=${bookmarked}"
+                            th:text="${bookmarked} ? '책갈피 해제' : '책갈피 저장'">책갈피 저장</button>
+                </form>
+                <div th:if="${param.bookmarked}" class="small text-secondary mt-2">이 회차를 책갈피로 저장했습니다.</div>
+                <div th:if="${param.bookmarkRemoved}" class="small text-secondary mt-2">책갈피를 해제했습니다.</div>
+            </div>
+        </header>
+
+        <div class="episode-content" th:text="${episode.content}">본문</div>
+    </article>
+
+    <nav class="episode-nav mt-5" aria-label="회차 이동">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <a th:if="${navigation.previousEpisode != null}"
+                   class="btn btn-outline-dark w-100"
+                   th:href="@{/episodes/{id}(id=${navigation.previousEpisode.id})}"
+                   th:text="|← ${navigation.previousEpisode.episodeNumber}화|">← 이전 화</a>
+                <a th:if="${navigation.previousEpisode == null and navigation.previousPartEpisode != null}"
+                   class="btn btn-outline-dark w-100"
+                   th:href="@{/episodes/{id}(id=${navigation.previousPartEpisode.id})}"
+                   th:text="|← ${navigation.previousPart.partNumber}부 마지막 화|">← 이전 부</a>
+                <span th:if="${navigation.previousEpisode == null and navigation.previousPartEpisode == null}"
+                      class="btn btn-outline-secondary w-100 disabled">이전 회차 없음</span>
+            </div>
+            <div class="col-md-4">
+                <a class="btn btn-outline-secondary w-100"
+                   th:href="@{/novels/{id}(id=${novel.id})}">작품 상세</a>
+            </div>
+            <div class="col-md-4">
+                <a th:if="${navigation.nextEpisode != null}"
+                   class="btn btn-outline-dark w-100"
+                   th:href="@{/episodes/{id}(id=${navigation.nextEpisode.id})}"
+                   th:text="|${navigation.nextEpisode.episodeNumber}화 →|">다음 화 →</a>
+                <a th:if="${navigation.nextEpisode == null and navigation.nextPartEpisode != null}"
+                   class="btn btn-outline-dark w-100"
+                   th:href="@{/episodes/{id}(id=${navigation.nextPartEpisode.id})}"
+                   th:text="|${navigation.nextPart.partNumber}부 첫 화 →|">다음 부 →</a>
+                <span th:if="${navigation.nextEpisode == null and navigation.nextPartEpisode == null}"
+                      class="btn btn-outline-secondary w-100 disabled">다음 회차 없음</span>
+            </div>
+        </div>
+    </nav>
+</main>
+
+<footer class="border-top py-4">
+    <div class="container small text-secondary">NovelKeep · 이야기를 끝까지, 소장까지</div>
+</footer>
+<script th:src="@{/vendor/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/js/episode-bookmark.js}"></script>
+</body>
+</html>

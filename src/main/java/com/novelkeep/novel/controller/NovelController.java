@@ -7,11 +7,13 @@ import com.novelkeep.novel.domain.Novel;
 import com.novelkeep.novel.domain.NovelGenre;
 import com.novelkeep.novel.domain.NovelStatus;
 import com.novelkeep.novel.domain.NovelVisibility;
-import com.novelkeep.novel.domain.PartMode;
 import com.novelkeep.novel.dto.NovelActionResult;
 import com.novelkeep.novel.dto.NovelForm;
 import com.novelkeep.novel.dto.NovelSearchCriteria;
+import com.novelkeep.novel.domain.EpisodeBookmark;
+import com.novelkeep.novel.service.EpisodeBookmarkService;
 import com.novelkeep.novel.service.NovelService;
+import com.novelkeep.novel.service.StoryContentService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -27,7 +29,6 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.SessionAttribute;
 
 @Controller
@@ -37,9 +38,17 @@ public class NovelController {
     private static final String SESSION_MEMBER_ID = "memberId";
 
     private final NovelService novelService;
+    private final StoryContentService storyContentService;
+    private final EpisodeBookmarkService bookmarkService;
 
-    public NovelController(NovelService novelService) {
+    public NovelController(
+            NovelService novelService,
+            StoryContentService storyContentService,
+            EpisodeBookmarkService bookmarkService
+    ) {
         this.novelService = novelService;
+        this.storyContentService = storyContentService;
+        this.bookmarkService = bookmarkService;
     }
 
     @GetMapping("/novels")
@@ -66,9 +75,7 @@ public class NovelController {
         Set<Long> favoritedIds = novelService.findFavoritedNovelIds(memberId, novels);
         model.addAttribute("novels", novels);
         model.addAttribute("criteria", criteria);
-        model.addAttribute("genres", role == ExperienceRole.ADMIN
-                ? novelService.findAdminGenres()
-                : novelService.findPublicGenres());
+        model.addAttribute("allGenres", NovelGenre.values());
         model.addAttribute("visibilities", NovelVisibility.values());
         model.addAttribute("recommendedIds", recommendedIds);
         model.addAttribute("favoritedIds", favoritedIds);
@@ -92,15 +99,20 @@ public class NovelController {
         if (role == null || memberId == null) {
             return "redirect:/?roleRequired=true";
         }
-        Novel novel = novelService.findReadableNovel(novelId, memberId, role);
+        Novel novel = storyContentService.findReadableNovelWithContents(novelId, memberId, role);
         boolean owned = novel.isOwnedBy(memberId);
         boolean publicNovel = novel.getVisibility() == NovelVisibility.PUBLIC;
+        boolean privileged = owned || role == ExperienceRole.ADMIN;
         model.addAttribute("novel", novel);
+        model.addAttribute("latestParts", storyContentService.latestParts(novel));
         model.addAttribute("owned", owned);
+        model.addAttribute("privileged", privileged);
         model.addAttribute("recommended", novelService.hasRecommended(novelId, memberId));
         model.addAttribute("favorited", novelService.hasFavorited(novelId, memberId));
         model.addAttribute("canRecommend", publicNovel && !owned);
         model.addAttribute("canFavorite", publicNovel);
+        EpisodeBookmark continueBookmark = bookmarkService.findReadableBookmark(novelId, memberId, role);
+        model.addAttribute("continueBookmark", continueBookmark);
         model.addAttribute("fromWriter", "writer".equalsIgnoreCase(from));
         return "novels/detail";
     }
@@ -164,7 +176,7 @@ public class NovelController {
         Page<Novel> novels = novelService.searchOwned(criteria, memberId);
         model.addAttribute("novels", novels);
         model.addAttribute("criteria", criteria);
-        model.addAttribute("genres", novelService.findOwnedGenres(memberId));
+        model.addAttribute("allGenres", NovelGenre.values());
         model.addAttribute("visibilities", NovelVisibility.values());
         model.addAttribute("navActive", "writer");
         if (isPartialRequest(request)) {
@@ -198,7 +210,6 @@ public class NovelController {
         if (!canWrite(role) || memberId == null) {
             return "redirect:/?roleRequired=true";
         }
-        validateFirstPartTitle(form, bindingResult);
         if (bindingResult.hasErrors()) {
             addFormOptions(model, false, null);
             return "writer/novels/form";
@@ -305,14 +316,14 @@ public class NovelController {
         }
         if (criteria.isCompletedProgress()
                 && isBlank(criteria.getKeyword())
-                && criteria.getGenre() == null
+                && !criteria.hasGenres()
                 && criteria.getVisibility() == null) {
             return "completed";
         }
         if (!criteria.isTitleSort()
                 && !criteria.isRecommendSort()
                 && isBlank(criteria.getKeyword())
-                && criteria.getGenre() == null
+                && !criteria.hasGenres()
                 && isBlank(criteria.getProgress())
                 && criteria.getVisibility() == null
                 && !criteria.isFavoriteOnly()
@@ -330,18 +341,11 @@ public class NovelController {
         return role == ExperienceRole.WRITER || role == ExperienceRole.ADMIN;
     }
 
-    private void validateFirstPartTitle(NovelForm form, BindingResult bindingResult) {
-        if (form.getPartMode() == PartMode.MULTI
-                && (form.getFirstPartTitle() == null || form.getFirstPartTitle().isBlank())) {
-            bindingResult.rejectValue("firstPartTitle", "required", "첫 부 제목을 입력해 주세요.");
-        }
-    }
-
     private void addFormOptions(Model model, boolean editing, Long novelId) {
-        model.addAttribute("genres", NovelGenre.values());
+        model.addAttribute("allGenres", NovelGenre.values());
+        model.addAttribute("maxGenres", NovelGenre.MAX_PER_NOVEL);
         model.addAttribute("statuses", NovelStatus.values());
         model.addAttribute("visibilities", NovelVisibility.values());
-        model.addAttribute("partModes", PartMode.values());
         model.addAttribute("editing", editing);
         model.addAttribute("novelId", novelId);
         model.addAttribute("navActive", "writer");

@@ -1,12 +1,16 @@
 package com.novelkeep.novel.dto;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+
 import com.novelkeep.novel.domain.Novel;
 import com.novelkeep.novel.domain.NovelGenre;
 import com.novelkeep.novel.domain.NovelStatus;
 import com.novelkeep.novel.domain.NovelVisibility;
-import com.novelkeep.novel.domain.PartMode;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
@@ -20,8 +24,9 @@ public class NovelForm {
     @Size(max = 50, message = "공개 필명은 50자 이내로 입력해 주세요.")
     private String penName;
 
-    @NotNull(message = "장르를 선택해 주세요.")
-    private NovelGenre genre = NovelGenre.FANTASY;
+    @NotEmpty(message = "장르를 하나 이상 선택해 주세요.")
+    @Size(max = NovelGenre.MAX_PER_NOVEL, message = "장르는 최대 5개까지 선택할 수 있습니다.")
+    private List<NovelGenre> genres = new ArrayList<>(List.of(NovelGenre.FANTASY));
 
     @NotBlank(message = "작품 소개를 입력해 주세요.")
     @Size(max = 2000, message = "작품 소개는 2,000자 이내로 입력해 주세요.")
@@ -33,23 +38,27 @@ public class NovelForm {
     @NotNull(message = "공개 여부를 선택해 주세요.")
     private NovelVisibility visibility = NovelVisibility.PRIVATE;
 
-    @NotNull(message = "부 구분 사용 여부를 선택해 주세요.")
-    private PartMode partMode = PartMode.SINGLE;
-
-    @Size(max = 100, message = "첫 부 제목은 100자 이내로 입력해 주세요.")
-    private String firstPartTitle;
-
     public static NovelForm from(Novel novel) {
         NovelForm form = new NovelForm();
         form.title = novel.getTitle();
         form.penName = novel.getPenName();
-        form.genre = novel.getGenre();
+        form.genres = new ArrayList<>(novel.getGenres());
         form.synopsis = novel.getSynopsis();
         form.status = novel.getStatus();
         form.visibility = novel.getVisibility();
-        form.partMode = novel.getPartMode();
-        form.firstPartTitle = novel.getParts().isEmpty() ? null : novel.getParts().getFirst().getTitle();
         return form;
+    }
+
+    public List<NovelGenre> normalizedGenres() {
+        LinkedHashSet<NovelGenre> unique = new LinkedHashSet<>();
+        if (genres != null) {
+            for (NovelGenre genre : genres) {
+                if (genre != null) {
+                    unique.add(genre);
+                }
+            }
+        }
+        return new ArrayList<>(unique);
     }
 
     public String getTitle() {
@@ -68,12 +77,12 @@ public class NovelForm {
         this.penName = penName;
     }
 
-    public NovelGenre getGenre() {
-        return genre;
+    public List<NovelGenre> getGenres() {
+        return genres;
     }
 
-    public void setGenre(NovelGenre genre) {
-        this.genre = genre;
+    public void setGenres(List<NovelGenre> genres) {
+        this.genres = genres;
     }
 
     public String getSynopsis() {
@@ -100,19 +109,4 @@ public class NovelForm {
         this.visibility = visibility;
     }
 
-    public PartMode getPartMode() {
-        return partMode;
-    }
-
-    public void setPartMode(PartMode partMode) {
-        this.partMode = partMode;
-    }
-
-    public String getFirstPartTitle() {
-        return firstPartTitle;
-    }
-
-    public void setFirstPartTitle(String firstPartTitle) {
-        this.firstPartTitle = firstPartTitle;
-    }
 }
