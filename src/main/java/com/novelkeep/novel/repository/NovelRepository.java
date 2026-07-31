@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import com.novelkeep.novel.domain.Novel;
 import com.novelkeep.novel.domain.NovelGenre;
+import com.novelkeep.novel.domain.NovelStatus;
 import com.novelkeep.novel.domain.NovelVisibility;
 
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -71,4 +72,30 @@ public interface NovelRepository extends JpaRepository<Novel, Long>, JpaSpecific
              where n.id = :novelId
             """)
     int decreaseRecommendationCount(@Param("novelId") Long novelId);
+
+    @Query("""
+            select n
+              from Novel n
+              join fetch n.author
+             where n.visibility = :visibility
+             order by n.recommendationCount desc, n.updatedAt desc
+            """)
+    List<Novel> findPublicOrderByPopularity(
+            @Param("visibility") NovelVisibility visibility,
+            org.springframework.data.domain.Pageable pageable
+    );
+
+    @Query("""
+            select n
+              from Novel n
+              join fetch n.author
+             where n.visibility = :visibility
+               and n.status = :status
+             order by n.updatedAt desc
+            """)
+    List<Novel> findPublicByStatusOrderByUpdatedAtDesc(
+            @Param("visibility") NovelVisibility visibility,
+            @Param("status") NovelStatus status,
+            org.springframework.data.domain.Pageable pageable
+    );
 }

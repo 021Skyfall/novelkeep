@@ -60,7 +60,7 @@
                         data-genre-form-badge
                         th:text="${genreOption.displayName}">장르</button>
             </div>
-            <div class="genre-form-help form-text">최소 1개, 최대 5개까지 선택할 수 있습니다.</div>
+            <div class="genre-form-help form-text">최소 1개, 최대 8개까지 선택할 수 있습니다.</div>
             <div class="genre-form-error" data-genre-form-error></div>
             <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('genres')}" th:errors="*{genres}">장르 오류</div>
         </div>
@@ -93,7 +93,7 @@
         </div>
 
         <div th:unless="${editing}" class="alert alert-light border small">
-            작품은 기본 `본편` 1권으로 시작합니다. 추가 권은 작품 상세의 `전체 관리하기`에서 등록할 수 있습니다.
+            작품은 기본 `본편` 1권으로 시작합니다. 추가 권·회차는 작품 상세에서 `+` 버튼으로 바로 등록할 수 있습니다.
         </div>
 
         <div class="d-flex justify-content-end gap-2">

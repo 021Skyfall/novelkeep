@@ -47,12 +47,26 @@ public class EpisodeBookmarkService {
                         return EpisodeBookmarkResult.removed();
                     }
                     existing.moveTo(episode);
-                    return EpisodeBookmarkResult.saved(episode.getId(), episode.getEpisodeNumber());
+                    return savedResult(episode, novel);
                 })
                 .orElseGet(() -> {
                     bookmarkRepository.save(EpisodeBookmark.create(member, novel, episode));
-                    return EpisodeBookmarkResult.saved(episode.getId(), episode.getEpisodeNumber());
+                    return savedResult(episode, novel);
                 });
+    }
+
+    private EpisodeBookmarkResult savedResult(Episode episode, Novel novel) {
+        novel.getParts().size();
+        String partLabel = null;
+        if (novel.isMultiPart()) {
+            partLabel = episode.getStoryPart().getPartNumber() + "부";
+        }
+        return EpisodeBookmarkResult.saved(
+                episode.getId(),
+                episode.getEpisodeNumber(),
+                novel.getTitle(),
+                partLabel
+        );
     }
 
     @Transactional(readOnly = true)

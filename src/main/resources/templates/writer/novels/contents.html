@@ -140,10 +140,12 @@
                         <td>
                             <a th:href="@{/episodes/{id}(id=${episode.id})}"
                                th:text="${episode.title}">회차 제목</a>
+                            <span class="small text-secondary ms-1"
+                                  th:text="|(${commentCounts.containsKey(episode.id) ? commentCounts.get(episode.id) : 0})|">(0)</span>
                         </td>
                         <td>
                             <span class="badge text-bg-light border"
-                                  th:text="${episode.status.displayName}">초안</span>
+                                  th:text="${episode.status.displayName}">미공개</span>
                         </td>
                         <td th:text="|${episode.characterCount}자|">0자</td>
                         <td class="text-end">

@@ -1,8 +1,10 @@
 (function () {
     function updateButton(button, bookmarked) {
         button.classList.toggle('is-active', bookmarked);
-        button.textContent = bookmarked ? '책갈피 해제' : '책갈피 저장';
         button.setAttribute('aria-pressed', bookmarked ? 'true' : 'false');
+        var label = bookmarked ? '책갈피 해제' : '책갈피 저장';
+        button.setAttribute('title', label);
+        button.setAttribute('aria-label', label);
     }
 
     function showMessage(message, bookmarked) {

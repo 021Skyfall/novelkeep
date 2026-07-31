@@ -1,6 +1,7 @@
 package com.novelkeep.home.controller;
 
 import com.novelkeep.home.domain.ExperienceRole;
+import com.novelkeep.home.service.HomeShowcaseService;
 import com.novelkeep.member.domain.Member;
 import com.novelkeep.member.service.MemberService;
 
@@ -21,9 +22,11 @@ public class HomeController {
     private static final String SESSION_MEMBER_ID = "memberId";
 
     private final MemberService memberService;
+    private final HomeShowcaseService homeShowcaseService;
 
-    public HomeController(MemberService memberService) {
+    public HomeController(MemberService memberService, HomeShowcaseService homeShowcaseService) {
         this.memberService = memberService;
+        this.homeShowcaseService = homeShowcaseService;
     }
 
     @GetMapping("/")
@@ -78,6 +81,10 @@ public class HomeController {
 
         model.addAttribute("roleKey", role.name());
         model.addAttribute("roleName", role.getDisplayName());
+        model.addAttribute("popularNovels", homeShowcaseService.popularNovels());
+        model.addAttribute("latestEpisodes", homeShowcaseService.latestEpisodes());
+        model.addAttribute("completedNovels", homeShowcaseService.completedNovels());
+        model.addAttribute("openFundings", homeShowcaseService.openFundings());
         return "main";
     }
 }

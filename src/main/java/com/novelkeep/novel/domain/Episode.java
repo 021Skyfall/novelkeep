@@ -86,6 +86,10 @@ public class Episode {
         this.title = title;
         this.content = content;
         this.characterCount = countCharacters(content);
+        changeStatus(status);
+    }
+
+    public void changeStatus(EpisodeStatus status) {
         this.status = status;
         if (status == EpisodeStatus.PUBLISHED) {
             if (this.publishedAt == null) {
@@ -118,7 +122,7 @@ public class Episode {
         if (status == EpisodeStatus.PUBLISHED && publishedAt == null) {
             this.publishedAt = updatedAt;
         }
-        if (status == EpisodeStatus.DRAFT) {
+        if (status == EpisodeStatus.UNPUBLISHED) {
             this.publishedAt = null;
         }
     }

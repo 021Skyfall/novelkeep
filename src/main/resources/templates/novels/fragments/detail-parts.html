@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:fragment="partsPanel">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h2 class="h4 fw-bold mb-0">회차 구성</h2>
+        <button th:if="${owned}" class="btn btn-add-content" type="button"
+                data-toggle-panel="part-create-panel"
+                aria-expanded="false">
+            <span aria-hidden="true">+</span>
+            <span>권(부) 추가</span>
+        </button>
+    </div>
+
+    <div th:if="${owned}" id="part-create-panel" class="detail-inline-panel d-none mb-4">
+        <form th:action="@{/writer/novels/{id}/parts(id=${novel.id})}" method="post"
+              data-ajax-content="partCreate">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold" for="detailPartTitle">권(부) 제목</label>
+                    <input id="detailPartTitle" class="form-control" type="text" name="title"
+                           maxlength="100" required placeholder="예: 잃어버린 왕국">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold" for="detailPartStatus">상태</label>
+                    <select id="detailPartStatus" class="form-select" name="status">
+                        <option th:each="statusOption : ${partStatuses}"
+                                th:if="${statusOption.name() != 'COMPLETED'}"
+                                th:value="${statusOption}"
+                                th:text="${statusOption.displayName}">연재 중</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex gap-2">
+                    <button class="btn btn-dark flex-grow-1" type="submit">추가</button>
+                    <button class="btn btn-outline-secondary" type="button" data-close-panel>취소</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div th:if="${owned}" class="episode-bulk-toolbar mb-3"
+         data-bulk-toolbar
+         th:attr="data-bulk-url=@{/writer/novels/{id}/episodes/bulk(id=${novel.id})}">
+        <label class="episode-bulk-select-all mb-0">
+            <input type="checkbox" data-select-all-episodes>
+            <span>전체 선택</span>
+        </label>
+        <span class="text-secondary small" data-bulk-count>0개 선택</span>
+        <div class="d-flex flex-wrap gap-2 ms-auto">
+            <button class="btn btn-sm btn-outline-dark" type="button" data-bulk-action="PUBLISH"
+                    disabled
+                    data-confirm-message="선택한 회차를 공개로 변경할까요?"
+                    data-confirm-title="회차 공개"
+                    data-confirm-text="예, 공개"
+                    data-confirm-tone="warning">공개</button>
+            <button class="btn btn-sm btn-outline-dark" type="button" data-bulk-action="UNPUBLISH"
+                    disabled
+                    data-confirm-message="선택한 회차를 미공개로 변경할까요?"
+                    data-confirm-title="회차 미공개"
+                    data-confirm-text="예, 미공개"
+                    data-confirm-tone="warning">미공개</button>
+            <button class="btn btn-sm btn-outline-danger" type="button" data-bulk-action="DELETE"
+                    disabled
+                    data-confirm-delete="선택한 회차를 삭제합니다. 삭제 후에는 되돌릴 수 없습니다."
+                    data-confirm-title="회차 일괄 삭제"
+                    data-confirm-text="예, 삭제">삭제</button>
+        </div>
+    </div>
+
+    <div class="part-list mt-3" data-parts-list>
+        <article th:each="part : ${latestParts}" class="part-item flex-column align-items-stretch"
+                 th:attr="data-part-id=${part.id}">
+            <div th:with="visibleEpisodes=${privileged ? part.episodes : part.episodes.?[status.name() == 'PUBLISHED']}">
+                <div class="d-flex justify-content-between gap-3 mb-3 align-items-start">
+                    <div class="flex-grow-1">
+                        <span th:if="${novel.multiPart}"
+                              class="badge part-badge mb-2"
+                              th:text="${part.status.name() == 'COMPLETED'
+                                  ? part.partNumber + '부 완결'
+                                  : part.partNumber + '부 ' + part.status.displayName}">1부 연재 중</span>
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <h3 class="h5 fw-bold mb-0"
+                                th:text="${novel.multiPart ? part.title : '회차 목록'}">부 제목</h3>
+                            <th:block th:if="${owned and novel.multiPart}">
+                                <button class="btn btn-sm btn-outline-dark" type="button"
+                                        th:attr="data-toggle-panel=${'part-edit-' + part.id}"
+                                        aria-expanded="false">수정</button>
+                                <form class="d-inline"
+                                      th:action="@{/writer/parts/{id}/delete(id=${part.id})}" method="post"
+                                      data-ajax-content="partDelete"
+                                      data-confirm-delete="이 권(부)과 포함된 모든 회차를 삭제합니다. 삭제 후에는 되돌릴 수 없습니다."
+                                      data-confirm-title="권(부) 삭제"
+                                      data-confirm-text="예, 권(부) 삭제">
+                                    <button class="btn btn-sm btn-outline-danger" type="submit">삭제</button>
+                                </form>
+                            </th:block>
+                        </div>
+                    </div>
+                    <span class="text-secondary small text-nowrap"
+                          th:text="|${#lists.size(visibleEpisodes)}화|">0화</span>
+                </div>
+
+                <div th:if="${owned and novel.multiPart}" th:id="|part-edit-${part.id}|"
+                     class="detail-inline-panel d-none mb-3">
+                    <form th:action="@{/writer/parts/{id}/edit(id=${part.id})}" method="post"
+                          data-ajax-content="partUpdate">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold" th:for="|partEditTitle-${part.id}|">권(부) 제목</label>
+                                <input class="form-control" th:id="|partEditTitle-${part.id}|" type="text"
+                                       name="title" th:value="${part.title}" maxlength="100" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold" th:for="|partEditStatus-${part.id}|">상태</label>
+                                <select class="form-select" th:id="|partEditStatus-${part.id}|" name="status">
+                                    <option th:each="statusOption : ${partStatuses}"
+                                            th:value="${statusOption}"
+                                            th:text="${statusOption.displayName}"
+                                            th:selected="${part.status == statusOption}">연재 중</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 d-flex gap-2">
+                                <button class="btn btn-dark flex-grow-1" type="submit">저장</button>
+                                <button class="btn btn-outline-secondary" type="button" data-close-panel>취소</button>
+                            </div>
+                        </div>
+                        <p class="form-text mb-0 mt-2">부 완결은 회차가 있고 모두 공개된 경우에만 저장됩니다.</p>
+                    </form>
+                </div>
+
+                <p th:if="${!owned and #lists.isEmpty(visibleEpisodes)}" class="text-secondary mb-0">
+                    작가가 첫 회차를 준비 중입니다.
+                </p>
+                <ul th:if="${owned or !#lists.isEmpty(visibleEpisodes)}"
+                    class="list-group list-group-flush border rounded-3">
+                    <li th:if="${owned}" class="list-group-item p-0">
+                        <a class="episode-add-row"
+                           th:href="@{/writer/parts/{id}/episodes/new(id=${part.id}, from='detail')}"
+                           aria-label="회차 작성">
+                            <span aria-hidden="true">+</span>
+                            <span>작성</span>
+                        </a>
+                    </li>
+                    <li th:each="episode : ${visibleEpisodes}"
+                        class="list-group-item d-flex justify-content-between align-items-center gap-3">
+                        <div class="d-flex align-items-start gap-2 flex-grow-1 min-w-0">
+                            <input th:if="${owned}" class="form-check-input mt-1 flex-shrink-0"
+                                   type="checkbox" data-episode-check
+                                   th:value="${episode.id}"
+                                   th:aria-label="|${episode.episodeNumber}화 선택|">
+                            <div class="min-w-0">
+                                <a class="novel-title-link fw-semibold"
+                                   th:href="@{/episodes/{id}(id=${episode.id})}"
+                                   th:text="|${episode.episodeNumber}화. ${episode.title}|">1화. 제목</a>
+                                <span class="small text-secondary ms-1"
+                                      th:text="|(${commentCounts.containsKey(episode.id) ? commentCounts.get(episode.id) : 0})|">(0)</span>
+                                <div class="small mt-1">
+                                    <span class="badge"
+                                          th:classappend="${episode.status.name() == 'PUBLISHED'} ? ' visibility-public' : ' visibility-private'"
+                                          th:text="${episode.status.displayName}">공개</span>
+                                    <span class="text-secondary ms-1"
+                                          th:text="|${episode.characterCount}자|">0자</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div th:if="${owned}" class="d-flex flex-wrap gap-2 flex-shrink-0">
+                            <a class="btn btn-sm btn-outline-dark"
+                               th:href="@{/writer/episodes/{id}/edit(id=${episode.id}, from='detail')}">수정</a>
+                            <form th:action="@{/writer/episodes/{id}/delete(id=${episode.id})}" method="post"
+                                  data-ajax-content="episodeDelete"
+                                  data-confirm-delete="이 회차의 제목과 본문을 삭제합니다. 삭제 후에는 되돌릴 수 없습니다."
+                                  data-confirm-title="회차 삭제"
+                                  data-confirm-text="예, 회차 삭제">
+                                <button class="btn btn-sm btn-outline-danger" type="submit">삭제</button>
+                            </form>
+                        </div>
+                        <a th:unless="${owned}" class="btn btn-sm btn-outline-dark"
+                           th:href="@{/episodes/{id}(id=${episode.id})}">읽기</a>
+                    </li>
+                </ul>
+            </div>
+        </article>
+    </div>
+</th:block>
+</body>
+</html>

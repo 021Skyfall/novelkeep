@@ -56,7 +56,7 @@ public enum NovelGenre {
     CHILDREN("아동"),
     FAIRY_TALE("동화");
 
-    public static final int MAX_PER_NOVEL = 5;
+    public static final int MAX_PER_NOVEL = 8;
 
     private static final Set<NovelGenre> PRIMARY = EnumSet.of(
             FANTASY,

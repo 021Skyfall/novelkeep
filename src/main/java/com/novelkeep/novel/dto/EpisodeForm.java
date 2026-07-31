@@ -18,7 +18,7 @@ public class EpisodeForm {
     private String content;
 
     @NotNull(message = "회차 상태를 선택해 주세요.")
-    private EpisodeStatus status = EpisodeStatus.DRAFT;
+    private EpisodeStatus status = EpisodeStatus.UNPUBLISHED;
 
     public static EpisodeForm from(Episode episode) {
         EpisodeForm form = new EpisodeForm();

@@ -35,9 +35,15 @@
                 <div class="row g-3 align-items-end">
                     <div class="col-lg-4">
                         <label class="form-label fw-semibold" for="keyword">제목 검색</label>
-                        <input id="keyword" class="form-control" type="search" name="keyword"
-                               th:value="*{keyword}" placeholder="작품 제목"
-                               data-auto-search-keyword>
+                        <div class="keyword-search-field">
+                            <input id="keyword" class="form-control" type="search" name="keyword"
+                                   th:value="*{keyword}" placeholder="작품 제목"
+                                   data-keyword-search-input autocomplete="off">
+                            <button class="keyword-search-btn" type="submit" data-keyword-search-btn
+                                    aria-label="검색">
+                                <span aria-hidden="true">⌕</span>
+                            </button>
+                        </div>
                     </div>
                     <div class="col-md-6 col-lg-2">
                         <label class="form-label fw-semibold" for="progress">연재 상태</label>

@@ -250,7 +250,7 @@ public class NovelService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "장르를 하나 이상 선택해 주세요.");
         }
         if (genres.size() > NovelGenre.MAX_PER_NOVEL) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "장르는 최대 5개까지 선택할 수 있습니다.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "장르는 최대 8개까지 선택할 수 있습니다.");
         }
         return genres;
     }

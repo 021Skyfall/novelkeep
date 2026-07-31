@@ -57,7 +57,7 @@ public class StoryPart {
     private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "storyPart", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("episodeNumber ASC")
+    @OrderBy("episodeNumber DESC")
     private List<Episode> episodes = new ArrayList<>();
 
     protected StoryPart() {

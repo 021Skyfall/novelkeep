@@ -1,17 +1,23 @@
 package com.novelkeep.novel.controller;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.novelkeep.home.domain.ExperienceRole;
+import com.novelkeep.novel.domain.Episode;
+import com.novelkeep.novel.domain.EpisodeStatus;
 import com.novelkeep.novel.domain.Novel;
 import com.novelkeep.novel.domain.NovelGenre;
 import com.novelkeep.novel.domain.NovelStatus;
 import com.novelkeep.novel.domain.NovelVisibility;
+import com.novelkeep.novel.domain.StoryPartStatus;
 import com.novelkeep.novel.dto.NovelActionResult;
 import com.novelkeep.novel.dto.NovelForm;
 import com.novelkeep.novel.dto.NovelSearchCriteria;
 import com.novelkeep.novel.domain.EpisodeBookmark;
 import com.novelkeep.novel.service.EpisodeBookmarkService;
+import com.novelkeep.novel.service.EpisodeCommentService;
 import com.novelkeep.novel.service.NovelService;
 import com.novelkeep.novel.service.StoryContentService;
 
@@ -40,15 +46,18 @@ public class NovelController {
     private final NovelService novelService;
     private final StoryContentService storyContentService;
     private final EpisodeBookmarkService bookmarkService;
+    private final EpisodeCommentService commentService;
 
     public NovelController(
             NovelService novelService,
             StoryContentService storyContentService,
-            EpisodeBookmarkService bookmarkService
+            EpisodeBookmarkService bookmarkService,
+            EpisodeCommentService commentService
     ) {
         this.novelService = novelService;
         this.storyContentService = storyContentService;
         this.bookmarkService = bookmarkService;
+        this.commentService = commentService;
     }
 
     @GetMapping("/novels")
@@ -104,7 +113,7 @@ public class NovelController {
         boolean publicNovel = novel.getVisibility() == NovelVisibility.PUBLIC;
         boolean privileged = owned || role == ExperienceRole.ADMIN;
         model.addAttribute("novel", novel);
-        model.addAttribute("latestParts", storyContentService.latestParts(novel));
+        model.addAttribute("latestParts", storyContentService.latestParts(novel, privileged));
         model.addAttribute("owned", owned);
         model.addAttribute("privileged", privileged);
         model.addAttribute("recommended", novelService.hasRecommended(novelId, memberId));
@@ -113,8 +122,21 @@ public class NovelController {
         model.addAttribute("canFavorite", publicNovel);
         EpisodeBookmark continueBookmark = bookmarkService.findReadableBookmark(novelId, memberId, role);
         model.addAttribute("continueBookmark", continueBookmark);
+        model.addAttribute("commentCounts", commentCountsFor(novel));
         model.addAttribute("fromWriter", "writer".equalsIgnoreCase(from));
+        if (owned) {
+            model.addAttribute("partStatuses", StoryPartStatus.values());
+            model.addAttribute("episodeStatuses", EpisodeStatus.values());
+        }
         return "novels/detail";
+    }
+
+    private Map<Long, Long> commentCountsFor(Novel novel) {
+        List<Long> episodeIds = novel.getParts().stream()
+                .flatMap(part -> part.getEpisodes().stream())
+                .map(Episode::getId)
+                .toList();
+        return commentService.countByEpisodeIds(episodeIds);
     }
 
     @PostMapping("/novels/{novelId}/recommend")

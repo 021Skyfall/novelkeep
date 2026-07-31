@@ -25,7 +25,7 @@ public class NovelForm {
     private String penName;
 
     @NotEmpty(message = "장르를 하나 이상 선택해 주세요.")
-    @Size(max = NovelGenre.MAX_PER_NOVEL, message = "장르는 최대 5개까지 선택할 수 있습니다.")
+    @Size(max = NovelGenre.MAX_PER_NOVEL, message = "장르는 최대 8개까지 선택할 수 있습니다.")
     private List<NovelGenre> genres = new ArrayList<>(List.of(NovelGenre.FANTASY));
 
     @NotBlank(message = "작품 소개를 입력해 주세요.")

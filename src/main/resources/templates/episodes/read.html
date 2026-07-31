@@ -14,80 +14,119 @@
 <body th:classappend="${roleKey != null} ? | role-${#strings.toLowerCase(roleKey)}|">
 <div th:replace="~{fragments/navigation :: siteNav('novels')}"></div>
 
-<main class="container py-4 py-md-5">
-    <div class="mb-4 d-flex flex-wrap gap-2">
-        <a class="btn btn-back-list" th:href="@{/novels/{id}(id=${novel.id})}">← 작품 상세</a>
-        <a th:if="${owned}" class="btn btn-content-action btn-outline-dark"
+<main class="container py-4 py-md-5 episode-read-main"
+      th:attr="data-comments-partial=@{/episodes/{id}/comments/partial(id=${episode.id})}">
+    <div th:if="${owned}" class="mb-3 d-flex flex-wrap gap-2">
+        <a class="btn btn-content-action btn-outline-dark btn-sm"
            th:href="@{/writer/episodes/{id}/edit(id=${episode.id}, from='read')}">수정</a>
+        <form th:action="@{/writer/episodes/{id}/delete(id=${episode.id}, from='read')}" method="post"
+              data-confirm-delete="이 회차의 제목과 본문을 삭제합니다. 삭제 후에는 되돌릴 수 없습니다."
+              data-confirm-title="회차 삭제"
+              data-confirm-text="예, 회차 삭제">
+            <button class="btn btn-content-action btn-outline-danger btn-sm" type="submit">삭제</button>
+        </form>
     </div>
 
     <div th:if="${param.updated}" class="alert alert-success"
          data-push-notification data-notification-type="success"
          data-notification-label="회차 수정">회차 제목·본문·공개 상태가 저장되었습니다.</div>
 
-    <article class="episode-reader">
-        <header class="mb-4">
-            <div class="d-flex flex-wrap gap-2 mb-3">
-                <span class="badge status-badge" th:text="${episode.status.displayName}">공개</span>
-                <span th:if="${multiPart}" class="badge part-badge"
-                      th:text="|${part.partNumber}부 · ${part.title}|">1부</span>
-                <span class="badge text-bg-light border"
-                      th:text="|${episode.episodeNumber}화|">1화</span>
+    <section class="episode-read-body" aria-label="회차 본문 영역"
+             th:with="prevId=${navigation.previousEpisode != null
+                     ? navigation.previousEpisode.id
+                     : (navigation.previousPartEpisode != null ? navigation.previousPartEpisode.id : null)},
+                     prevLabel=${navigation.previousEpisode != null
+                     ? navigation.previousEpisode.episodeNumber + '화'
+                     : (navigation.previousPart != null ? navigation.previousPart.partNumber + '부 마지막 화' : null)},
+                     nextId=${navigation.nextEpisode != null
+                     ? navigation.nextEpisode.id
+                     : (navigation.nextPartEpisode != null ? navigation.nextPartEpisode.id : null)},
+                     nextLabel=${navigation.nextEpisode != null
+                     ? navigation.nextEpisode.episodeNumber + '화'
+                     : (navigation.nextPart != null ? navigation.nextPart.partNumber + '부 첫 화' : null)}">
+
+        <div class="episode-read-grid">
+            <div class="episode-side episode-side-prev">
+                <a class="episode-tool-btn episode-rail-top"
+                   th:href="@{/novels/{id}(id=${novel.id})}"
+                   aria-label="작품 상세로 돌아가기">
+                    <span aria-hidden="true">←</span>
+                    <span>작품 상세</span>
+                </a>
+                <a th:if="${prevId != null}"
+                   class="episode-side-btn episode-rail-mid"
+                   th:href="@{/episodes/{id}(id=${prevId})}"
+                   th:attr="aria-label=|이전 화 ${prevLabel}|">
+                    <span aria-hidden="true">‹</span>
+                    <span th:text="${prevLabel}">7화</span>
+                </a>
+                <span th:if="${prevId == null}"
+                      class="episode-side-btn episode-rail-mid is-disabled"
+                      aria-disabled="true">
+                    <span aria-hidden="true">‹</span>
+                    <span>이전 없음</span>
+                </span>
             </div>
-            <p class="text-secondary small mb-2" th:text="${novel.title}">작품명</p>
-            <h1 class="h2 fw-bold" th:text="${episode.title}">회차 제목</h1>
-            <p class="text-secondary small mb-0"
-               th:text="|글자 수 ${episode.characterCount}자|">글자 수</p>
-            <div class="mt-3" data-bookmark-root>
-                <form th:action="@{/episodes/{id}/bookmark(id=${episode.id})}" method="post"
-                      data-bookmark-form>
-                    <button class="btn btn-sm"
-                            th:classappend="${bookmarked} ? 'btn-dark is-active' : 'btn-outline-dark'"
+
+            <article class="episode-reader">
+                <header class="mb-4">
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <span class="badge status-badge" th:text="${episode.status.displayName}">공개</span>
+                        <span th:if="${multiPart}" class="badge part-badge"
+                              th:text="|${part.partNumber}부 · ${part.title}|">1부</span>
+                        <span class="badge text-bg-light border"
+                              th:text="|${episode.episodeNumber}화|">1화</span>
+                    </div>
+                    <p class="text-secondary small mb-2" th:text="${novel.title}">작품명</p>
+                    <h1 class="h2 fw-bold" th:text="${episode.title}">회차 제목</h1>
+                    <p class="text-secondary small mb-0"
+                       th:text="|글자 수 ${episode.characterCount}자|">글자 수</p>
+                </header>
+
+                <div class="episode-content" th:text="${episode.content}">본문</div>
+            </article>
+
+            <div class="episode-side episode-side-next">
+                <form class="episode-rail-top episode-tool-bookmark"
+                      th:action="@{/episodes/{id}/bookmark(id=${episode.id})}" method="post"
+                      data-bookmark-form data-bookmark-root>
+                    <button class="episode-tool-btn episode-tool-icon"
+                            th:classappend="${bookmarked} ? ' is-active'"
                             type="submit"
                             data-bookmark-button
-                            th:attr="aria-pressed=${bookmarked}"
-                            th:text="${bookmarked} ? '책갈피 해제' : '책갈피 저장'">책갈피 저장</button>
+                            th:attr="aria-pressed=${bookmarked},
+                                     title=${bookmarked} ? '책갈피 해제' : '책갈피 저장',
+                                     aria-label=${bookmarked} ? '책갈피 해제' : '책갈피 저장'">
+                        <svg class="episode-bookmark-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path d="M6 3.75A1.75 1.75 0 0 1 7.75 2h8.5A1.75 1.75 0 0 1 18 3.75v16.6a.75.75 0 0 1-1.2.6L12 16.7l-4.8 4.25a.75.75 0 0 1-1.2-.6V3.75Z"
+                                  fill="currentColor"></path>
+                        </svg>
+                    </button>
                 </form>
-                <div th:if="${param.bookmarked}" class="small text-secondary mt-2">이 회차를 책갈피로 저장했습니다.</div>
-                <div th:if="${param.bookmarkRemoved}" class="small text-secondary mt-2">책갈피를 해제했습니다.</div>
-            </div>
-        </header>
-
-        <div class="episode-content" th:text="${episode.content}">본문</div>
-    </article>
-
-    <nav class="episode-nav mt-5" aria-label="회차 이동">
-        <div class="row g-3">
-            <div class="col-md-4">
-                <a th:if="${navigation.previousEpisode != null}"
-                   class="btn btn-outline-dark w-100"
-                   th:href="@{/episodes/{id}(id=${navigation.previousEpisode.id})}"
-                   th:text="|← ${navigation.previousEpisode.episodeNumber}화|">← 이전 화</a>
-                <a th:if="${navigation.previousEpisode == null and navigation.previousPartEpisode != null}"
-                   class="btn btn-outline-dark w-100"
-                   th:href="@{/episodes/{id}(id=${navigation.previousPartEpisode.id})}"
-                   th:text="|← ${navigation.previousPart.partNumber}부 마지막 화|">← 이전 부</a>
-                <span th:if="${navigation.previousEpisode == null and navigation.previousPartEpisode == null}"
-                      class="btn btn-outline-secondary w-100 disabled">이전 회차 없음</span>
-            </div>
-            <div class="col-md-4">
-                <a class="btn btn-outline-secondary w-100"
-                   th:href="@{/novels/{id}(id=${novel.id})}">작품 상세</a>
-            </div>
-            <div class="col-md-4">
-                <a th:if="${navigation.nextEpisode != null}"
-                   class="btn btn-outline-dark w-100"
-                   th:href="@{/episodes/{id}(id=${navigation.nextEpisode.id})}"
-                   th:text="|${navigation.nextEpisode.episodeNumber}화 →|">다음 화 →</a>
-                <a th:if="${navigation.nextEpisode == null and navigation.nextPartEpisode != null}"
-                   class="btn btn-outline-dark w-100"
-                   th:href="@{/episodes/{id}(id=${navigation.nextPartEpisode.id})}"
-                   th:text="|${navigation.nextPart.partNumber}부 첫 화 →|">다음 부 →</a>
-                <span th:if="${navigation.nextEpisode == null and navigation.nextPartEpisode == null}"
-                      class="btn btn-outline-secondary w-100 disabled">다음 회차 없음</span>
+                <a th:if="${nextId != null}"
+                   class="episode-side-btn episode-rail-mid"
+                   th:href="@{/episodes/{id}(id=${nextId})}"
+                   th:attr="aria-label=|다음 화 ${nextLabel}|">
+                    <span th:text="${nextLabel}">9화</span>
+                    <span aria-hidden="true">›</span>
+                </a>
+                <span th:if="${nextId == null}"
+                      class="episode-side-btn episode-rail-mid is-disabled"
+                      aria-disabled="true">
+                    <span>다음 없음</span>
+                    <span aria-hidden="true">›</span>
+                </span>
             </div>
         </div>
-    </nav>
+    </section>
+
+    <section id="comments" class="episode-comments mt-5" aria-labelledby="comments-title"
+             data-comments-root>
+        <h2 id="comments-title" class="h4 fw-bold mb-3">댓글</h2>
+        <div data-comments-panel>
+            <th:block th:replace="~{episodes/fragments/comments :: commentsPanel}"></th:block>
+        </div>
+    </section>
 </main>
 
 <footer class="border-top py-4">
@@ -95,5 +134,6 @@
 </footer>
 <script th:src="@{/vendor/bootstrap/js/bootstrap.bundle.min.js}"></script>
 <script th:src="@{/js/episode-bookmark.js}"></script>
+<script th:src="@{/js/episode-comment.js}"></script>
 </body>
 </html>

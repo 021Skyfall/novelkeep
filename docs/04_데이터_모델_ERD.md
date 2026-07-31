@@ -188,7 +188,7 @@ erDiagram
 - `author_id`로 작품 소유자를 구분하고 `pen_name`은 화면에 공개할 필명이다.
 - 연재 상태: `SERIALIZING`, `COMPLETED`
 - 공개 여부: `PUBLIC`, `PRIVATE` (새 작품 기본값 `PRIVATE`, 목 데이터는 두 상태를 모두 포함)
-- 장르는 단일 컬럼이 아니라 `NOVEL_GENRE` 컬렉션으로 분리한다. 작품당 1~5개다.
+- 장르는 단일 컬럼이 아니라 `NOVEL_GENRE` 컬렉션으로 분리한다. 작품당 1~8개다.
 - 권 구성 상태와 권 수 컬럼은 두지 않는다. `STORY_PART` 행 개수를 조회해 1개면 한 권, 2개 이상이면 여러 권으로 표시한다.
 - `recommendation_count`: 추천순 조회용 비정규화 카운트다. 추천 토글 시 작품 수정일과 분리된 bulk update로 변경한다.
 
@@ -214,7 +214,7 @@ erDiagram
 - 회원이 작품마다 현재 읽고 있는 회차 1개를 저장한다.
 - `(member_id, novel_id)`를 유일하게 유지하고 `episode_id`를 덮어쓴다.
 - 같은 회차에서 다시 저장하면 해제한다.
-- 초안·미공개로 열람 권한이 없으면 이어읽기 CTA만 숨기고 행은 유지한다.
+- 미공개 회차·작품으로 열람 권한이 없으면 이어읽기 CTA만 숨기고 행은 유지한다.
 - 회차·부·작품 물리 삭제 시 관련 책갈피를 Service에서 먼저 삭제한다.
 
 ### STORY_PART — 부
@@ -223,7 +223,7 @@ erDiagram
 - 작품 생성 시 시스템이 `1 / 본편` 권(부)을 자동 생성하고, 권(부)이 하나뿐이면 독자 화면에서 부 이름을 숨긴다.
 - 권(부)이 2개 이상이면 작가가 권 단위의 제목과 순서를 관리한다.
 - 같은 작품 안에서 `part_number`는 중복될 수 없다.
-- 상태: `DRAFT`, `SERIALIZING`, `COMPLETED`
+- 상태: `UNPUBLISHED`, `SERIALIZING`, `COMPLETED`
 - 독자 화면의 부 완결 표시는 `part_number`와 `COMPLETED`를 조합해 `1부 완결`, `2부 완결`처럼 만든다.
 
 ### EPISODE — 회차
@@ -231,8 +231,15 @@ erDiagram
 - 특정 부에 속한 웹소설 본문이다.
 - 같은 부 안에서 `episode_number`는 중복될 수 없다.
 - 제목에는 회차 번호를 넣지 않는다. 화면은 `episodeNumber`와 제목을 조합한다.
-- 상태: `DRAFT`, `PUBLISHED`
+- 상태: `UNPUBLISHED`, `PUBLISHED`
+- 목록 정렬은 `episode_number DESC`(최신화 상단).
 - 본문 저장 시 서버가 `character_count`를 다시 계산한다.
+
+### EPISODE_COMMENT — 회차 댓글
+
+- 회차당 댓글·대댓글(1단)을 저장한다. `parent_id`가 null이면 원댓글이다.
+- 삭제는 `deleted_at` 소프트 삭제. 부모 삭제 시 답글은 유지하고 화면에는 `삭제된 댓글입니다.`를 표시한다.
+- 댓글 수 집계는 `deleted_at is null`만 포함한다.
 
 ### PUBLICATION_VOLUME — 권 출판계획
 
@@ -246,10 +253,10 @@ erDiagram
 
 ### FUNDING_CAMPAIGN — 소장본 펀딩
 
-- 특정 권의 목표 수량, 모의 판매가와 펀딩 기간을 관리한다.
+- 특정 부(1권)의 목표 수량, 모의 판매가와 펀딩 기간을 관리한다. 현재 구현은 `StoryPart`에 직접 연결한다(1부=1권).
 - 상태: `DRAFT`, `OPEN`, `SUCCESS`, `FAILED`
-- 성공 조건: 목표 수량 달성 + 부/작품 완결 + 한 권 예상 분량 충족
-- 한 권에 재펀딩을 열 수 있도록 권과 펀딩은 1:N 관계로 둔다.
+- 홈에는 `OPEN`이면서 기간 내·공개 작품인 캠페인을 최신순 최대 5건 노출한다.
+- 성공 조건·참여·주문 전환은 Lv2에서 구현한다.
 
 ### FUNDING_PARTICIPATION — 펀딩 참여
 
@@ -271,7 +278,7 @@ erDiagram
 |---|---|
 | MEMBER | `UNIQUE(member_type)` — 역할별 고정 체험 회원 1명 |
 | NOVEL | `author_id NOT NULL` |
-| NOVEL_GENRE | `UNIQUE(novel_id, genre)`, 작품당 1~5행(Service) |
+| NOVEL_GENRE | `UNIQUE(novel_id, genre)`, 작품당 1~8행(Service) |
 | NOVEL_RECOMMENDATION | `UNIQUE(member_id, novel_id)` |
 | NOVEL_FAVORITE | `UNIQUE(member_id, novel_id)` |
 | EPISODE_BOOKMARK | `UNIQUE(member_id, novel_id)`, `episode_id NOT NULL` |
@@ -289,7 +296,7 @@ DB 제약조건으로 표현하기 어려운 아래 규칙은 Service에서 검�
 - `AUTHOR`와 `ADMIN` 회원은 작품을 만들 수 있다.
 - 모든 회원은 독자 기능으로 펀딩에 참여할 수 있다.
 - `ADMIN` 회원만 전체 주문 상태를 변경하고 운영 통계·내보내기를 사용할 수 있다.
-- 공개 콘텐츠 조회는 역할별 복제 없이 동일 원본을 반환한다. `NOVEL.visibility=PRIVATE`는 소유자와 관리자만 조회하고, `EPISODE.DRAFT`는 공개하지 않는다.
+- 공개 콘텐츠 조회는 역할별 복제 없이 동일 원본을 반환한다. `NOVEL.visibility=PRIVATE`는 소유자와 관리자만 조회하고, `EPISODE.UNPUBLISHED`는 공개하지 않는다.
 - 추천과 내 즐겨찾기는 `NOVEL.visibility=PUBLIC`인 작품에만 허용하고, 자신의 작품 추천은 차단한다.
 - 장르 검색은 선택 장르를 모두 포함한 작품만 반환한다(AND).
 - 책갈피 저장은 회차 열람 권한과 동일하게 검증한다. 물리 삭제 시에만 책갈피를 정리한다.
@@ -309,7 +316,7 @@ DB 제약조건으로 표현하기 어려운 아래 규칙은 Service에서 검�
 
 | 필드 | NULL 허용 이유 |
 |---|---|
-| `EPISODE.published_at` | 초안 회차는 아직 공개 시각이 없음 |
+| `EPISODE.published_at` | 미공개 회차는 아직 공개 시각이 없음 |
 | `FUNDING_PARTICIPATION.refunded_at` | 환불되지 않은 참여는 환불 시각이 없음 |
 | `BOOK_ORDER.completed_at` | 제작 완료 전에는 완료 시각이 없음 |
 
@@ -372,13 +379,13 @@ PUBLIC / PRIVATE (공개 여부, 연재 상태와 별도)
 ### 부
 
 ```text
-DRAFT → SERIALIZING → COMPLETED
+UNPUBLISHED → SERIALIZING → COMPLETED
 ```
 
 ### 회차
 
 ```text
-DRAFT → PUBLISHED
+UNPUBLISHED ↔ PUBLISHED
 ```
 
 ### 펀딩
@@ -445,8 +452,8 @@ PENDING → PROCESSING → COMPLETED
 ## 11. 현재 확정한 범위
 
 - 작품의 여러 부 지원
-- 작가가 부 구분 사용 여부를 선택
-- 부 구분이 없으면 숨겨진 기본 부 `본편` 자동 생성
+- 작가가 부 구분 사용 여부를 선택하지 않고, 기본 부 `본편` 자동 생성 후 작품 상세에서 부 추가·삭제로 구성한다
+- 부 상태 `UNPUBLISHED`는 소유자·관리자만 조회·열람에 포함된다. 독자에게는 해당 권과 그 안 회차가 미노출이다.
 - 한 부와 소장본 한 권의 1:1 출판 지원
 - 부 전체 회차를 권 수록 범위로 사용
 - 공백 포함·줄바꿈 제외 글자 수 계산
@@ -457,4 +464,5 @@ PENDING → PROCESSING → COMPLETED
 - 리소스 ID와 작품 작성자 회원 ID를 결합한 소유권 검증
 - 공통 플랫폼 메인과 누적 권한 메뉴
 - 번호가 포함된 부 완결 표시 (`1부 완결`, `2부 완결`)
-- 관리자 주문 상태 관리, 운영 통계와 주문 CSV·JSON 내보내기
+- 관리자 주문 상태 관리, 운영 통계와 주문 CSV·JSON 내보내기 (Lv2, 미구현)
+- 작품·부·회차 엔티티와 CRUD·열람, 회차 댓글, 홈용 `funding_campaign` 구현 완료. **독자·작가 Lv1 완료**(미공개 권 독자 미노출·상세 일괄 회차 처리 포함). 관리자 Lv2는 `준비 중`. 다음은 Lv2 펀딩 참여·주문

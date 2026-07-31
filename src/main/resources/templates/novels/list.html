@@ -33,9 +33,15 @@
             <div class="row g-3 align-items-end">
                 <div class="col-lg-4">
                     <label class="form-label fw-semibold" for="keyword">검색어</label>
-                    <input id="keyword" class="form-control" type="search" name="keyword"
-                           th:value="*{keyword}" placeholder="제목, 필명, 소개"
-                           data-auto-search-keyword>
+                    <div class="keyword-search-field">
+                        <input id="keyword" class="form-control" type="search" name="keyword"
+                               th:value="*{keyword}" placeholder="제목, 필명, 소개"
+                               data-keyword-search-input autocomplete="off">
+                        <button class="keyword-search-btn" type="submit" data-keyword-search-btn
+                                aria-label="검색">
+                            <span aria-hidden="true">⌕</span>
+                        </button>
+                    </div>
                 </div>
                 <div class="col-md-6 col-lg-2">
                     <label class="form-label fw-semibold" for="progress">연재 상태</label>
@@ -119,36 +125,37 @@
                      data-async-status aria-label="목록 불러오는 중">...</div>
                 <div th:each="novel, iter : ${novels.content}" class="col-md-6 col-xl-4" data-novel-card
                      th:attr="data-novel-id=${novel.id}">
-                    <article class="novel-card h-100">
+                    <article class="novel-card h-100" data-novel-href
+                             th:attr="data-novel-href=@{/novels/{id}(id=${novel.id})}">
                         <div class="novel-cover"
                              th:classappend="${iter.index % 3 == 0 ? 'cover-one' : (iter.index % 3 == 1 ? 'cover-two' : 'cover-three')}">
                             <span th:text="${#numbers.formatInteger(novels.number * novels.size + iter.count, 2)}">01</span>
                         </div>
                         <div class="novel-card-body">
-                            <div class="d-flex flex-wrap gap-2 mb-2">
-                                <span class="badge status-badge" th:text="${novel.status.displayName}">연재 중</span>
-                                <span th:if="${isAdmin}"
-                                      class="badge"
-                                      th:classappend="${novel.visibility.name() == 'PUBLIC'} ? ' visibility-public' : ' visibility-private'"
-                                      th:text="${novel.visibility.displayName}">공개</span>
-                                <span th:if="${novel.multiPart and novel.latestCompletedPartLabel() != null}"
-                                      class="badge part-badge"
-                                      th:text="${novel.latestCompletedPartLabel()}">1부 완결</span>
-                                <span th:each="genreItem : ${novel.genres}"
-                                      class="badge text-bg-light border"
-                                      th:text="${genreItem.displayName}">장르</span>
-                                <span class="badge recommend-badge" data-recommend-count
-                                      th:text="|추천 ${novel.recommendationCount}|">추천 0</span>
+                            <div class="novel-tag-row mb-2" data-tag-row>
+                                <div class="novel-tag-list" data-tag-list>
+                                    <span class="badge status-badge" th:text="${novel.status.displayName}">연재 중</span>
+                                    <span th:if="${isAdmin}"
+                                          class="badge"
+                                          th:classappend="${novel.visibility.name() == 'PUBLIC'} ? ' visibility-public' : ' visibility-private'"
+                                          th:text="${novel.visibility.displayName}">공개</span>
+                                    <span th:if="${novel.multiPart and novel.latestCompletedPartLabel() != null}"
+                                          class="badge part-badge"
+                                          th:text="${novel.latestCompletedPartLabel()}">1부 완결</span>
+                                    <span th:each="genreItem : ${novel.genres}"
+                                          class="badge text-bg-light border"
+                                          th:text="${genreItem.displayName}">장르</span>
+                                    <span class="badge recommend-badge" data-recommend-count
+                                          th:text="|추천 ${novel.recommendationCount}|">추천 0</span>
+                                </div>
+                                <button class="badge novel-tag-more d-none" type="button" data-tag-more
+                                        aria-label="태그 더 보기">...</button>
                             </div>
-                            <h2 class="h5 fw-bold">
-                                <a class="novel-title-link"
-                                   th:href="@{/novels/{id}(id=${novel.id})}"
-                                   th:text="${novel.title}">작품명</a>
-                            </h2>
+                            <h2 class="h5 fw-bold novel-card-title" th:text="${novel.title}">작품명</h2>
                             <p class="text-secondary synopsis" th:text="${novel.synopsis}">작품 소개</p>
-                            <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                            <div class="novel-card-footer d-flex justify-content-between align-items-center gap-2 flex-wrap">
                                 <span class="small text-secondary" th:text="|필명 ${novel.penName}|">필명</span>
-                                <div class="d-flex gap-2" th:if="${novel.visibility.name() == 'PUBLIC'}">
+                                <div class="d-flex gap-2 novel-card-actions" th:if="${novel.visibility.name() == 'PUBLIC'}">
                                     <form th:action="@{/novels/{id}/favorite(id=${novel.id})}" method="post"
                                           data-novel-action="favorite"
                                           th:attr="data-novel-id=${novel.id}">
@@ -205,6 +212,7 @@
     <div class="container small text-secondary">NovelKeep · 공개 작품을 탐색합니다.</div>
 </footer>
 <script th:src="@{/vendor/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/js/novel-card.js}"></script>
 <script th:src="@{/js/novel-search.js}"></script>
 <script th:src="@{/js/novel-actions.js}"></script>
 <script th:src="@{/js/novel-genre-filter.js}"></script>

@@ -63,9 +63,9 @@
             <label class="form-label fw-semibold" for="status">공개 상태</label>
             <select id="status" class="form-select" th:field="*{status}">
                 <option th:each="statusOption : ${episodeStatuses}"
-                        th:value="${statusOption}" th:text="${statusOption.displayName}">초안</option>
+                        th:value="${statusOption}" th:text="${statusOption.displayName}">미공개</option>
             </select>
-            <div class="form-text">초안은 소유자와 관리자만 볼 수 있고, 공개 회차만 독자에게 노출됩니다.</div>
+            <div class="form-text">미공개는 소유자와 관리자만 볼 수 있고, 공개 회차만 독자에게 노출됩니다.</div>
         </div>
 
         <div class="d-flex flex-wrap gap-2">

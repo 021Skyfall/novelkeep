@@ -211,6 +211,132 @@ a.role-link:focus {
     background: linear-gradient(135deg, #5f392c, #cf9d61);
 }
 
+.cover-four {
+    background: linear-gradient(135deg, #1f3d3a, #6ea39a);
+}
+
+.cover-five {
+    background: linear-gradient(135deg, #3a2a45, #8f739f);
+}
+
+.cover-six {
+    background: linear-gradient(135deg, #2b3a55, #7a93b5);
+}
+
+.nk-marquee {
+    position: relative;
+    user-select: none;
+}
+
+.empty-state {
+    padding: 2rem 1.25rem;
+    color: #6c757d;
+    background: #f8f6f2;
+    border: 1px dashed var(--main-border);
+    border-radius: 0.9rem;
+}
+
+.empty-state strong {
+    display: block;
+    margin-bottom: 0.35rem;
+    color: var(--main-ink);
+}
+
+.nk-marquee-viewport {
+    overflow: hidden;
+    cursor: grab;
+    touch-action: pan-y;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.nk-marquee.is-dragging .nk-marquee-viewport {
+    cursor: grabbing;
+}
+
+.nk-marquee.is-dragging .nk-marquee-link {
+    pointer-events: none;
+}
+
+.nk-marquee-track {
+    display: flex;
+    gap: 1rem;
+    width: max-content;
+    will-change: transform;
+}
+
+.nk-marquee-track.is-animating {
+    transition: transform 0.5s ease;
+}
+
+.nk-marquee-card {
+    flex: 0 0 min(18.5rem, 78vw);
+}
+
+.nk-marquee-link {
+    color: inherit;
+    text-decoration: none;
+    -webkit-user-drag: none;
+    user-drag: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.nk-marquee-link:hover,
+.nk-marquee-link:focus {
+    color: inherit;
+    text-decoration: none;
+}
+
+.nk-marquee-link:hover .novel-card,
+.nk-marquee-link:focus .novel-card,
+.nk-marquee-link:hover.episode-marquee-card,
+.nk-marquee-link:focus.episode-marquee-card,
+.nk-marquee-link:hover.compact-card,
+.nk-marquee-link:focus.compact-card {
+    border-color: var(--main-accent);
+}
+
+.nk-marquee-card .novel-card-body p {
+    min-height: 3rem;
+}
+
+.episode-marquee-card {
+    display: flex;
+    flex: 0 0 min(16.5rem, 78vw);
+    flex-direction: column;
+    gap: 0.45rem;
+    padding: 1.15rem 1.2rem;
+    background: #fff;
+    border: 1px solid var(--main-border);
+    border-radius: 0.9rem;
+}
+
+.episode-marquee-card p {
+    margin: 0;
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.episode-marquee-card time {
+    margin-top: auto;
+    color: #8a8179;
+    font-size: 0.8rem;
+}
+
+.nk-marquee-funding {
+    flex: 0 0 min(22rem, 85vw);
+    display: block;
+    padding: 1.15rem 1.2rem;
+}
+
+.nk-marquee-compact {
+    flex: 0 0 min(22rem, 85vw);
+    height: auto;
+    min-height: 8.5rem;
+    background: #fff;
+}
+
 .novel-card-body {
     padding: 1.5rem;
 }
@@ -342,6 +468,15 @@ a.role-link:focus {
 
 [data-bs-theme="dark"] .navbar.bg-white {
     background: #171412 !important;
+}
+
+[data-bs-theme="dark"] .empty-state {
+    background: #161311;
+}
+
+[data-bs-theme="dark"] .episode-marquee-card,
+[data-bs-theme="dark"] .nk-marquee-compact {
+    background: #1b1715;
 }
 
 [data-bs-theme="dark"] .role-menu,

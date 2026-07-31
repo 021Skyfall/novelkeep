@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import com.novelkeep.novel.domain.Episode;
 import com.novelkeep.novel.domain.EpisodeStatus;
+import com.novelkeep.novel.domain.NovelVisibility;
 
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -39,4 +40,19 @@ public interface EpisodeRepository extends JpaRepository<Episode, Long> {
 
     @Query("select coalesce(max(e.episodeNumber), 0) from Episode e where e.storyPart.id = :storyPartId")
     int findMaxEpisodeNumberByStoryPartId(@Param("storyPartId") Long storyPartId);
+
+    @Query("""
+            select e
+              from Episode e
+              join fetch e.storyPart sp
+              join fetch sp.novel n
+             where e.status = :episodeStatus
+               and n.visibility = :visibility
+             order by coalesce(e.publishedAt, e.updatedAt) desc
+            """)
+    List<Episode> findPublicPublishedOrderByLatest(
+            @Param("episodeStatus") EpisodeStatus episodeStatus,
+            @Param("visibility") NovelVisibility visibility,
+            org.springframework.data.domain.Pageable pageable
+    );
 }

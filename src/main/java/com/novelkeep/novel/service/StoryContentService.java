@@ -2,7 +2,11 @@ package com.novelkeep.novel.service;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import com.novelkeep.home.domain.ExperienceRole;
 import com.novelkeep.novel.domain.Episode;
@@ -88,10 +92,14 @@ public class StoryContentService {
         Novel novel = episode.getStoryPart().getNovel();
         boolean admin = role == ExperienceRole.ADMIN;
         boolean owner = novel.isOwnedBy(memberId);
+        boolean privileged = owner || admin;
         if (!novel.isReadableBy(memberId, admin)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
-        if (episode.getStatus() != EpisodeStatus.PUBLISHED && !owner && !admin) {
+        if (!privileged && episode.getStoryPart().getStatus() == StoryPartStatus.UNPUBLISHED) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+        if (episode.getStatus() != EpisodeStatus.PUBLISHED && !privileged) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
         novel.getParts().size();
@@ -107,12 +115,13 @@ public class StoryContentService {
                 role
         );
         Long currentPartId = episode.getStoryPart().getId();
-        StoryPart currentPart = novel.getParts().stream()
+        boolean privileged = novel.isOwnedBy(memberId) || role == ExperienceRole.ADMIN;
+        List<StoryPart> parts = readableParts(novel, privileged);
+        StoryPart currentPart = parts.stream()
                 .filter(part -> part.getId().equals(currentPartId))
                 .findFirst()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
-        boolean privileged = novel.isOwnedBy(memberId) || role == ExperienceRole.ADMIN;
         List<Episode> currentEpisodes = readableEpisodes(currentPart, privileged);
         int index = indexOf(currentEpisodes, episodeId);
 
@@ -121,7 +130,6 @@ public class StoryContentService {
                 ? currentEpisodes.get(index + 1)
                 : null;
 
-        List<StoryPart> parts = sortedParts(novel);
         int partIndex = indexOfPart(parts, currentPartId);
         StoryPart previousPart = null;
         StoryPart nextPart = null;
@@ -269,13 +277,81 @@ public class StoryContentService {
         bookmarkRepository.deleteByEpisodeId(episodeId);
         part.removeEpisode(episode);
         renumberEpisodes(part);
+        refreshPartCompletion(part);
+        return novelId;
+    }
+
+    @Transactional
+    public void bulkChangeEpisodeStatus(Long novelId, Long memberId, List<Long> episodeIds, EpisodeStatus status) {
+        if (episodeIds == null || episodeIds.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "회차를 선택해 주세요.");
+        }
+        if (status == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "공개 상태를 확인해 주세요.");
+        }
+        Novel novel = findOwnedNovelWithContents(novelId, memberId);
+        Set<Long> requested = new LinkedHashSet<>(episodeIds);
+        List<Episode> targets = collectOwnedEpisodes(novel, requested);
+        if (targets.size() != requested.size()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "선택한 회차 중 처리할 수 없는 항목이 있습니다.");
+        }
+        Set<StoryPart> touchedParts = new LinkedHashSet<>();
+        for (Episode episode : targets) {
+            episode.changeStatus(status);
+            touchedParts.add(episode.getStoryPart());
+        }
+        for (StoryPart part : touchedParts) {
+            refreshPartCompletion(part);
+        }
+    }
+
+    @Transactional
+    public Long bulkDeleteEpisodes(Long novelId, Long memberId, List<Long> episodeIds) {
+        if (episodeIds == null || episodeIds.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "회차를 선택해 주세요.");
+        }
+        Novel novel = findOwnedNovelWithContents(novelId, memberId);
+        Set<Long> requested = new LinkedHashSet<>(episodeIds);
+        List<Episode> targets = collectOwnedEpisodes(novel, requested);
+        if (targets.size() != requested.size()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "선택한 회차 중 삭제할 수 없는 항목이 있습니다.");
+        }
+
+        Map<StoryPart, List<Episode>> byPart = new LinkedHashMap<>();
+        for (Episode episode : targets) {
+            byPart.computeIfAbsent(episode.getStoryPart(), key -> new ArrayList<>()).add(episode);
+        }
+        for (Map.Entry<StoryPart, List<Episode>> entry : byPart.entrySet()) {
+            StoryPart part = entry.getKey();
+            for (Episode episode : entry.getValue()) {
+                bookmarkRepository.deleteByEpisodeId(episode.getId());
+                part.removeEpisode(episode);
+            }
+            renumberEpisodes(part);
+            refreshPartCompletion(part);
+        }
+        return novelId;
+    }
+
+    private List<Episode> collectOwnedEpisodes(Novel novel, Set<Long> episodeIds) {
+        List<Episode> found = new ArrayList<>();
+        for (StoryPart part : novel.getParts()) {
+            for (Episode episode : part.getEpisodes()) {
+                if (episodeIds.contains(episode.getId())) {
+                    found.add(episode);
+                }
+            }
+        }
+        return found;
+    }
+
+    private void refreshPartCompletion(StoryPart part) {
         if (!part.allEpisodesPublished() && part.getStatus() == StoryPartStatus.COMPLETED) {
             part.update(part.getTitle(), StoryPartStatus.SERIALIZING);
             if (part.getNovel().getStatus() == NovelStatus.COMPLETED) {
                 part.getNovel().changeStatus(NovelStatus.SERIALIZING);
             }
         }
-        return novelId;
     }
 
     @Transactional(readOnly = true)
@@ -286,7 +362,11 @@ public class StoryContentService {
     }
 
     public List<StoryPart> latestParts(Novel novel) {
-        return novel.getParts().stream()
+        return latestParts(novel, true);
+    }
+
+    public List<StoryPart> latestParts(Novel novel, boolean privileged) {
+        return readableParts(novel, privileged).stream()
                 .sorted(Comparator.comparing(StoryPart::getPartNumber).reversed())
                 .toList();
     }
@@ -325,6 +405,16 @@ public class StoryContentService {
     private List<StoryPart> sortedParts(Novel novel) {
         return novel.getParts().stream()
                 .sorted(Comparator.comparing(StoryPart::getPartNumber))
+                .toList();
+    }
+
+    private List<StoryPart> readableParts(Novel novel, boolean privileged) {
+        List<StoryPart> parts = sortedParts(novel);
+        if (privileged) {
+            return parts;
+        }
+        return parts.stream()
+                .filter(part -> part.getStatus() != StoryPartStatus.UNPUBLISHED)
                 .toList();
     }
 

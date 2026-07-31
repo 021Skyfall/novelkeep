@@ -88,7 +88,8 @@
         form.dataset.boundSearch = '1';
 
         var timer = null;
-        var keywordInput = form.querySelector('[data-auto-search-keyword]');
+        var keywordInput = form.querySelector('[data-keyword-search-input], [data-auto-search-keyword]');
+        var keywordButton = form.querySelector('[data-keyword-search-btn]');
         var selects = form.querySelectorAll('select[data-auto-search]');
 
         function runSearch(pushHistory) {
@@ -115,32 +116,18 @@
         });
 
         if (keywordInput) {
-            keywordInput.addEventListener('input', function (event) {
-                if (event.isComposing || event.keyCode === 229) {
-                    return;
-                }
-                if (timer) {
-                    clearTimeout(timer);
-                }
-                timer = setTimeout(function () {
-                    runSearch(true);
-                }, 350);
-            });
-
-            keywordInput.addEventListener('compositionend', function () {
-                if (timer) {
-                    clearTimeout(timer);
-                }
-                timer = setTimeout(function () {
-                    runSearch(true);
-                }, 350);
-            });
-
             keywordInput.addEventListener('keydown', function (event) {
                 if (event.key === 'Enter') {
                     event.preventDefault();
                     runSearch(true);
                 }
+            });
+        }
+
+        if (keywordButton) {
+            keywordButton.addEventListener('click', function (event) {
+                event.preventDefault();
+                runSearch(true);
             });
         }
 
@@ -198,6 +185,9 @@
         var root = getAsyncRoot();
         bindPagination(root);
         bindReset(root);
+        if (typeof window.novelkeepBindNovelCards === 'function') {
+            window.novelkeepBindNovelCards();
+        }
     }
 
     window.novelkeepReloadAsync = function () {

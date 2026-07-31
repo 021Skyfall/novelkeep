@@ -1,11 +1,15 @@
 package com.novelkeep.home.service;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
+import com.novelkeep.funding.domain.FundingCampaign;
+import com.novelkeep.funding.repository.FundingCampaignRepository;
 import com.novelkeep.member.domain.Member;
 import com.novelkeep.member.domain.MemberType;
 import com.novelkeep.member.repository.MemberRepository;
@@ -28,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class DemoDataInitializer implements ApplicationRunner {
 
     private static final int NOVEL_COUNT = 50;
+    private static final int OPEN_FUNDING_COUNT = 5;
     private static final long RANDOM_SEED = 20260731L;
 
     private static final String[] TITLE_PREFIXES = {
@@ -61,13 +66,16 @@ public class DemoDataInitializer implements ApplicationRunner {
 
     private final MemberRepository memberRepository;
     private final NovelRepository novelRepository;
+    private final FundingCampaignRepository fundingCampaignRepository;
 
     public DemoDataInitializer(
             MemberRepository memberRepository,
-            NovelRepository novelRepository
+            NovelRepository novelRepository,
+            FundingCampaignRepository fundingCampaignRepository
     ) {
         this.memberRepository = memberRepository;
         this.novelRepository = novelRepository;
+        this.fundingCampaignRepository = fundingCampaignRepository;
     }
 
     @Override
@@ -83,6 +91,7 @@ public class DemoDataInitializer implements ApplicationRunner {
 
         List<Novel> novels = createNovels(author, admin);
         novelRepository.saveAll(novels);
+        fundingCampaignRepository.saveAll(createOpenFundings(novels));
     }
 
     private List<Novel> createNovels(Member author, Member admin) {
@@ -155,7 +164,7 @@ public class DemoDataInitializer implements ApplicationRunner {
             } else if (partNumber == completedPartCount + 1) {
                 partStatus = StoryPartStatus.SERIALIZING;
             } else {
-                partStatus = StoryPartStatus.DRAFT;
+                partStatus = StoryPartStatus.UNPUBLISHED;
             }
 
             String partTitle = PART_TITLES[(novelNumber + partNumber) % PART_TITLES.length];
@@ -175,12 +184,77 @@ public class DemoDataInitializer implements ApplicationRunner {
         }
     }
 
+    private List<FundingCampaign> createOpenFundings(List<Novel> novels) {
+        List<StoryPart> candidates = new ArrayList<>();
+        for (Novel novel : novels) {
+            if (novel.getVisibility() != NovelVisibility.PUBLIC) {
+                continue;
+            }
+            for (StoryPart part : novel.getParts()) {
+                if (part.getStatus() == StoryPartStatus.COMPLETED) {
+                    candidates.add(part);
+                }
+            }
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        List<FundingCampaign> campaigns = new ArrayList<>();
+        int count = Math.min(OPEN_FUNDING_COUNT, candidates.size());
+        for (int i = 0; i < count; i++) {
+            StoryPart part = candidates.get(i);
+            int target = 40 + (i * 10);
+            int current = 8 + (i * 7);
+            BigDecimal price = BigDecimal.valueOf(15000L + (i * 1000L));
+            campaigns.add(FundingCampaign.open(
+                    part,
+                    target,
+                    Math.min(current, target - 1),
+                    price,
+                    now.minusDays(3 + i),
+                    now.plusDays(14 + i)
+            ));
+        }
+        return campaigns;
+    }
+
     private List<NovelGenre> pickGenres(int novelNumber) {
+        // 카드 2줄 초과 `...` 확인용: 일부는 긴 이름 장르 7~8개
+        List<NovelGenre> longNames = List.of(
+                NovelGenre.MODERN_FANTASY,
+                NovelGenre.EASTERN_FANTASY,
+                NovelGenre.DARK_FANTASY,
+                NovelGenre.ROMANCE_FANTASY,
+                NovelGenre.HISTORICAL_ROMANCE,
+                NovelGenre.ALTERNATE_HISTORY,
+                NovelGenre.SPACE_OPERA,
+                NovelGenre.BUSINESS,
+                NovelGenre.ENTERTAINMENT,
+                NovelGenre.HISTORICAL_FICTION,
+                NovelGenre.SCIENCE_FICTION,
+                NovelGenre.MARTIAL_ARTS
+        );
+        int bucket = (novelNumber - 1) % 10;
+        if (bucket >= 7) {
+            int count = bucket == 9 ? 8 : 7;
+            int start = (novelNumber - 1) % longNames.size();
+            Set<NovelGenre> selected = new LinkedHashSet<>();
+            for (int offset = 0; selected.size() < count; offset++) {
+                selected.add(longNames.get((start + offset) % longNames.size()));
+            }
+            return new ArrayList<>(selected);
+        }
+
         NovelGenre[] all = NovelGenre.values();
-        int count = 1 + ((novelNumber - 1) % 3);
+        int count = switch (bucket) {
+            case 0, 1 -> 2;
+            case 2, 3 -> 3;
+            case 4, 5 -> 4;
+            default -> 5;
+        };
         Set<NovelGenre> selected = new LinkedHashSet<>();
+        int start = (novelNumber * 11) % all.length;
         for (int offset = 0; selected.size() < count; offset++) {
-            selected.add(all[(novelNumber - 1 + offset * 7) % all.length]);
+            selected.add(all[(start + offset * 3) % all.length]);
         }
         return new ArrayList<>(selected);
     }
@@ -190,20 +264,25 @@ public class DemoDataInitializer implements ApplicationRunner {
             int episodeNumber,
             int episodeCount
     ) {
-        if (partStatus == StoryPartStatus.DRAFT) {
-            return EpisodeStatus.DRAFT;
+        if (partStatus == StoryPartStatus.UNPUBLISHED) {
+            return EpisodeStatus.UNPUBLISHED;
         }
         if (partStatus == StoryPartStatus.SERIALIZING && episodeNumber > episodeCount - 2) {
-            return EpisodeStatus.DRAFT;
+            return EpisodeStatus.UNPUBLISHED;
         }
         return EpisodeStatus.PUBLISHED;
     }
 
     private String createEpisodeContent(String partTitle, String event, int episodeNumber) {
-        return partTitle + "의 " + episodeNumber + "번째 이야기에서 " + event + ". "
+        String paragraph = partTitle + "의 " + episodeNumber + "번째 이야기에서 " + event + ". "
                 + "인물들은 각자의 목적을 숨긴 채 같은 장소에 모였고, 작은 선택 하나가 다음 사건의 방향을 바꾸었다.\n\n"
                 + "아직 밝혀지지 않은 단서를 확인한 주인공은 물러서지 않기로 했다. "
-                + "멀리서 들려오는 소리와 남겨진 기록은 서로 다른 진실을 가리키고 있었다.";
+                + "멀리서 들려오는 소리와 남겨진 기록은 서로 다른 진실을 가리키고 있었다.\n\n"
+                + "그날의 대화는 쉽게 끝나지 않았다. 누군가는 사실을 감추려 했고, 누군가는 이미 알고 있는 것처럼 침묵했다. "
+                + "창밖으로 스치는 바람 소리조차 단서처럼 들렸고, 발걸음은 점점 더 깊은 골목으로 이어졌다.\n\n"
+                + "결국 남겨진 선택은 하나였다. 위험을 감수하고 앞으로 나아가거나, 안전한 자리에서 진실을 놓치는 것. "
+                + "주인공은 주머니 속 낡은 쪽지를 다시 펼쳐 보았다. 흐릿한 글씨 사이로, 아직 끝나지 않은 이야기의 다음 장면이 희미하게 드러나고 있었다.";
+        return paragraph + "\n\n" + paragraph + "\n\n" + paragraph + "\n\n" + paragraph;
     }
 
 }

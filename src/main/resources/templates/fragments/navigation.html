@@ -23,11 +23,11 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" th:classappend="${active == 'new'} ? ' active'"
-                           th:href="@{/novels(sort='latest')}">신작</a>
+                           th:href="@{/main#new}">신작</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" th:classappend="${active == 'completed'} ? ' active'"
-                           th:href="@{/novels(progress='COMPLETED')}">완결작</a>
+                           th:href="@{/main#completed}">완결작</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" th:classappend="${active == 'funding'} ? ' active'"
@@ -55,7 +55,7 @@
             <div class="role-menu-inner">
                 <div class="role-menu-group">
                     <div class="role-links">
-                        <a class="role-link" th:classappend="${active == 'novels' or active == 'new' or active == 'completed'} ? ' is-active'"
+                        <a class="role-link" th:classappend="${active == 'novels'} ? ' is-active'"
                            th:href="@{/novels}">작품 탐색</a>
                         <a class="role-link" th:classappend="${active == 'favorites'} ? ' is-active'"
                            th:href="@{/novels(favorite=true)}">내 즐겨찾기</a>
@@ -80,9 +80,13 @@
                     </div>
                 </div>
                 <div class="role-menu-actions">
-                    <form th:if="${roleKey == 'READER'}" th:action="@{/experience/writer}" method="post">
-                        <button class="btn btn-sm btn-outline-primary" type="submit">작가 권한 활성화 체험</button>
-                    </form>
+                    <button th:if="${roleKey == 'READER'}"
+                            class="btn btn-become-writer"
+                            type="button"
+                            data-become-writer
+                            th:attr="data-logout-url=@{/logout}">
+                        작가가 되고 싶으신가요?
+                    </button>
                 </div>
             </div>
         </div>

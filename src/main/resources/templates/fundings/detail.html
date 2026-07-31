@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="노벨킵 소장본 펀딩 상세">
+    <title th:text="${campaign.displayTitle() + ' | 노벨킵'}">펀딩 상세 | 노벨킵</title>
+    <script th:src="@{/js/theme.js}"></script>
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/navigation.css}">
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+    <link rel="stylesheet" th:href="@{/css/novel.css}">
+</head>
+<body th:classappend="${roleKey != null} ? | role-${#strings.toLowerCase(roleKey)}|">
+<div th:replace="~{fragments/navigation :: siteNav('funding')}"></div>
+
+<main class="container py-4 py-md-5">
+    <div class="mb-4">
+        <a class="btn btn-outline-secondary" th:href="@{/main#funding}">← 메인 펀딩</a>
+    </div>
+
+    <article class="funding-card">
+        <div class="d-flex flex-column flex-sm-row justify-content-between gap-2">
+            <div>
+                <span class="badge status-completed mb-2" th:text="${campaign.partCompletionLabel()}">1부 완결</span>
+                <span class="badge text-bg-light border mb-2" th:text="${campaign.status.displayName}">진행 중</span>
+                <h1 class="h3 fw-bold mb-1" th:text="${campaign.displayTitle()}">작품 1권</h1>
+                <p class="text-secondary mb-0">
+                    <a th:href="@{/novels/{id}(id=${novel.id})}" th:text="${novel.title}">작품</a>
+                    <span th:if="${novel.multiPart}" th:text="| · ${part.partNumber}부 ${part.title}|">부</span>
+                </p>
+            </div>
+            <strong class="funding-price"
+                    th:text="${#numbers.formatInteger(campaign.priceAmount, 1, 'COMMA') + '원'}">18,000원</strong>
+        </div>
+
+        <div class="funding-condition mt-4">
+            <div>
+                <span>부 상태</span>
+                <strong th:text="${part.status.displayName}">완결</strong>
+            </div>
+            <div>
+                <span>펀딩 수량</span>
+                <strong th:text="|${campaign.currentQuantity} / ${campaign.targetQuantity}권|">0 / 50권</strong>
+            </div>
+            <div>
+                <span>남은 기간</span>
+                <strong th:text="${#temporals.format(campaign.endAt, 'yyyy-MM-dd HH:mm')}">마감</strong>
+            </div>
+        </div>
+
+        <div class="progress mt-3" role="progressbar"
+             th:attr="aria-valuenow=${campaign.achievementPercent()}"
+             aria-valuemin="0" aria-valuemax="100"
+             th:aria-label="|펀딩 달성률 ${campaign.achievementPercent()}%|">
+            <div class="progress-bar"
+                 th:style="|width: ${campaign.achievementPercent()}%|"
+                 th:text="|${campaign.achievementPercent()}%|">0%</div>
+        </div>
+
+        <div class="mt-4">
+            <button class="btn btn-dark" type="button" disabled>모의 결제하고 참여하기 (준비 중)</button>
+            <p class="small text-secondary mt-2 mb-0">펀딩 참여·주문 전환은 다음 단계에서 연결됩니다. 지금은 현황만 확인할 수 있습니다.</p>
+        </div>
+    </article>
+</main>
+
+<script th:src="@{/vendor/bootstrap/js/bootstrap.bundle.min.js}"></script>
+</body>
+</html>

@@ -63,6 +63,38 @@
     margin-left: auto;
 }
 
+.btn-become-writer {
+    border: 0;
+    border-radius: 999px;
+    padding: 0.55rem 1.05rem;
+    font-size: 0.92rem;
+    font-weight: 700;
+    line-height: 1.2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fffaf4;
+    background: linear-gradient(135deg, #c45b6e 0%, #8f3f55 100%);
+    box-shadow: 0 8px 18px rgba(143, 63, 85, 0.22);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+
+.btn-become-writer:hover,
+.btn-become-writer:focus-visible {
+    color: #fffaf4;
+    filter: brightness(1.05);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px rgba(143, 63, 85, 0.28);
+}
+
+[data-bs-theme="dark"] .btn-become-writer {
+    background: linear-gradient(135deg, #d97888 0%, #a4485d 100%);
+}
+
+.role-menu-actions .btn-become-writer {
+    font-size: 0.92rem;
+}
+
 .role-menu-actions .btn-outline-primary {
     color: #a4485d;
     border-color: #a4485d;
