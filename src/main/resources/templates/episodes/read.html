@@ -16,7 +16,7 @@
 
 <main class="container py-4 py-md-5 episode-read-main"
       th:attr="data-comments-partial=@{/episodes/{id}/comments/partial(id=${episode.id})}">
-    <div th:if="${canManageContent}" class="mb-3 d-flex flex-wrap gap-2">
+    <div th:if="${canManageContent and !fundingLocked}" class="mb-3 d-flex flex-wrap gap-2">
         <a class="btn btn-content-action btn-outline-dark btn-sm"
            th:href="@{/writer/episodes/{id}/edit(id=${episode.id}, from='read')}">수정</a>
         <form th:action="@{/writer/episodes/{id}/delete(id=${episode.id}, from='read')}" method="post"
@@ -25,6 +25,9 @@
               data-confirm-text="예, 회차 삭제">
             <button class="btn btn-content-action btn-outline-danger btn-sm" type="submit">삭제</button>
         </form>
+    </div>
+    <div th:if="${canManageContent and fundingLocked}" class="alert alert-light border mb-3 small">
+        펀딩 진행 중인 부의 회차는 수정·삭제할 수 없습니다. 댓글은 가능합니다.
     </div>
 
     <div th:if="${param.updated}" class="alert alert-success"

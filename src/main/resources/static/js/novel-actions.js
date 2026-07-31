@@ -33,23 +33,33 @@
     function updateRecommendUi(scope, active, count) {
         var button = scope.querySelector('[data-action-button]');
         if (button) {
-            var detail = !!scope.closest('[data-detail-actions]');
-            button.textContent = active ? '추천 취소' : (detail ? '추천하기' : '추천');
-            button.classList.toggle('btn-dark', active);
-            button.classList.toggle('btn-outline-dark', !active);
+            button.classList.toggle('is-active', !!active);
+            button.classList.remove('btn-dark', 'btn-outline-dark');
+            button.setAttribute('aria-pressed', active ? 'true' : 'false');
+            button.setAttribute('aria-label', active ? '추천 취소' : '추천하기');
         }
-        var countBadge = null;
+
+        var roots = [];
         var card = scope.closest('[data-novel-card]');
         if (card) {
-            countBadge = card.querySelector('[data-recommend-count]');
-        } else {
-            var detailRoot = scope.closest('[data-detail-actions]');
-            countBadge = detailRoot
-                ? document.querySelector('[data-recommend-count]')
-                : null;
+            roots.push(card);
         }
-        if (countBadge && typeof count === 'number' && !Number.isNaN(count)) {
-            countBadge.textContent = '추천 ' + count;
+        var detailRoot = scope.closest('[data-detail-actions]');
+        if (detailRoot) {
+            var panel = detailRoot.closest('.detail-panel') || document;
+            roots.push(panel);
+        }
+        if (roots.length === 0) {
+            roots.push(document);
+        }
+
+        if (typeof count === 'number' && !Number.isNaN(count)) {
+            var label = '추천 ' + count;
+            roots.forEach(function (root) {
+                root.querySelectorAll('[data-recommend-count]').forEach(function (node) {
+                    node.textContent = label;
+                });
+            });
         }
     }
 

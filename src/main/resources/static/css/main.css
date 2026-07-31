@@ -111,6 +111,13 @@ a.role-link:focus {
     border-bottom: 1px solid #eee6db;
 }
 
+.main-hero .nk-marquee-funding.funding-card {
+    flex: none;
+    width: 100%;
+    min-height: 13.5rem;
+    height: auto;
+}
+
 .featured-card,
 .funding-card {
     padding: 2rem;
@@ -141,6 +148,26 @@ a.role-link:focus {
 
 .progress-bar {
     background: var(--main-accent);
+}
+
+.progress-funding-sm {
+    height: 0.35rem;
+}
+
+.funding-card-meter {
+    width: 100%;
+    max-width: none;
+}
+
+.funding-open-badge {
+    background: #1f2937;
+    color: #fff;
+    font-weight: 600;
+}
+
+[data-bs-theme="dark"] .funding-open-badge {
+    background: #e7e2dc;
+    color: #1a1512;
 }
 
 .eyebrow {
@@ -176,27 +203,104 @@ a.role-link:focus {
 
 .novel-cover {
     position: relative;
-    display: flex;
-    align-items: flex-end;
+    display: block;
     height: 11rem;
-    padding: 1.25rem;
+    padding: 0;
     overflow: hidden;
 }
 
 .novel-cover::after {
     position: absolute;
     inset: 0;
+    z-index: 1;
     content: "";
-    background: linear-gradient(transparent 30%, rgba(0, 0, 0, 0.55));
+    background: linear-gradient(transparent 35%, rgba(0, 0, 0, 0.5));
+    pointer-events: none;
 }
 
-.novel-cover span {
-    position: relative;
-    z-index: 1;
-    color: #fff;
-    font-family: Georgia, serif;
-    font-size: 1.5rem;
+.novel-cover-overlays {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.novel-cover-overlays .cover-badge-row,
+.novel-cover-overlays .cover-favorite,
+.novel-cover-overlays .cover-recommend {
+    pointer-events: auto;
+}
+
+.cover-badge-row {
+    position: absolute;
+    top: 0.65rem;
+    left: 0.65rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    max-width: calc(100% - 3.6rem);
+}
+
+.cover-favorite {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    margin: 0;
+}
+
+.cover-recommend {
+    position: absolute;
+    bottom: 0.55rem;
+    right: 0.55rem;
+}
+
+.novel-cover .favorite-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.1rem;
+    height: 2.1rem;
+    min-width: 2.1rem;
+    min-height: 2.1rem;
+    padding: 0;
+    border-radius: 999px;
+    color: #5f4414;
+    background: rgba(255, 255, 255, 0.96);
+    border: 1.5px solid #8f6f2c;
+    box-shadow: 0 0.25rem 0.7rem rgba(0, 0, 0, 0.2);
+    font-size: 1.05rem;
+    line-height: 1;
+}
+
+.recommend-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 2.1rem;
+    padding: 0.3rem 0.65rem;
+    border-radius: 999px;
+    color: #5a4570;
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid rgba(217, 199, 235, 0.95);
+    font-size: 0.78rem;
     font-weight: 700;
+    line-height: 1;
+    box-shadow: 0 0.25rem 0.7rem rgba(0, 0, 0, 0.18);
+}
+
+.recommend-toggle:hover,
+.recommend-toggle:focus,
+.recommend-toggle.is-active {
+    color: #4a3563;
+    background: #f3ebfb;
+    border-color: #c9b4e4;
+}
+
+.recommend-thumb-icon {
+    width: 0.95rem;
+    height: 0.95rem;
+    display: block;
+    flex-shrink: 0;
 }
 
 .cover-one {
@@ -290,11 +394,54 @@ a.role-link:focus {
 
 .nk-marquee-link:hover .novel-card,
 .nk-marquee-link:focus .novel-card,
+.nk-marquee-link:hover.novel-card,
+.nk-marquee-link:focus.novel-card,
 .nk-marquee-link:hover.episode-marquee-card,
 .nk-marquee-link:focus.episode-marquee-card,
 .nk-marquee-link:hover.compact-card,
 .nk-marquee-link:focus.compact-card {
     border-color: var(--main-accent);
+}
+
+[data-marquee-clone] {
+    pointer-events: none;
+}
+
+.novel-tag-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.35rem 0.5rem;
+    align-items: end;
+}
+
+.novel-tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    max-height: 3.6rem;
+    overflow: hidden;
+    min-width: 0;
+}
+
+.novel-tag-row.is-expanded .novel-tag-list {
+    max-height: none;
+    overflow: visible;
+}
+
+.novel-tag-more {
+    margin: 0;
+    align-self: end;
+    color: #5f5750;
+    background: #f1eeea;
+    border: 1px solid #d8d1c8;
+    cursor: pointer;
+    line-height: 1.2;
+}
+
+.recommend-badge {
+    color: #5b4a8a;
+    background: #efeaf8;
+    border: 1px solid #d9d0ef;
 }
 
 .nk-marquee-card .novel-card-body p {
@@ -325,16 +472,118 @@ a.role-link:focus {
 }
 
 .nk-marquee-funding {
-    flex: 0 0 min(22rem, 85vw);
-    display: block;
-    padding: 1.15rem 1.2rem;
+    flex: 0 0 min(28rem, 90vw);
+    display: flex;
+    gap: 1.1rem;
+    align-items: stretch;
+    padding: 1.35rem 1.4rem;
+    min-height: 14.5rem;
+    height: auto;
+    box-sizing: border-box;
+}
+
+.funding-card-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: visible;
+}
+
+.funding-card-foot {
+    margin-top: auto;
+    padding-top: 0.85rem;
+}
+
+.funding-card-cover.novel-cover {
+    flex: 0 0 6rem;
+    width: 6rem;
+    height: 9rem;
+    min-height: 9rem;
+    max-height: 9rem;
+    padding: 0;
+    border-radius: 0.55rem;
+    align-self: center;
+    order: -1;
+}
+
+.funding-card-cover::after {
+    display: none;
 }
 
 .nk-marquee-compact {
-    flex: 0 0 min(22rem, 85vw);
+    flex: 0 0 min(26rem, 90vw);
     height: auto;
-    min-height: 8.5rem;
+    min-height: 12rem;
+    max-height: none;
     background: #fff;
+    box-sizing: border-box;
+}
+
+.compact-cover.novel-cover {
+    flex: 0 0 5.5rem;
+    width: 5.5rem;
+    height: 8.25rem;
+    min-height: 8.25rem;
+    max-height: 8.25rem;
+    padding: 0;
+    border-radius: 0.5rem;
+    align-self: center;
+    order: -1;
+}
+
+.compact-cover::after {
+    display: none;
+}
+
+.compact-body {
+    flex: 1;
+    min-width: 0;
+    overflow: visible;
+}
+
+.funding-meter-row,
+.funding-meter-inline {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    width: 100%;
+}
+
+.funding-meter-inline {
+    margin-bottom: 0.75rem;
+}
+
+.novel-card-funding-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    margin-bottom: 0.85rem;
+}
+
+.funding-meter-pct {
+    flex: 0 0 auto;
+    min-width: 2.5rem;
+    color: #6c757d;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: left;
+    line-height: 1;
+}
+
+.title-clamp-2 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    word-break: keep-all;
+}
+
+.text-clamp-1 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+    overflow: hidden;
 }
 
 .novel-card-body {
@@ -395,12 +644,13 @@ a.role-link:focus {
 
 .compact-card {
     display: flex;
-    gap: 1.25rem;
-    align-items: center;
+    gap: 1rem;
+    align-items: flex-start;
     height: 100%;
-    padding: 1.5rem;
+    padding: 1.2rem 1.25rem;
     border: 1px solid var(--main-border);
     border-radius: 0.9rem;
+    overflow: visible;
 }
 
 .compact-card p {
@@ -412,6 +662,11 @@ a.role-link:focus {
     font-family: Georgia, serif;
     font-size: 2rem;
     font-weight: 700;
+}
+
+.compact-cover .cover-badge-row .badge,
+.compact-cover .cover-recommend {
+    font-size: 0.68rem;
 }
 
 .funding-section {
@@ -428,7 +683,7 @@ a.role-link:focus {
 
 .funding-condition {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr));
     overflow: hidden;
     border: 1px solid var(--main-border);
     border-radius: 0.7rem;
@@ -548,6 +803,50 @@ a.role-link:focus {
 [data-bs-theme="dark"] .btn-outline-dark {
     color: #f1ece6;
     border-color: #b9b0a8;
+}
+
+[data-bs-theme="dark"] .novel-cover .favorite-toggle {
+    color: #5c3f14;
+    background: #fff6e6;
+    border: 1.5px solid #8a6a28;
+    box-shadow: 0 0.3rem 0.85rem rgba(0, 0, 0, 0.45);
+}
+
+[data-bs-theme="dark"] .novel-cover .favorite-toggle.is-active,
+[data-bs-theme="dark"] .novel-cover .favorite-toggle:hover,
+[data-bs-theme="dark"] .novel-cover .favorite-toggle:focus {
+    color: #4a320f;
+    background: #ffe7b0;
+    border-color: #6f5218;
+}
+
+[data-bs-theme="dark"] .recommend-toggle {
+    color: #ead9ff;
+    background: #3b2d4d;
+    border-color: #7a5fa3;
+}
+
+[data-bs-theme="dark"] .recommend-toggle:hover,
+[data-bs-theme="dark"] .recommend-toggle:focus,
+[data-bs-theme="dark"] .recommend-toggle.is-active {
+    color: #1b1715;
+    background: #dcc8f5;
+    border-color: #dcc8f5;
+}
+
+[data-bs-theme="dark"] .novel-cover .recommend-toggle {
+    color: #3a2a52;
+    background: #f4ecff;
+    border-color: #e2d2f8;
+    box-shadow: 0 0.3rem 0.85rem rgba(0, 0, 0, 0.45);
+}
+
+[data-bs-theme="dark"] .novel-cover .recommend-toggle:hover,
+[data-bs-theme="dark"] .novel-cover .recommend-toggle:focus,
+[data-bs-theme="dark"] .novel-cover .recommend-toggle.is-active {
+    color: #2a1c3d;
+    background: #e4d2ff;
+    border-color: #e4d2ff;
 }
 
 .role-reader .role-badge {

@@ -163,20 +163,26 @@ body {
 }
 
 .favorite-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     min-width: 2.5rem;
-    color: #8a6a2f;
+    min-height: 2.5rem;
+    padding: 0;
+    color: #6b5018;
     background: #fff8ea;
-    border: 1px solid #e5d3af;
-    font-size: 1.05rem;
+    border: 1.5px solid #a8873d;
+    font-size: 1.15rem;
     line-height: 1;
+    text-align: center;
 }
 
 .favorite-toggle.is-active,
 .favorite-toggle:hover,
 .favorite-toggle:focus {
-    color: #7a5520;
+    color: #5a4210;
     background: #f7ebcf;
-    border-color: #d8bc7d;
+    border-color: #8a6a28;
 }
 
 .btn-back-list {
@@ -310,27 +316,112 @@ body {
 
 .novel-cover {
     position: relative;
-    display: flex;
-    align-items: flex-end;
+    display: block;
     height: 11rem;
-    padding: 1.25rem;
+    padding: 0;
     overflow: hidden;
 }
 
 .novel-cover::after {
     position: absolute;
     inset: 0;
+    z-index: 1;
     content: "";
-    background: linear-gradient(transparent 30%, rgba(0, 0, 0, 0.55));
+    background: linear-gradient(transparent 35%, rgba(0, 0, 0, 0.5));
+    pointer-events: none;
 }
 
-.novel-cover span {
-    position: relative;
-    z-index: 1;
-    color: #fff;
-    font-family: Georgia, serif;
-    font-size: 1.5rem;
+.novel-cover-overlays {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.novel-cover-overlays .cover-badge-row,
+.novel-cover-overlays .cover-favorite,
+.novel-cover-overlays .cover-recommend {
+    pointer-events: auto;
+}
+
+.cover-badge-row {
+    position: absolute;
+    top: 0.65rem;
+    left: 0.65rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    max-width: calc(100% - 3.6rem);
+}
+
+.cover-favorite {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    margin: 0;
+}
+
+.cover-recommend {
+    position: absolute;
+    bottom: 0.55rem;
+    right: 0.55rem;
+}
+
+.novel-cover .favorite-toggle {
+    width: 2.1rem;
+    height: 2.1rem;
+    min-width: 2.1rem;
+    min-height: 2.1rem;
+    padding: 0;
+    border-radius: 999px;
+    color: #5f4414;
+    background: rgba(255, 255, 255, 0.96);
+    border: 1.5px solid #8f6f2c;
+    box-shadow: 0 0.25rem 0.7rem rgba(0, 0, 0, 0.2);
+    font-size: 1.05rem;
+}
+
+.recommend-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 2.1rem;
+    padding: 0.3rem 0.65rem;
+    border-radius: 999px;
+    color: #5a4570;
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid rgba(217, 199, 235, 0.95);
+    font-size: 0.78rem;
     font-weight: 700;
+    line-height: 1;
+    box-shadow: 0 0.25rem 0.7rem rgba(0, 0, 0, 0.18);
+}
+
+.recommend-toggle:hover,
+.recommend-toggle:focus,
+.recommend-toggle.is-active {
+    color: #4a3563;
+    background: #f3ebfb;
+    border-color: #c9b4e4;
+}
+
+.recommend-thumb-icon {
+    width: 0.95rem;
+    height: 0.95rem;
+    display: block;
+    flex-shrink: 0;
+}
+
+.detail-panel .recommend-toggle {
+    min-height: 2.5rem;
+    padding: 0.45rem 0.85rem;
+    font-size: 0.9rem;
+    box-shadow: none;
+}
+
+.detail-panel .recommend-thumb-icon {
+    width: 1.05rem;
+    height: 1.05rem;
 }
 
 .cover-one {
@@ -359,7 +450,10 @@ body {
 }
 
 .novel-tag-row {
-    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.35rem 0.5rem;
+    align-items: end;
 }
 
 .novel-tag-list {
@@ -368,6 +462,7 @@ body {
     gap: 0.5rem;
     max-height: 3.6rem;
     overflow: hidden;
+    min-width: 0;
 }
 
 .novel-tag-row.is-expanded .novel-tag-list {
@@ -376,7 +471,8 @@ body {
 }
 
 .novel-tag-more {
-    margin-top: 0.5rem;
+    margin: 0;
+    align-self: end;
     color: #5f5750;
     background: #f1eeea;
     border: 1px solid #d8d1c8;
@@ -543,15 +639,67 @@ body {
 }
 
 [data-bs-theme="dark"] .recommend-badge {
-    color: #d7c2ef;
-    background: #32263d;
-    border-color: #52405f;
+    color: #e6d6f8;
+    background: #3a2c48;
+    border-color: #6a5480;
 }
 
 [data-bs-theme="dark"] .favorite-toggle {
-    color: #e5c995;
-    background: #382f20;
-    border-color: #5f5137;
+    color: #f2d9a4;
+    background: #4a3c28;
+    border: 1.5px solid #c9a45a;
+}
+
+[data-bs-theme="dark"] .favorite-toggle.is-active,
+[data-bs-theme="dark"] .favorite-toggle:hover,
+[data-bs-theme="dark"] .favorite-toggle:focus {
+    color: #1b1715;
+    background: #efd39a;
+    border-color: #efd39a;
+}
+
+[data-bs-theme="dark"] .recommend-toggle {
+    color: #ead9ff;
+    background: #3b2d4d;
+    border-color: #7a5fa3;
+}
+
+[data-bs-theme="dark"] .recommend-toggle:hover,
+[data-bs-theme="dark"] .recommend-toggle:focus,
+[data-bs-theme="dark"] .recommend-toggle.is-active {
+    color: #1b1715;
+    background: #dcc8f5;
+    border-color: #dcc8f5;
+}
+
+[data-bs-theme="dark"] .novel-cover .favorite-toggle {
+    color: #5c3f14;
+    background: #fff6e6;
+    border: 1.5px solid #8a6a28;
+    box-shadow: 0 0.3rem 0.85rem rgba(0, 0, 0, 0.45);
+}
+
+[data-bs-theme="dark"] .novel-cover .favorite-toggle.is-active,
+[data-bs-theme="dark"] .novel-cover .favorite-toggle:hover,
+[data-bs-theme="dark"] .novel-cover .favorite-toggle:focus {
+    color: #4a320f;
+    background: #ffe7b0;
+    border-color: #6f5218;
+}
+
+[data-bs-theme="dark"] .novel-cover .recommend-toggle {
+    color: #3a2a52;
+    background: #f4ecff;
+    border-color: #e2d2f8;
+    box-shadow: 0 0.3rem 0.85rem rgba(0, 0, 0, 0.45);
+}
+
+[data-bs-theme="dark"] .novel-cover .recommend-toggle:hover,
+[data-bs-theme="dark"] .novel-cover .recommend-toggle:focus,
+[data-bs-theme="dark"] .novel-cover .recommend-toggle.is-active {
+    color: #2a1c3d;
+    background: #e4d2ff;
+    border-color: #e4d2ff;
 }
 
 [data-bs-theme="dark"] .btn-back-list {
@@ -614,4 +762,180 @@ body {
     .form-panel {
         padding: 1.5rem;
     }
+}
+
+.progress-funding-sm {
+    height: 0.35rem;
+}
+
+.funding-card-meter {
+    width: 100%;
+    max-width: none;
+}
+
+.funding-meter-row,
+.funding-meter-inline {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    width: 100%;
+}
+
+.funding-meter-inline {
+    margin-bottom: 0.75rem;
+}
+
+.funding-meter-pct {
+    flex: 0 0 auto;
+    min-width: 2.5rem;
+    color: #6c757d;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: left;
+    line-height: 1;
+}
+
+.publishing-campaign-row {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.publishing-campaign-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.publishing-campaign-cover.novel-cover {
+    flex: 0 0 5.5rem;
+    width: 5.5rem;
+    height: 8.25rem;
+    min-height: 8.25rem;
+    max-height: 8.25rem;
+    padding: 0;
+    border-radius: 0.55rem;
+    align-self: flex-start;
+    order: -1;
+}
+
+.publishing-campaign-cover::after {
+    display: none;
+}
+
+.publishing-campaign-cover.novel-cover span {
+    display: none;
+}
+
+.publishing-title-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.publishing-part-badge,
+.publishing-novel-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.publishing-part-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.45rem;
+    color: #4a3f36;
+    background: #f3eee6;
+    border: 1px solid #e0d5c6;
+    border-radius: 0.35rem;
+}
+
+.publishing-guide {
+    font-size: 0.95rem;
+    line-height: 1.55;
+}
+
+.publishing-guide ul {
+    max-width: 42rem;
+}
+
+.publishing-guide li + li {
+    margin-top: 0.2rem;
+}
+
+.publishing-schedule-pair {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.65rem;
+}
+
+.publishing-schedule-field {
+    flex: 1;
+    min-width: 0;
+}
+
+.publishing-schedule-tilde {
+    flex: 0 0 auto;
+    padding-bottom: 0.45rem;
+    color: #8a8179;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.publishing-schedule-tilde-lg {
+    padding-bottom: 1.55rem;
+}
+
+.part-funding-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.65rem;
+    margin-top: 0.65rem;
+    margin-bottom: 0.35rem;
+}
+
+.part-funding-actions .funding-meter-inline {
+    flex: 1 1 12rem;
+    min-width: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.writer-funding-stack,
+.novel-card-funding-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    margin-bottom: 0.85rem;
+}
+
+.funding-open-badge {
+    background: #1f2937;
+    color: #fff;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+[data-bs-theme="dark"] .funding-open-badge {
+    background: #e7e2dc;
+    color: #1a1512;
+}
+
+[data-bs-theme="dark"] .publishing-part-badge {
+    color: #f0e8dc;
+    background: #2a2420;
+    border-color: #4a4138;
+}
+
+[data-bs-theme="dark"] .funding-meter-pct {
+    color: #b9b0a8;
+}
+
+.title-clamp-2 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    word-break: keep-all;
 }

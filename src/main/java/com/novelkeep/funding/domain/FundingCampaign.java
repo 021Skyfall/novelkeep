@@ -60,6 +60,26 @@ public class FundingCampaign {
     protected FundingCampaign() {
     }
 
+    public static FundingCampaign draft(
+            StoryPart storyPart,
+            int targetQuantity,
+            BigDecimal priceAmount,
+            LocalDateTime startAt,
+            LocalDateTime endAt
+    ) {
+        requireEndAfterStart(startAt, endAt);
+        FundingGuide.validateTarget(targetQuantity, priceAmount);
+        FundingCampaign campaign = new FundingCampaign();
+        campaign.storyPart = storyPart;
+        campaign.status = FundingCampaignStatus.DRAFT;
+        campaign.targetQuantity = targetQuantity;
+        campaign.currentQuantity = 0;
+        campaign.priceAmount = priceAmount;
+        campaign.startAt = startAt;
+        campaign.endAt = endAt;
+        return campaign;
+    }
+
     public static FundingCampaign open(
             StoryPart storyPart,
             int targetQuantity,
@@ -68,6 +88,8 @@ public class FundingCampaign {
             LocalDateTime startAt,
             LocalDateTime endAt
     ) {
+        requireEndAfterStart(startAt, endAt);
+        FundingGuide.validateTarget(targetQuantity, priceAmount);
         FundingCampaign campaign = new FundingCampaign();
         campaign.storyPart = storyPart;
         campaign.status = FundingCampaignStatus.OPEN;
@@ -79,16 +101,61 @@ public class FundingCampaign {
         return campaign;
     }
 
+    private static void requireEndAfterStart(LocalDateTime startAt, LocalDateTime endAt) {
+        if (startAt == null || endAt == null || !endAt.isAfter(startAt)) {
+            throw new IllegalArgumentException("펀딩 종료일은 시작일보다 이후여야 합니다.");
+        }
+    }
+
+    public void updateWhileOpen(int targetQuantity, BigDecimal priceAmount, LocalDateTime endAt) {
+        if (status != FundingCampaignStatus.OPEN) {
+            throw new IllegalStateException("진행 중인 펀딩만 수정할 수 있습니다.");
+        }
+        FundingGuide.validateTarget(targetQuantity, priceAmount);
+        FundingGuide.validateEndSchedule(this.startAt, endAt, FundingGuide.nowKorea());
+        this.targetQuantity = targetQuantity;
+        this.priceAmount = priceAmount;
+        this.endAt = endAt;
+    }
+
+    public void updateEditable(int targetQuantity, BigDecimal priceAmount, LocalDateTime startAt, LocalDateTime endAt) {
+        if (status == FundingCampaignStatus.OPEN) {
+            updateWhileOpen(targetQuantity, priceAmount, endAt);
+            return;
+        }
+        if (status != FundingCampaignStatus.DRAFT) {
+            throw new IllegalStateException("미진행 또는 진행 중인 펀딩만 수정할 수 있습니다.");
+        }
+        FundingGuide.validateCreateSchedule(startAt, endAt);
+        FundingGuide.validateTarget(targetQuantity, priceAmount);
+        this.targetQuantity = targetQuantity;
+        this.priceAmount = priceAmount;
+        this.startAt = startAt;
+        this.endAt = endAt;
+    }
+
+    public void openNow() {
+        if (status != FundingCampaignStatus.DRAFT) {
+            throw new IllegalStateException("미진행 상태의 펀딩만 시작할 수 있습니다.");
+        }
+        LocalDateTime now = FundingGuide.nowKorea();
+        FundingGuide.validateEndSchedule(startAt.isAfter(now) ? now : startAt, endAt, now);
+        this.status = FundingCampaignStatus.OPEN;
+        if (this.startAt.isAfter(now)) {
+            this.startAt = now;
+        }
+    }
+
     @PrePersist
     void onCreate() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = FundingGuide.nowKorea();
         createdAt = now;
         updatedAt = now;
     }
 
     @PreUpdate
     void onUpdate() {
-        updatedAt = LocalDateTime.now();
+        updatedAt = FundingGuide.nowKorea();
     }
 
     public int achievementPercent() {
@@ -104,7 +171,7 @@ public class FundingCampaign {
     public String displayTitle() {
         var novel = storyPart.getNovel();
         if (novel.isMultiPart()) {
-            return novel.getTitle() + " " + storyPart.getPartNumber() + "권";
+            return novel.getTitle() + " " + storyPart.getPartNumber() + "부";
         }
         return novel.getTitle() + " 소장본";
     }
@@ -114,6 +181,10 @@ public class FundingCampaign {
             return "본편";
         }
         return storyPart.getPartNumber() + "부 · " + storyPart.getStatus().getDisplayName();
+    }
+
+    public boolean canCancel() {
+        return status == FundingCampaignStatus.OPEN && currentQuantity <= 0;
     }
 
     public Long getId() {

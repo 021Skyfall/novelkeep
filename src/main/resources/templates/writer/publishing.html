@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="노벨킵 펀딩 전체 관리">
+    <title>펀딩 전체 관리 | 노벨킵</title>
+    <script th:src="@{/js/theme.js}"></script>
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/navigation.css}">
+    <link rel="stylesheet" th:href="@{/css/novel.css}">
+</head>
+<body th:classappend="${roleKey != null} ? | role-${#strings.toLowerCase(roleKey)}|">
+<div th:replace="~{fragments/navigation :: siteNav('publishing')}"></div>
+
+<main class="container py-5">
+    <div th:if="${publishingMessage}" class="alert alert-success"
+         data-push-notification data-notification-type="success"
+         data-notification-label="펀딩 관리"
+         th:text="${publishingMessage}">완료</div>
+    <div th:if="${publishingError}" class="alert alert-danger"
+         data-push-notification data-notification-type="error"
+         data-notification-label="펀딩 관리"
+         th:text="${publishingError}">오류</div>
+
+    <header class="mb-4">
+        <span class="eyebrow">FUNDING OVERVIEW</span>
+        <h1 class="display-6 fw-bold mt-2">펀딩 전체 관리</h1>
+        <div class="text-secondary publishing-guide">
+            <p class="mb-2">진행 중인 펀딩만 모아서 관리하는 화면입니다.</p>
+            <ul class="mb-0 ps-3">
+                <li>새 펀딩: <a th:href="@{/writer/novels}">내 작품</a> → 작품 상세 → <strong>각 부</strong>의 출판 펀딩 시작</li>
+                <li>수정 가능: 목표 부수 · 판매가 · 종료일 (시작일은 변경 불가)</li>
+                <li>취소: 참여(수요) 0부일 때만 가능 · 1부 이상이면 담당자 문의</li>
+                <li>다시 시작: 같은 부는 진행 중이 아닐 때(종료 후) 가능</li>
+                <li>성공 조건: 해당 부 완결 + 목표 부수 달성</li>
+            </ul>
+        </div>
+    </header>
+
+    <div class="mb-4">
+        <label class="form-label fw-semibold" for="publishingSearch">검색</label>
+        <input id="publishingSearch" class="form-control" type="search"
+               placeholder="작품명으로 검색" data-publishing-search autocomplete="off">
+    </div>
+
+    <section class="mb-5">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <h2 class="h5 fw-bold mb-0">진행 중 펀딩</h2>
+            <span class="small text-secondary" th:text="|총 ${#lists.size(campaigns)}건|">0건</span>
+        </div>
+
+        <div th:if="${#lists.isEmpty(campaigns)}" class="alert alert-light border">
+            진행 중인 펀딩이 없습니다. 내 작품 → 작품 상세의 각 부에서 시작해 주세요.
+        </div>
+
+        <div th:each="campaign : ${campaigns}"
+             class="border rounded-3 p-3 mb-3"
+             th:id="|campaign-${campaign.id}|"
+             data-campaign-card
+             th:attr="data-search-text=${campaign.storyPart.novel.title}">
+            <div class="publishing-campaign-row">
+                <div class="novel-cover publishing-campaign-cover"
+                     th:with="nid=${campaign.storyPart.novel.id}"
+                     th:classappend="${nid % 6 == 1} ? ' cover-one' : (${nid % 6 == 2} ? ' cover-two' : (${nid % 6 == 3} ? ' cover-three' : (${nid % 6 == 4} ? ' cover-four' : (${nid % 6 == 5} ? ' cover-five' : ' cover-six'))))"
+                     aria-hidden="true"></div>
+                <div class="publishing-campaign-body">
+                    <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
+                        <div class="publishing-title-row">
+                            <span class="badge text-bg-dark">진행 중</span>
+                            <span th:if="${campaign.storyPart.novel.multiPart}"
+                                  class="publishing-part-badge"
+                                  th:text="|${campaign.storyPart.partNumber}부|">1부</span>
+                            <strong class="publishing-novel-title title-clamp-2"
+                                    th:text="${campaign.storyPart.novel.title}"
+                                    th:title="${campaign.storyPart.novel.title}">작품명</strong>
+                            <span class="badge text-bg-light border"
+                                  th:text="${campaign.storyPart.status.displayName}">연재 중</span>
+                        </div>
+                        <strong data-campaign-price-label
+                                th:text="${#numbers.formatInteger(campaign.priceAmount, 1, 'COMMA') + '원'}">15,000원</strong>
+                    </div>
+
+                    <div class="funding-meter-row mb-3">
+                        <span class="funding-meter-pct" data-campaign-pct
+                              th:text="|${campaign.achievementPercent()}%|">0%</span>
+                        <div class="progress progress-funding-sm flex-grow-1" role="progressbar"
+                             data-campaign-progress
+                             th:attr="aria-valuenow=${campaign.achievementPercent()}"
+                             aria-valuemin="0" aria-valuemax="100">
+                            <div class="progress-bar" data-campaign-bar
+                                 th:style="|width: ${campaign.achievementPercent()}%|"></div>
+                        </div>
+                    </div>
+
+                    <div th:if="${campaign.storyPart.publishedCharacterCount() > guideVolumeChars}"
+                         class="alert alert-warning py-2 small mb-3">
+                        공개 회차 합이 10만 자를 넘습니다. 출판 담당과 문의가 필요합니다.
+                    </div>
+
+                    <form class="row g-2 align-items-end mb-0"
+                          th:action="@{/writer/publishing/campaigns/{cid}(cid=${campaign.id})}"
+                          method="post"
+                          data-funding-edit-form
+                          th:attr="data-campaign-id=${campaign.id}">
+                        <input type="hidden" name="novelId" th:value="${campaign.storyPart.novel.id}">
+                        <input type="hidden" name="partId" th:value="${campaign.storyPart.id}">
+                        <input type="hidden" name="startAt" data-funding-start-value
+                               th:value="${#temporals.format(campaign.startAt, &quot;yyyy-MM-dd'T'HH:mm&quot;)}">
+                        <div class="col-12">
+                            <div class="publishing-schedule-pair">
+                                <div class="publishing-schedule-field">
+                                    <label class="form-label small mb-0">시작</label>
+                                    <input class="form-control form-control-sm" type="datetime-local"
+                                           th:value="${#temporals.format(campaign.startAt, &quot;yyyy-MM-dd'T'HH:mm&quot;)}"
+                                           disabled
+                                           title="시작 후에는 시작일을 변경할 수 없습니다."
+                                           placeholder="시작일 변경 불가">
+                                </div>
+                                <span class="publishing-schedule-tilde" aria-hidden="true">~</span>
+                                <div class="publishing-schedule-field">
+                                    <label class="form-label small mb-0">종료</label>
+                                    <input class="form-control form-control-sm" type="datetime-local" name="endAt"
+                                           data-editable
+                                           disabled
+                                           th:value="${#temporals.format(campaign.endAt, &quot;yyyy-MM-dd'T'HH:mm&quot;)}"
+                                           required>
+                                </div>
+                            </div>
+                            <div class="form-text"
+                                 th:text="|종료일은 시작 후 최소 ${minDurationDays}일 · 현재 시간 이후|">안내</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small mb-0">목표 부수</label>
+                            <input class="form-control form-control-sm" type="number" data-editable
+                                   th:min="${minTargetQuantity}" name="targetQuantity"
+                                   th:value="${campaign.targetQuantity}" required disabled>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small mb-0">판매가</label>
+                            <input class="form-control form-control-sm" type="number" min="1" step="1"
+                                   name="priceAmount" data-editable
+                                   th:value="${campaign.priceAmount}" required disabled>
+                        </div>
+                        <div class="col-md-4 d-flex flex-wrap align-items-end gap-2">
+                            <a class="btn btn-sm btn-outline-secondary"
+                               th:href="@{/fundings/{id}(id=${campaign.id})}">공개 상세</a>
+                            <button class="btn btn-sm btn-outline-dark" type="button"
+                                    data-funding-edit-toggle>수정</button>
+                            <button th:if="${campaign.canCancel()}"
+                                    class="btn btn-sm btn-outline-danger" type="button"
+                                    data-funding-cancel
+                                    th:attr="data-cancel-url=@{/writer/publishing/campaigns/{cid}/cancel(cid=${campaign.id})}"
+                                    data-confirm-delete="이 펀딩을 취소합니다. 되돌릴 수 없습니다."
+                                    data-confirm-title="펀딩 취소"
+                                    data-confirm-text="예, 취소">취소</button>
+                            <span th:unless="${campaign.canCancel()}"
+                                  class="small text-secondary">취소 불가 · 담당자 문의</span>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <p class="small text-secondary d-none mb-0" data-campaign-empty>검색 결과가 없습니다.</p>
+    </section>
+</main>
+
+<footer class="border-top py-4">
+    <div class="container small text-secondary">NovelKeep · 진행 중 펀딩을 한곳에서 관리합니다.</div>
+</footer>
+<script th:src="@{/vendor/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/js/confirm-delete.js}"></script>
+<script th:src="@{/js/publishing-edit.js}"></script>
+</body>
+</html>

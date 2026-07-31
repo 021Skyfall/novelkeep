@@ -1,9 +1,15 @@
 package com.novelkeep.home.controller;
 
+import java.util.List;
+import java.util.stream.Stream;
+
+import com.novelkeep.funding.service.FundingCampaignService;
 import com.novelkeep.home.domain.ExperienceRole;
 import com.novelkeep.home.service.HomeShowcaseService;
 import com.novelkeep.member.domain.Member;
 import com.novelkeep.member.service.MemberService;
+import com.novelkeep.novel.domain.Novel;
+import com.novelkeep.novel.service.NovelService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -23,10 +29,19 @@ public class HomeController {
 
     private final MemberService memberService;
     private final HomeShowcaseService homeShowcaseService;
+    private final FundingCampaignService fundingCampaignService;
+    private final NovelService novelService;
 
-    public HomeController(MemberService memberService, HomeShowcaseService homeShowcaseService) {
+    public HomeController(
+            MemberService memberService,
+            HomeShowcaseService homeShowcaseService,
+            FundingCampaignService fundingCampaignService,
+            NovelService novelService
+    ) {
         this.memberService = memberService;
         this.homeShowcaseService = homeShowcaseService;
+        this.fundingCampaignService = fundingCampaignService;
+        this.novelService = novelService;
     }
 
     @GetMapping("/")
@@ -82,12 +97,23 @@ public class HomeController {
             return "redirect:/?roleRequired=true";
         }
 
+        List<Novel> popularNovels = homeShowcaseService.popularNovels();
+        List<Novel> completedNovels = homeShowcaseService.completedNovels();
+        List<Long> novelIds = Stream.concat(popularNovels.stream(), completedNovels.stream())
+                .map(Novel::getId)
+                .distinct()
+                .toList();
+
         model.addAttribute("roleKey", role.name());
         model.addAttribute("roleName", role.getDisplayName());
-        model.addAttribute("popularNovels", homeShowcaseService.popularNovels());
+        model.addAttribute("popularNovels", popularNovels);
         model.addAttribute("latestEpisodes", homeShowcaseService.latestEpisodes());
-        model.addAttribute("completedNovels", homeShowcaseService.completedNovels());
+        model.addAttribute("completedNovels", completedNovels);
         model.addAttribute("openFundings", homeShowcaseService.openFundings());
+        model.addAttribute("openFundingByNovelId", fundingCampaignService.findOpenCampaignsGroupedByNovelId(novelIds));
+        model.addAttribute("favoritedIds", novelService.findFavoritedNovelIds(memberId, popularNovels));
+        model.addAttribute("recommendedIds", novelService.findRecommendedNovelIds(memberId, popularNovels));
+        model.addAttribute("currentMemberId", memberId);
         return "main";
     }
 }

@@ -139,10 +139,23 @@
                               th:text="|추천 ${novel.recommendationCount}|">추천 0</span>
                     </div>
                     <h2 class="h5 fw-bold mb-1">
-                        <a class="novel-title-link stretched-link"
+                        <a class="novel-title-link stretched-link title-clamp-2"
                            th:href="@{/novels/{id}(id=${novel.id}, from='writer')}"
-                           th:text="${novel.title}">작품명</a>
+                           th:text="${novel.title}"
+                           th:title="${novel.title}">작품명</a>
                     </h2>
+                    <div class="position-relative" style="z-index: 2;"
+                         th:with="campaigns=${openFundingByNovelId != null ? openFundingByNovelId.get(novel.id) : null}">
+                        <div th:if="${campaigns != null and !#lists.isEmpty(campaigns)}"
+                             class="writer-funding-stack">
+                            <th:block th:each="openCampaign : ${campaigns}">
+                                <div th:replace="~{fragments/funding-badge :: openFundingBadgeLabeled(
+                                    ${openCampaign},
+                                    ${novel.multiPart ? openCampaign.storyPart.partNumber + '부 펀딩 중' : '펀딩 중'}
+                                )}"></div>
+                            </th:block>
+                        </div>
+                    </div>
                     <p class="text-secondary small mb-0"
                        th:text="|필명 ${novel.penName} · 수정 ${#temporals.format(novel.updatedAt, 'yyyy-MM-dd HH:mm')}|">정보</p>
                 </div>

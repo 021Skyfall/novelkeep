@@ -24,6 +24,9 @@ public interface NovelRepository extends JpaRepository<Novel, Long>, JpaSpecific
     @EntityGraph(attributePaths = {"author", "parts"})
     Optional<Novel> findByIdAndAuthorId(Long id, Long authorId);
 
+    @EntityGraph(attributePaths = {"author", "parts"})
+    List<Novel> findByAuthorIdOrderByUpdatedAtDesc(Long authorId);
+
     @Query("""
             select distinct n
               from Novel n

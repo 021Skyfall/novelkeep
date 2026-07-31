@@ -109,6 +109,13 @@ public class StoryPart {
                 .sum();
     }
 
+    public int publishedCharacterCount() {
+        return episodes.stream()
+                .filter(episode -> episode.getStatus() == EpisodeStatus.PUBLISHED)
+                .mapToInt(Episode::getCharacterCount)
+                .sum();
+    }
+
     @PrePersist
     void onCreate() {
         LocalDateTime now = LocalDateTime.now();

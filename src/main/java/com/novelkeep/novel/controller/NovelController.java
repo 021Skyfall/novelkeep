@@ -4,6 +4,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.novelkeep.funding.domain.FundingGuide;
+import com.novelkeep.funding.dto.WriterFundingForm;
+import com.novelkeep.funding.service.FundingCampaignService;
 import com.novelkeep.home.domain.ExperienceRole;
 import com.novelkeep.novel.domain.Episode;
 import com.novelkeep.novel.domain.EpisodeStatus;
@@ -36,6 +39,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.SessionAttribute;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 public class NovelController {
@@ -47,17 +52,20 @@ public class NovelController {
     private final StoryContentService storyContentService;
     private final EpisodeBookmarkService bookmarkService;
     private final EpisodeCommentService commentService;
+    private final FundingCampaignService fundingCampaignService;
 
     public NovelController(
             NovelService novelService,
             StoryContentService storyContentService,
             EpisodeBookmarkService bookmarkService,
-            EpisodeCommentService commentService
+            EpisodeCommentService commentService,
+            FundingCampaignService fundingCampaignService
     ) {
         this.novelService = novelService;
         this.storyContentService = storyContentService;
         this.bookmarkService = bookmarkService;
         this.commentService = commentService;
+        this.fundingCampaignService = fundingCampaignService;
     }
 
     @GetMapping("/novels")
@@ -83,6 +91,9 @@ public class NovelController {
         Set<Long> recommendedIds = novelService.findRecommendedNovelIds(memberId, novels);
         Set<Long> favoritedIds = novelService.findFavoritedNovelIds(memberId, novels);
         model.addAttribute("novels", novels);
+        model.addAttribute("openFundingByNovelId", fundingCampaignService.findOpenCampaignsGroupedByNovelId(
+                novels.getContent().stream().map(Novel::getId).toList()
+        ));
         model.addAttribute("criteria", criteria);
         model.addAttribute("allGenres", NovelGenre.values());
         model.addAttribute("visibilities", NovelVisibility.values());
@@ -126,9 +137,23 @@ public class NovelController {
         model.addAttribute("continueBookmark", continueBookmark);
         model.addAttribute("commentCounts", commentCountsFor(novel));
         model.addAttribute("fromWriter", "writer".equalsIgnoreCase(from));
+        model.addAttribute(
+                "openFundingByPartId",
+                fundingCampaignService.findOpenCampaignsByPartIds(
+                        novel.getParts().stream().map(part -> part.getId()).toList()
+                )
+        );
         if (canManageContent) {
             model.addAttribute("partStatuses", StoryPartStatus.values());
             model.addAttribute("episodeStatuses", EpisodeStatus.values());
+            if (!model.containsAttribute("fundingForm")) {
+                model.addAttribute("fundingForm", WriterFundingForm.defaults());
+            }
+            model.addAttribute("minTargetQuantity", FundingGuide.MIN_TARGET_QUANTITY);
+            model.addAttribute("minDurationDays", FundingGuide.MIN_DURATION_DAYS);
+            model.addAttribute("guideVolumeChars", FundingGuide.GUIDE_VOLUME_CHARS);
+            model.addAttribute("guideVolumeText", FundingGuide.GUIDE_VOLUME_TEXT);
+            model.addAttribute("fundingStartNotices", FundingGuide.startNotices());
         }
         return "novels/detail";
     }
@@ -199,6 +224,9 @@ public class NovelController {
 
         Page<Novel> novels = novelService.searchOwned(criteria, memberId);
         model.addAttribute("novels", novels);
+        model.addAttribute("openFundingByNovelId", fundingCampaignService.findOpenCampaignsGroupedByNovelId(
+                novels.getContent().stream().map(Novel::getId).toList()
+        ));
         model.addAttribute("criteria", criteria);
         model.addAttribute("allGenres", NovelGenre.values());
         model.addAttribute("visibilities", NovelVisibility.values());
@@ -284,13 +312,23 @@ public class NovelController {
     public String delete(
             @PathVariable Long novelId,
             @SessionAttribute(name = SESSION_ROLE, required = false) ExperienceRole role,
-            @SessionAttribute(name = SESSION_MEMBER_ID, required = false) Long memberId
+            @SessionAttribute(name = SESSION_MEMBER_ID, required = false) Long memberId,
+            RedirectAttributes redirectAttributes
     ) {
         if (!canWrite(role) || memberId == null) {
             return "redirect:/?roleRequired=true";
         }
-        novelService.delete(novelId, memberId);
-        return "redirect:/writer/novels?deleted=true";
+        try {
+            novelService.delete(novelId, memberId);
+            return "redirect:/writer/novels?deleted=true";
+        } catch (ResponseStatusException ex) {
+            String reason = ex.getReason();
+            redirectAttributes.addFlashAttribute(
+                    "deleteError",
+                    reason == null || reason.isBlank() ? "작품을 삭제할 수 없습니다." : reason
+            );
+            return "redirect:/novels/" + novelId + "?from=writer";
+        }
     }
 
     private String redirectAfterToggle(Long novelId, String from, String returnTo) {
@@ -299,6 +337,9 @@ public class NovelController {
         }
         if ("favorites".equalsIgnoreCase(returnTo)) {
             return "redirect:/novels?favorite=true";
+        }
+        if ("main".equalsIgnoreCase(returnTo)) {
+            return "redirect:/main#popular";
         }
         if ("writer".equalsIgnoreCase(returnTo)) {
             return "redirect:/writer/novels";

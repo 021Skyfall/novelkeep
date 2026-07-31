@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.novelkeep.funding.repository.FundingCampaignRepository;
 import com.novelkeep.home.domain.ExperienceRole;
 import com.novelkeep.member.domain.Member;
 import com.novelkeep.member.domain.MemberType;
@@ -44,19 +45,22 @@ public class NovelService {
     private final NovelFavoriteRepository favoriteRepository;
     private final EpisodeBookmarkRepository bookmarkRepository;
     private final MemberRepository memberRepository;
+    private final FundingCampaignRepository fundingCampaignRepository;
 
     public NovelService(
             NovelRepository novelRepository,
             NovelRecommendationRepository recommendationRepository,
             NovelFavoriteRepository favoriteRepository,
             EpisodeBookmarkRepository bookmarkRepository,
-            MemberRepository memberRepository
+            MemberRepository memberRepository,
+            FundingCampaignRepository fundingCampaignRepository
     ) {
         this.novelRepository = novelRepository;
         this.recommendationRepository = recommendationRepository;
         this.favoriteRepository = favoriteRepository;
         this.bookmarkRepository = bookmarkRepository;
         this.memberRepository = memberRepository;
+        this.fundingCampaignRepository = fundingCampaignRepository;
     }
 
     @Transactional(readOnly = true)
@@ -214,6 +218,12 @@ public class NovelService {
     @Transactional
     public void delete(Long novelId, Long memberId) {
         Novel novel = findOwnedNovel(novelId, memberId);
+        if (fundingCampaignRepository.existsByStoryPartNovelId(novelId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "펀딩이 연결된 작품은 삭제할 수 없습니다."
+            );
+        }
         recommendationRepository.deleteByNovelId(novelId);
         favoriteRepository.deleteByNovelId(novelId);
         bookmarkRepository.deleteByNovelId(novelId);

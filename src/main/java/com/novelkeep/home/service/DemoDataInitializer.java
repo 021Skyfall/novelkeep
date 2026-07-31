@@ -4,11 +4,14 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
 import com.novelkeep.funding.domain.FundingCampaign;
+import com.novelkeep.funding.domain.FundingGuide;
 import com.novelkeep.funding.domain.FundingParticipation;
 import com.novelkeep.funding.repository.FundingCampaignRepository;
 import com.novelkeep.funding.repository.FundingParticipationRepository;
@@ -33,12 +36,19 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * 체험용 목 데이터.
+ * <p>
+ * 펀딩 정책 반영: 공개 작품·공개 부·전 회차 공개인 부만 OPEN 가능,
+ * 부마다 별도 캠페인(동시 진행 가능), 시작 후 취소 없음, 목표 최소 10부,
+ * 기간은 시작 후 최소 7일, 분량 안내(약 8~10만 자 / 10만 초과 시 문의).
+ */
 @Component
 public class DemoDataInitializer implements ApplicationRunner {
 
     private static final int NOVEL_COUNT = 50;
-    private static final int OPEN_FUNDING_COUNT = 12;
-    private static final long RANDOM_SEED = 20260731L;
+    private static final int ORDER_SEED_COUNT = 12;
+    private static final long RANDOM_SEED = 20260801L;
 
     private static final String[] TITLE_PREFIXES = {
             "달빛 아래", "마지막", "잊힌", "회귀한", "심해의",
@@ -102,7 +112,7 @@ public class DemoDataInitializer implements ApplicationRunner {
 
         List<Novel> novels = createNovels(author);
         novelRepository.saveAll(novels);
-        List<FundingCampaign> campaigns = fundingCampaignRepository.saveAll(createOpenFundings(novels));
+        List<FundingCampaign> campaigns = fundingCampaignRepository.saveAll(createFundings(novels));
         seedOrders(reader, campaigns);
     }
 
@@ -112,12 +122,20 @@ public class DemoDataInitializer implements ApplicationRunner {
         List<FundingParticipation> participations = new ArrayList<>();
         List<BookOrder> orders = new ArrayList<>();
 
-        for (int i = 0; i < campaigns.size(); i++) {
-            FundingCampaign campaign = campaigns.get(i);
-            int quantity = 1 + (i % 3);
-            LocalDateTime paidAt = now.minusDays(10 - (i % 8)).minusHours(i);
+        List<FundingCampaign> openCampaigns = campaigns.stream()
+                .filter(campaign -> campaign.getStatus() == com.novelkeep.funding.domain.FundingCampaignStatus.OPEN)
+                .filter(campaign -> campaign.getCurrentQuantity() > 0)
+                .limit(ORDER_SEED_COUNT)
+                .toList();
+
+        for (int i = 0; i < openCampaigns.size(); i++) {
+            FundingCampaign campaign = openCampaigns.get(i);
+            LocalDateTime paidAt = now.minusHours(6L + i);
             FundingParticipation participation = FundingParticipation.paid(
-                    campaign, reader, quantity, paidAt
+                    campaign,
+                    reader,
+                    1,
+                    paidAt
             );
             participations.add(participation);
         }
@@ -125,11 +143,10 @@ public class DemoDataInitializer implements ApplicationRunner {
 
         for (int i = 0; i < participations.size(); i++) {
             FundingParticipation participation = participations.get(i);
-            BookOrderStatus status = statuses[i % statuses.length];
             orders.add(BookOrder.fromParticipation(
                     participation,
-                    status,
-                    participation.getPaidAt().plusHours(2)
+                    statuses[i % statuses.length],
+                    now.minusHours(i)
             ));
         }
         bookOrderRepository.saveAll(orders);
@@ -141,14 +158,7 @@ public class DemoDataInitializer implements ApplicationRunner {
         List<Novel> novels = new ArrayList<>();
 
         for (int number = 1; number <= NOVEL_COUNT; number++) {
-            NovelStatus status = number % 3 == 0
-                    ? NovelStatus.COMPLETED
-                    : NovelStatus.SERIALIZING;
-            NovelVisibility visibility = number % 7 == 0
-                    ? NovelVisibility.PRIVATE
-                    : NovelVisibility.PUBLIC;
-            boolean multipleParts = status == NovelStatus.COMPLETED || number % 4 != 1;
-
+            NovelProfile profile = resolveProfile(number);
             List<NovelGenre> genres = pickGenres(number);
             String title = TITLE_PREFIXES[metadataRandom.nextInt(TITLE_PREFIXES.length)]
                     + " " + TITLE_SUBJECTS[metadataRandom.nextInt(TITLE_SUBJECTS.length)]
@@ -160,105 +170,253 @@ public class DemoDataInitializer implements ApplicationRunner {
 
             Novel novel = Novel.create(
                     author, title, penName, genres, synopsis,
-                    status, visibility
+                    profile.status(), profile.visibility()
             );
-            if (!multipleParts) {
-                addSinglePart(novel, status, structureRandom);
-            } else {
-                addMultipleParts(novel, number, status, structureRandom);
-            }
+            buildParts(novel, number, profile, structureRandom);
             novels.add(novel);
         }
         return novels;
     }
 
-    private void addSinglePart(Novel novel, NovelStatus status, Random random) {
-        StoryPartStatus partStatus = status == NovelStatus.COMPLETED
-                ? StoryPartStatus.COMPLETED
-                : StoryPartStatus.SERIALIZING;
-        StoryPart part = StoryPart.create(1, "본편", partStatus);
-        addEpisodes(part, 20 + random.nextInt(5), random);
-        novel.addPart(part);
+    /**
+     * 시나리오 분포 (50작품 기준 대략치)
+     * - PRIVATE: 미공개 작품(펀딩 OPEN 없음)
+     * - COMPLETED 다부: 완결·전 회차 공개 → 펀딩 후보
+     * - SERIALIZING 다부: 1부 완결(펀딩 가능) + 연재부(미공개 회차 섞임, 펀딩 불가) + 미공개부
+     * - SERIALIZING 단권: 일부는 전 회차 공개(펀딩 가능), 일부는 미공개 회차 있음(펀딩 불가)
+     */
+    private NovelProfile resolveProfile(int number) {
+        if (number % 8 == 0) {
+            return new NovelProfile(NovelStatus.SERIALIZING, NovelVisibility.PRIVATE, true, false);
+        }
+        if (number % 5 == 0) {
+            return new NovelProfile(NovelStatus.COMPLETED, NovelVisibility.PUBLIC, true, true);
+        }
+        if (number % 3 == 0) {
+            return new NovelProfile(NovelStatus.SERIALIZING, NovelVisibility.PUBLIC, true, false);
+        }
+        boolean single = number % 4 == 1;
+        boolean allPublished = number % 2 == 0;
+        return new NovelProfile(
+                NovelStatus.SERIALIZING,
+                NovelVisibility.PUBLIC,
+                !single,
+                allPublished
+        );
     }
 
-    private void addMultipleParts(
-            Novel novel,
-            int novelNumber,
-            NovelStatus novelStatus,
-            Random random
-    ) {
-        int partCount = 3;
-        int completedPartCount;
-        if (novelStatus == NovelStatus.COMPLETED) {
-            completedPartCount = partCount;
-        } else if (novelNumber % 2 == 0) {
-            completedPartCount = 1 + random.nextInt(partCount - 1);
-        } else {
-            completedPartCount = 0;
+    private void buildParts(Novel novel, int novelNumber, NovelProfile profile, Random random) {
+        if (!profile.multiPart()) {
+            StoryPartStatus partStatus = profile.status() == NovelStatus.COMPLETED
+                    ? StoryPartStatus.COMPLETED
+                    : StoryPartStatus.SERIALIZING;
+            VolumeTone tone = volumeToneFor(novelNumber, 1);
+            StoryPart part = StoryPart.create(1, "본편", partStatus);
+            addEpisodes(part, episodeCountFor(partStatus, false), profile.serializingAllPublished(), tone, random);
+            novel.addPart(part);
+            return;
         }
 
+        int partCount = 3;
         for (int partNumber = 1; partNumber <= partCount; partNumber++) {
-            StoryPartStatus partStatus;
-            if (partNumber <= completedPartCount) {
-                partStatus = StoryPartStatus.COMPLETED;
-            } else if (partNumber == completedPartCount + 1) {
-                partStatus = StoryPartStatus.SERIALIZING;
-            } else {
-                partStatus = StoryPartStatus.UNPUBLISHED;
-            }
-
+            StoryPartStatus partStatus = resolveMultiPartStatus(profile, novelNumber, partNumber);
+            boolean allPublished = resolveAllPublished(profile, novelNumber, partNumber, partStatus);
+            VolumeTone tone = volumeToneFor(novelNumber, partNumber);
             String partTitle = PART_TITLES[(novelNumber + partNumber) % PART_TITLES.length];
             StoryPart part = StoryPart.create(partNumber, partTitle, partStatus);
-            addEpisodes(part, 7 + random.nextInt(3), random);
+            addEpisodes(part, episodeCountFor(partStatus, true), allPublished, tone, random);
             novel.addPart(part);
         }
     }
 
-    private void addEpisodes(StoryPart part, int episodeCount, Random random) {
+    private StoryPartStatus resolveMultiPartStatus(NovelProfile profile, int novelNumber, int partNumber) {
+        if (profile.status() == NovelStatus.COMPLETED) {
+            return StoryPartStatus.COMPLETED;
+        }
+        // 연재 중이어도 일부는 2부·3부까지 공개 완료 상태로 두어 부별 펀딩 시나리오를 만든다.
+        int depth = novelNumber % 5;
+        if (partNumber == 1) {
+            return StoryPartStatus.COMPLETED;
+        }
+        if (partNumber == 2) {
+            if (depth == 0 || depth == 1 || depth == 2) {
+                return StoryPartStatus.COMPLETED;
+            }
+            return StoryPartStatus.SERIALIZING;
+        }
+        // part 3
+        if (depth == 0 || depth == 1) {
+            return StoryPartStatus.COMPLETED;
+        }
+        if (depth == 2) {
+            return StoryPartStatus.SERIALIZING;
+        }
+        return StoryPartStatus.UNPUBLISHED;
+    }
+
+    private boolean resolveAllPublished(
+            NovelProfile profile,
+            int novelNumber,
+            int partNumber,
+            StoryPartStatus partStatus
+    ) {
+        if (partStatus == StoryPartStatus.UNPUBLISHED) {
+            return false;
+        }
+        if (partStatus == StoryPartStatus.COMPLETED) {
+            return true;
+        }
+        // SERIALIZING: 일부만 전 회차 공개(펀딩 가능), 나머지는 미공개 회차 포함
+        if (profile.status() == NovelStatus.COMPLETED) {
+            return true;
+        }
+        return novelNumber % 3 == 0 || partNumber == 1;
+    }
+
+    private int episodeCountFor(StoryPartStatus partStatus, boolean multiPart) {
+        if (partStatus == StoryPartStatus.UNPUBLISHED) {
+            return multiPart ? 4 : 6;
+        }
+        if (partStatus == StoryPartStatus.COMPLETED) {
+            return multiPart ? 12 : 22;
+        }
+        return multiPart ? 10 : 18;
+    }
+
+    /** 분량 안내 체감용: NORMAL≈가이드, OVER=10만 초과, LIGHT=가볍게 */
+    private VolumeTone volumeToneFor(int novelNumber, int partNumber) {
+        int key = (novelNumber * 3 + partNumber) % 10;
+        if (key == 0) {
+            return VolumeTone.OVER;
+        }
+        if (key <= 3) {
+            return VolumeTone.LIGHT;
+        }
+        return VolumeTone.NORMAL;
+    }
+
+    private void addEpisodes(
+            StoryPart part,
+            int episodeCount,
+            boolean allPublished,
+            VolumeTone tone,
+            Random random
+    ) {
         for (int episodeNumber = 1; episodeNumber <= episodeCount; episodeNumber++) {
-            EpisodeStatus status = resolveEpisodeStatus(part.getStatus(), episodeNumber, episodeCount);
+            EpisodeStatus status;
+            if (part.getStatus() == StoryPartStatus.UNPUBLISHED) {
+                status = EpisodeStatus.UNPUBLISHED;
+            } else if (!allPublished && episodeNumber > episodeCount - 2) {
+                status = EpisodeStatus.UNPUBLISHED;
+            } else {
+                status = EpisodeStatus.PUBLISHED;
+            }
             String event = EPISODE_EVENTS[random.nextInt(EPISODE_EVENTS.length)];
-            String title = event;
-            String content = createEpisodeContent(part.getTitle(), event, episodeNumber);
-            part.addEpisode(Episode.create(episodeNumber, title, content, status));
+            String content = createEpisodeContent(part.getTitle(), event, episodeNumber, tone, episodeCount);
+            part.addEpisode(Episode.create(episodeNumber, event, content, status));
         }
     }
 
-    private List<FundingCampaign> createOpenFundings(List<Novel> novels) {
-        List<StoryPart> candidates = new ArrayList<>();
-        for (Novel novel : novels) {
+    private List<FundingCampaign> createFundings(List<Novel> novels) {
+        Random random = new Random(RANDOM_SEED + 7);
+        LocalDateTime now = FundingGuide.nowKorea().withSecond(0).withNano(0);
+        List<FundingCampaign> campaigns = new ArrayList<>();
+        int openIndex = 0;
+
+        for (int novelIndex = 0; novelIndex < novels.size(); novelIndex++) {
+            Novel novel = novels.get(novelIndex);
             if (novel.getVisibility() != NovelVisibility.PUBLIC) {
                 continue;
             }
+
+            Map<Integer, StoryPart> fundableByNumber = new LinkedHashMap<>();
             for (StoryPart part : novel.getParts()) {
-                if (part.getStatus() == StoryPartStatus.COMPLETED) {
-                    candidates.add(part);
+                if (isFundablePart(part)) {
+                    fundableByNumber.put(part.getPartNumber(), part);
                 }
             }
-        }
+            if (fundableByNumber.isEmpty()) {
+                continue;
+            }
 
-        LocalDateTime now = LocalDateTime.now();
-        List<FundingCampaign> campaigns = new ArrayList<>();
-        int count = Math.min(OPEN_FUNDING_COUNT, candidates.size());
-        for (int i = 0; i < count; i++) {
-            StoryPart part = candidates.get(i);
-            int target = 40 + (i * 10);
-            int current = 8 + (i * 7);
-            BigDecimal price = BigDecimal.valueOf(15000L + (i * 1000L));
-            campaigns.add(FundingCampaign.open(
-                    part,
-                    target,
-                    Math.min(current, target - 1),
-                    price,
-                    now.minusDays(3 + i),
-                    now.plusDays(14 + i)
-            ));
+            List<Integer> selectedPartNumbers = selectFundingPartNumbers(novel, novelIndex, fundableByNumber.keySet());
+            for (Integer partNumber : selectedPartNumbers) {
+                StoryPart part = fundableByNumber.get(partNumber);
+                if (part == null) {
+                    continue;
+                }
+                campaigns.add(openCampaign(part, random, now, openIndex));
+                openIndex++;
+            }
         }
         return campaigns;
     }
 
+    /**
+     * 부별 펀딩 시나리오:
+     * 1부만 / 2부만 / 3부만 / 1+2 / 2+3 / 1+2+3 / 미개시
+     */
+    private List<Integer> selectFundingPartNumbers(
+            Novel novel,
+            int novelIndex,
+            Set<Integer> fundableNumbers
+    ) {
+        if (!novel.isMultiPart()) {
+            return novelIndex % 5 == 1 ? List.of() : List.of(1);
+        }
+
+        int pattern = novelIndex % 8;
+        return switch (pattern) {
+            case 0 -> pickExisting(fundableNumbers, 1);
+            case 1 -> pickExisting(fundableNumbers, 2);
+            case 2 -> pickExisting(fundableNumbers, 3);
+            case 3 -> pickExisting(fundableNumbers, 1, 2);
+            case 4 -> pickExisting(fundableNumbers, 2, 3);
+            case 5 -> pickExisting(fundableNumbers, 1, 3);
+            case 6 -> pickExisting(fundableNumbers, 1, 2, 3);
+            default -> List.of(); // 미개시
+        };
+    }
+
+    private List<Integer> pickExisting(Set<Integer> fundableNumbers, int... wanted) {
+        List<Integer> selected = new ArrayList<>();
+        for (int partNumber : wanted) {
+            if (fundableNumbers.contains(partNumber)) {
+                selected.add(partNumber);
+            }
+        }
+        // 원하는 부가 없으면 가능한 첫 부로 대체하지 않고, 비어 있으면 스킵한다.
+        return selected;
+    }
+
+    private FundingCampaign openCampaign(StoryPart part, Random random, LocalDateTime now, int openIndex) {
+        int target = FundingGuide.MIN_TARGET_QUANTITY + 10 + random.nextInt(80);
+        int progressBucket = openIndex % 5;
+        int current = switch (progressBucket) {
+            case 0 -> Math.max(1, target / 10);
+            case 1 -> target / 3;
+            case 2 -> target / 2;
+            case 3 -> (target * 3) / 4;
+            default -> Math.min(target - 1, target - random.nextInt(5) - 1);
+        };
+        // 일부는 수요 0으로 두어 취소 가능 상태를 만든다.
+        if (openIndex % 11 == 0) {
+            current = 0;
+        }
+        BigDecimal price = BigDecimal.valueOf(12_000L + (random.nextInt(20) * 1_000L));
+        LocalDateTime startAt = now.minusDays(2L + (openIndex % 10));
+        LocalDateTime endAt = startAt.plusDays(FundingGuide.MIN_DURATION_DAYS + 7L + (openIndex % 14));
+        if (endAt.isBefore(now.plusDays(FundingGuide.MIN_DURATION_DAYS))) {
+            endAt = now.plusDays(FundingGuide.MIN_DURATION_DAYS + 3L + (openIndex % 5));
+        }
+        return FundingCampaign.open(part, target, current, price, startAt, endAt);
+    }
+
+    private boolean isFundablePart(StoryPart part) {
+        return part.getStatus() != StoryPartStatus.UNPUBLISHED && part.allEpisodesPublished();
+    }
+
     private List<NovelGenre> pickGenres(int novelNumber) {
-        // 카드 2줄 초과 `...` 확인용: 일부는 긴 이름 장르 7~8개
         List<NovelGenre> longNames = List.of(
                 NovelGenre.MODERN_FANTASY,
                 NovelGenre.EASTERN_FANTASY,
@@ -299,30 +457,49 @@ public class DemoDataInitializer implements ApplicationRunner {
         return new ArrayList<>(selected);
     }
 
-    private EpisodeStatus resolveEpisodeStatus(
-            StoryPartStatus partStatus,
+    private String createEpisodeContent(
+            String partTitle,
+            String event,
             int episodeNumber,
+            VolumeTone tone,
             int episodeCount
     ) {
-        if (partStatus == StoryPartStatus.UNPUBLISHED) {
-            return EpisodeStatus.UNPUBLISHED;
-        }
-        if (partStatus == StoryPartStatus.SERIALIZING && episodeNumber > episodeCount - 2) {
-            return EpisodeStatus.UNPUBLISHED;
-        }
-        return EpisodeStatus.PUBLISHED;
-    }
-
-    private String createEpisodeContent(String partTitle, String event, int episodeNumber) {
-        String paragraph = partTitle + "의 " + episodeNumber + "번째 이야기에서 " + event + ". "
-                + "인물들은 각자의 목적을 숨긴 채 같은 장소에 모였고, 작은 선택 하나가 다음 사건의 방향을 바꾸었다.\n\n"
+        String unit = partTitle + "의 " + episodeNumber + "번째 이야기에서 " + event + ". "
+                + "인물들은 각자의 목적을 숨긴 채 같은 장소에 모였고, 작은 선택 하나가 다음 사건의 방향을 바꾸었다. "
                 + "아직 밝혀지지 않은 단서를 확인한 주인공은 물러서지 않기로 했다. "
-                + "멀리서 들려오는 소리와 남겨진 기록은 서로 다른 진실을 가리키고 있었다.\n\n"
+                + "멀리서 들려오는 소리와 남겨진 기록은 서로 다른 진실을 가리키고 있었다. "
                 + "그날의 대화는 쉽게 끝나지 않았다. 누군가는 사실을 감추려 했고, 누군가는 이미 알고 있는 것처럼 침묵했다. "
-                + "창밖으로 스치는 바람 소리조차 단서처럼 들렸고, 발걸음은 점점 더 깊은 골목으로 이어졌다.\n\n"
+                + "창밖으로 스치는 바람 소리조차 단서처럼 들렸고, 발걸음은 점점 더 깊은 골목으로 이어졌다. "
                 + "결국 남겨진 선택은 하나였다. 위험을 감수하고 앞으로 나아가거나, 안전한 자리에서 진실을 놓치는 것. "
-                + "주인공은 주머니 속 낡은 쪽지를 다시 펼쳐 보았다. 흐릿한 글씨 사이로, 아직 끝나지 않은 이야기의 다음 장면이 희미하게 드러나고 있었다.";
-        return paragraph + "\n\n" + paragraph + "\n\n" + paragraph + "\n\n" + paragraph;
+                + "주인공은 주머니 속 낡은 쪽지를 다시 펼쳐 보았다. 흐릿한 글씨 사이로, 아직 끝나지 않은 이야기의 다음 장면이 희미하게 드러나고 있었다. ";
+
+        int targetPartChars = switch (tone) {
+            case LIGHT -> 45_000;
+            case OVER -> 110_000;
+            case NORMAL -> 90_000;
+        };
+        int perEpisode = Math.max(1_200, targetPartChars / Math.max(1, episodeCount));
+        StringBuilder content = new StringBuilder(perEpisode + 64);
+        while (content.length() < perEpisode) {
+            content.append(unit);
+            if (content.length() < perEpisode) {
+                content.append('\n').append('\n');
+            }
+        }
+        return content.substring(0, Math.min(content.length(), perEpisode + unit.length() / 4));
     }
 
+    private enum VolumeTone {
+        LIGHT,
+        NORMAL,
+        OVER
+    }
+
+    private record NovelProfile(
+            NovelStatus status,
+            NovelVisibility visibility,
+            boolean multiPart,
+            boolean serializingAllPublished
+    ) {
+    }
 }

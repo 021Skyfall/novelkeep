@@ -2,7 +2,7 @@ package com.novelkeep.funding.domain;
 
 public enum FundingCampaignStatus {
 
-    DRAFT("초안"),
+    DRAFT("미진행"),
     OPEN("진행 중"),
     SUCCESS("성공"),
     FAILED("실패");

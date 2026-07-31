@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.novelkeep.funding.domain.FundingCampaignStatus;
+import com.novelkeep.funding.repository.FundingCampaignRepository;
 import com.novelkeep.home.domain.ExperienceRole;
 import com.novelkeep.novel.domain.Episode;
 import com.novelkeep.novel.domain.EpisodeStatus;
@@ -35,17 +37,20 @@ public class StoryContentService {
     private final StoryPartRepository storyPartRepository;
     private final EpisodeRepository episodeRepository;
     private final EpisodeBookmarkRepository bookmarkRepository;
+    private final FundingCampaignRepository fundingCampaignRepository;
 
     public StoryContentService(
             NovelRepository novelRepository,
             StoryPartRepository storyPartRepository,
             EpisodeRepository episodeRepository,
-            EpisodeBookmarkRepository bookmarkRepository
+            EpisodeBookmarkRepository bookmarkRepository,
+            FundingCampaignRepository fundingCampaignRepository
     ) {
         this.novelRepository = novelRepository;
         this.storyPartRepository = storyPartRepository;
         this.episodeRepository = episodeRepository;
         this.bookmarkRepository = bookmarkRepository;
+        this.fundingCampaignRepository = fundingCampaignRepository;
     }
 
     @Transactional(readOnly = true)
@@ -181,6 +186,7 @@ public class StoryContentService {
     @Transactional
     public void updatePart(Long partId, Long memberId, StoryPartForm form) {
         StoryPart part = findOwnedPart(partId, memberId);
+        assertPartContentMutable(part.getId());
         Novel novel = part.getNovel();
         if (!novel.isMultiPart()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "마지막 권(부)은 제목과 상태를 별도로 수정할 수 없습니다.");
@@ -205,7 +211,14 @@ public class StoryContentService {
     @Transactional
     public Long deletePart(Long partId, Long memberId) {
         StoryPart part = findOwnedPart(partId, memberId);
+        assertPartContentMutable(part.getId());
         Novel novel = part.getNovel();
+        if (fundingCampaignRepository.existsByStoryPartId(partId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "펀딩이 연결된 권(부)은 삭제할 수 없습니다."
+            );
+        }
         if (novel.getParts().size() <= 1) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "작품에는 최소 1개의 부가 필요합니다.");
         }
@@ -233,6 +246,7 @@ public class StoryContentService {
     @Transactional
     public Long createEpisode(Long partId, Long memberId, EpisodeForm form) {
         StoryPart part = findOwnedPart(partId, memberId);
+        assertPartContentMutable(part.getId());
         int nextNumber = episodeRepository.findMaxEpisodeNumberByStoryPartId(partId) + 1;
         Episode episode = Episode.create(
                 nextNumber,
@@ -248,6 +262,7 @@ public class StoryContentService {
     @Transactional
     public void updateEpisode(Long episodeId, Long memberId, EpisodeForm form) {
         Episode episode = findOwnedEpisode(episodeId, memberId);
+        assertPartContentMutable(episode.getStoryPart().getId());
         episode.update(
                 normalize(form.getTitle()),
                 form.getContent() == null ? "" : form.getContent(),
@@ -258,6 +273,7 @@ public class StoryContentService {
     @Transactional
     public Long deleteEpisode(Long episodeId, Long memberId) {
         Episode episode = findOwnedEpisode(episodeId, memberId);
+        assertPartContentMutable(episode.getStoryPart().getId());
         StoryPart part = episode.getStoryPart();
         Long novelId = part.getNovel().getId();
         bookmarkRepository.deleteByEpisodeId(episodeId);
@@ -281,6 +297,7 @@ public class StoryContentService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "선택한 회차 중 처리할 수 없는 항목이 있습니다.");
         }
         for (Episode episode : targets) {
+            assertPartContentMutable(episode.getStoryPart().getId());
             episode.changeStatus(status);
         }
     }
@@ -299,6 +316,7 @@ public class StoryContentService {
 
         Map<StoryPart, List<Episode>> byPart = new LinkedHashMap<>();
         for (Episode episode : targets) {
+            assertPartContentMutable(episode.getStoryPart().getId());
             byPart.computeIfAbsent(episode.getStoryPart(), key -> new ArrayList<>()).add(episode);
         }
         for (Map.Entry<StoryPart, List<Episode>> entry : byPart.entrySet()) {
@@ -310,6 +328,19 @@ public class StoryContentService {
             renumberEpisodes(part);
         }
         return novelId;
+    }
+
+    public boolean hasOpenFunding(Long partId) {
+        return fundingCampaignRepository.existsByStoryPartIdAndStatus(partId, FundingCampaignStatus.OPEN);
+    }
+
+    private void assertPartContentMutable(Long partId) {
+        if (hasOpenFunding(partId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "펀딩 진행 중인 부는 회차·부 내용을 수정·삭제하거나 비공개로 변경할 수 없습니다."
+            );
+        }
     }
 
     private List<Episode> collectOwnedEpisodes(Novel novel, Set<Long> episodeIds) {

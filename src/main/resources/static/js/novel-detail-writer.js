@@ -280,4 +280,12 @@
             submitBulk(root, button.getAttribute('data-bulk-action'), button);
         });
     });
+
+    window.NovelKeepDetailWriter = {
+        bind: function (root) {
+            if (root) {
+                bindPanels(root);
+            }
+        }
+    };
 })();

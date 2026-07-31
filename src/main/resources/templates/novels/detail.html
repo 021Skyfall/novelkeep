@@ -40,25 +40,35 @@
          data-push-notification data-notification-type="error"
          th:attr="data-notification-label=${contentErrorLabel}"
          th:text="${contentError}">오류</div>
+    <div th:if="${deleteError}" class="alert alert-danger"
+         data-push-notification data-notification-type="error"
+         data-notification-label="작품 삭제 실패"
+         th:text="${deleteError}">삭제 실패</div>
+    <div th:if="${publishingError}" class="alert alert-danger"
+         data-push-notification data-notification-type="error"
+         data-notification-label="출판 펀딩"
+         th:text="${publishingError}">펀딩 오류</div>
 
     <section class="detail-panel">
         <div class="d-flex flex-column flex-lg-row justify-content-between gap-4">
             <div class="flex-grow-1">
-                <div class="d-flex flex-wrap gap-2 mb-3">
-                    <span class="badge status-badge" th:text="${novel.status.displayName}">연재 중</span>
-                    <span class="badge"
-                          th:classappend="${novel.visibility.name() == 'PUBLIC'} ? ' visibility-public' : ' visibility-private'"
-                          th:text="${novel.visibility.displayName}">공개</span>
-                    <span th:if="${novel.multiPart and novel.latestCompletedPartLabel() != null}"
-                          class="badge part-badge"
-                          th:text="${novel.latestCompletedPartLabel()}">1부 완결</span>
-                    <span th:each="genreItem : ${novel.genres}"
-                          class="badge text-bg-light border"
-                          th:text="${genreItem.displayName}">장르</span>
-                    <span class="badge text-bg-light border"
-                          th:text="|${#lists.size(latestParts)}권|">1권</span>
-                    <span class="badge recommend-badge" data-recommend-count
-                          th:text="|추천 ${novel.recommendationCount}|">추천 0</span>
+                <div class="detail-tag-stack mb-3">
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="badge status-badge" th:text="${novel.status.displayName}">연재 중</span>
+                        <span class="badge"
+                              th:classappend="${novel.visibility.name() == 'PUBLIC'} ? ' visibility-public' : ' visibility-private'"
+                              th:text="${novel.visibility.displayName}">공개</span>
+                        <span th:if="${novel.multiPart and novel.latestCompletedPartLabel() != null}"
+                              class="badge part-badge"
+                              th:text="${novel.latestCompletedPartLabel()}">1부 완결</span>
+                        <span class="badge recommend-badge" data-recommend-count
+                              th:text="|추천 ${novel.recommendationCount}|">추천 0</span>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                        <span th:each="genreItem : ${novel.genres}"
+                              class="badge text-bg-light border"
+                              th:text="${genreItem.displayName}">장르</span>
+                    </div>
                 </div>
                 <h1 class="display-6 fw-bold" th:text="${novel.title}">작품명</h1>
                 <p class="text-secondary mb-0" th:text="|필명 ${novel.penName}|">필명</p>
@@ -69,7 +79,7 @@
                 </div>
             </div>
             <div class="d-flex flex-column align-items-stretch align-items-lg-end gap-2" data-detail-actions>
-                <div th:if="${canFavorite or canRecommend}" class="d-flex flex-wrap gap-2 justify-content-lg-end">
+                <div th:if="${canFavorite or canRecommend}" class="d-flex flex-wrap gap-2 justify-content-lg-end align-items-center">
                     <form th:if="${canFavorite}"
                           th:action="@{/novels/{id}/favorite(id=${novel.id}, from=${fromWriter} ? 'writer' : null)}"
                           method="post"
@@ -86,15 +96,25 @@
                           method="post"
                           data-novel-action="recommend"
                           th:attr="data-novel-id=${novel.id}">
-                        <button class="btn btn-content-action" data-action-button
-                                th:classappend="${recommended} ? 'btn-dark' : 'btn-outline-dark'"
+                        <button class="btn recommend-toggle" data-action-button
+                                th:classappend="${recommended} ? ' is-active'"
                                 type="submit"
-                                th:text="${recommended} ? '추천 취소' : '추천하기'">추천하기</button>
+                                th:attr="aria-pressed=${recommended}"
+                                th:aria-label="${recommended} ? '추천 취소' : '추천하기'">
+                            <span data-recommend-count
+                                  th:text="|추천 ${novel.recommendationCount}|">추천 0</span>
+                            <svg class="recommend-thumb-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <path fill="currentColor"
+                                      d="M2 10.5h3.2V21H2zm19.1 1.1c0-.7-.6-1.3-1.3-1.3h-5.1l.8-3.6.1-.6c0-.3-.1-.6-.3-.8l-.8-.8L9.8 9.2c-.3.3-.5.7-.5 1.1V19c0 .8.7 1.5 1.5 1.5h6.7c.5 0 1-.3 1.2-.8l2.3-5.4c.1-.2.1-.4.1-.6v-.1z"/>
+                            </svg>
+                        </button>
                     </form>
                 </div>
                 <div th:if="${canManageContent}" class="d-flex flex-wrap gap-2 justify-content-lg-end writer-detail-actions">
                     <a class="btn btn-content-action btn-outline-dark"
                        th:href="@{/writer/novels/{id}/edit(id=${novel.id})}">기본 정보 수정</a>
+                    <a class="btn btn-content-action btn-outline-secondary"
+                       th:href="@{/writer/publishing}">펀딩 전체 관리</a>
                     <form th:action="@{/writer/novels/{id}/delete(id=${novel.id})}" method="post"
                           data-confirm-delete="작품과 모든 권(부)·회차를 영구 삭제합니다. 삭제 후에는 되돌릴 수 없습니다."
                           data-confirm-title="작품 영구 삭제"
@@ -115,11 +135,84 @@
     </section>
 </main>
 
+<div th:if="${canManageContent}" class="modal fade" id="fundingPartModal" tabindex="-1"
+     aria-labelledby="fundingPartModalLabel" aria-hidden="true"
+     th:attr="data-min-target=${minTargetQuantity}, data-min-days=${minDurationDays}, data-limit=${guideVolumeChars}">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title h5 fw-bold" id="fundingPartModalLabel">출판 펀딩 시작</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+            </div>
+            <form id="fundingPartForm" method="post" action="/writer/publishing/campaigns">
+                <div class="modal-body">
+                    <input type="hidden" name="novelId" data-funding-novel-id>
+                    <input type="hidden" name="partId" data-funding-part-id>
+                    <input type="hidden" name="startAt" data-funding-start-hidden>
+                    <p class="small text-secondary mb-2" data-funding-novel-title
+                       th:text="|작품: ${novel.title}|">작품</p>
+                    <p class="fw-semibold mb-3" data-funding-part-label>대상 부</p>
+
+                    <div class="alert alert-light border small mb-3" data-funding-notices>
+                        <strong class="d-block mb-2">시작 전 주의사항</strong>
+                        <p class="mb-2" th:text="${guideVolumeText}">분량 안내</p>
+                        <ul class="mb-0 ps-3">
+                            <li th:each="notice : ${fundingStartNotices}" th:text="${notice}">주의</li>
+                        </ul>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" for="fundingTargetQuantity">목표 부수</label>
+                            <input id="fundingTargetQuantity" class="form-control" type="number" name="targetQuantity"
+                                   th:min="${minTargetQuantity}" required data-funding-target>
+                            <div class="form-text" th:text="|최소 ${minTargetQuantity}부|">최소 10부</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" for="fundingPriceAmount">부당 판매가(원)</label>
+                            <input id="fundingPriceAmount" class="form-control" type="number" name="priceAmount"
+                                   min="1" step="1" required data-funding-price>
+                        </div>
+                        <div class="col-12">
+                            <div class="publishing-schedule-pair">
+                                <div class="publishing-schedule-field">
+                                    <label class="form-label fw-semibold" for="fundingStartAt">시작</label>
+                                    <input id="fundingStartAt" class="form-control" type="datetime-local"
+                                           data-funding-start required>
+                                    <div class="form-text" data-funding-start-hint>현재 시간 이후</div>
+                                </div>
+                                <span class="publishing-schedule-tilde publishing-schedule-tilde-lg" aria-hidden="true">~</span>
+                                <div class="publishing-schedule-field">
+                                    <label class="form-label fw-semibold" for="fundingEndAt">종료</label>
+                                    <input id="fundingEndAt" class="form-control" type="datetime-local" name="endAt"
+                                           required data-funding-end>
+                                    <div class="form-text" th:text="|시작 후 최소 ${minDurationDays}일 · 현재 시간 이후|">기간</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="alert alert-warning py-2 small d-none mb-0" data-volume-warn>
+                                선택한 부의 공개 회차 합이 10만 자를 넘습니다. 출판 담당과 문의가 필요합니다.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">닫기</button>
+                    <button type="submit" class="btn btn-dark" data-funding-submit>펀딩 시작</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <footer class="border-top py-4">
     <div class="container small text-secondary">NovelKeep · 이야기를 끝까지, 소장까지</div>
 </footer>
 <script th:src="@{/vendor/bootstrap/js/bootstrap.bundle.min.js}"></script>
 <script th:src="@{/js/novel-actions.js}"></script>
+<script th:src="@{/js/confirm-delete.js}"></script>
 <script th:if="${canManageContent}" th:src="@{/js/novel-detail-writer.js}"></script>
+<script th:if="${canManageContent}" th:src="@{/js/funding-part-modal.js}"></script>
 </body>
 </html>

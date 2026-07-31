@@ -14,9 +14,11 @@
 <div th:replace="~{fragments/navigation :: siteNav('writer')}"></div>
 
 <main class="container py-5">
-    <div class="mb-4">
+    <div class="mb-4 d-flex flex-wrap gap-2">
         <a class="btn btn-back-list"
            th:href="@{/novels/{id}(id=${novel.id}, from='writer')}">← 작품 상세</a>
+        <a class="btn btn-outline-dark"
+           th:href="@{/writer/publishing}">펀딩 전체 관리</a>
     </div>
 
     <div th:if="${contentMessage}" class="alert alert-success"
@@ -64,7 +66,8 @@
     </section>
 
     <section class="part-list">
-        <article th:each="part, partStat : ${latestParts}" class="part-item flex-column align-items-stretch">
+        <article th:each="part, partStat : ${latestParts}" class="part-item flex-column align-items-stretch"
+                 th:with="fundingLocked=${openFundingByPartId != null and openFundingByPartId.containsKey(part.id)}">
             <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3 mb-3">
                 <div>
                     <span th:if="${novel.multiPart}"
@@ -76,14 +79,19 @@
                         th:text="${novel.multiPart ? part.title : '회차 목록'}">부 제목</h2>
                     <p class="text-secondary small mb-0"
                        th:text="|회차 ${part.episodes.size()}화 · 글자 수 ${part.totalCharacterCount()}자|">회차 정보</p>
+                    <p th:if="${fundingLocked}" class="text-secondary small mb-0 mt-1">
+                        펀딩 진행 중 · 부·회차 수정·삭제·비공개 변경 불가
+                    </p>
                 </div>
                 <div class="d-flex flex-wrap gap-2 align-items-center">
-                    <a class="btn btn-content-action btn-dark"
+                    <a th:if="${!fundingLocked}"
+                       class="btn btn-content-action btn-dark"
                        th:href="@{/writer/parts/{id}/episodes/new(id=${part.id})}">회차 작성</a>
+                    <span th:if="${fundingLocked}" class="small text-secondary">회차 작성 불가</span>
                 </div>
             </div>
 
-            <form th:if="${novel.multiPart}"
+            <form th:if="${novel.multiPart and !fundingLocked}"
                   class="border rounded-3 p-3 mb-3 bg-body-tertiary"
                   data-part-edit-form
                   th:action="@{/writer/parts/{id}/edit(id=${part.id})}" method="post">
@@ -111,7 +119,7 @@
                 </div>
                 <p class="form-text mb-0 mt-2">부 완결은 회차가 있고 모두 공개된 경우에만 저장됩니다.</p>
             </form>
-            <form th:if="${novel.parts.size() > 1}"
+            <form th:if="${novel.parts.size() > 1 and !fundingLocked}"
                   class="mb-3"
                   th:action="@{/writer/parts/{id}/delete(id=${part.id})}" method="post"
                   data-confirm-delete="이 권(부)과 포함된 모든 회차를 삭제합니다. 삭제 후에는 되돌릴 수 없습니다."
@@ -149,7 +157,7 @@
                         </td>
                         <td th:text="|${episode.characterCount}자|">0자</td>
                         <td class="text-end">
-                            <div class="d-inline-flex flex-wrap gap-2 justify-content-end">
+                            <div th:if="${!fundingLocked}" class="d-inline-flex flex-wrap gap-2 justify-content-end">
                                 <a class="btn btn-content-action btn-outline-dark"
                                    th:href="@{/writer/episodes/{id}/edit(id=${episode.id})}">수정</a>
                                 <form th:action="@{/writer/episodes/{id}/delete(id=${episode.id})}" method="post"
@@ -159,6 +167,7 @@
                                     <button class="btn btn-content-action btn-outline-danger" type="submit">삭제</button>
                                 </form>
                             </div>
+                            <span th:if="${fundingLocked}" class="small text-secondary">수정·삭제 불가</span>
                         </td>
                     </tr>
                     </tbody>
