@@ -110,11 +110,13 @@ public class NovelController {
         }
         Novel novel = storyContentService.findReadableNovelWithContents(novelId, memberId, role);
         boolean owned = novel.isOwnedBy(memberId);
+        boolean canManageContent = owned && role == ExperienceRole.WRITER;
         boolean publicNovel = novel.getVisibility() == NovelVisibility.PUBLIC;
         boolean privileged = owned || role == ExperienceRole.ADMIN;
         model.addAttribute("novel", novel);
         model.addAttribute("latestParts", storyContentService.latestParts(novel, privileged));
         model.addAttribute("owned", owned);
+        model.addAttribute("canManageContent", canManageContent);
         model.addAttribute("privileged", privileged);
         model.addAttribute("recommended", novelService.hasRecommended(novelId, memberId));
         model.addAttribute("favorited", novelService.hasFavorited(novelId, memberId));
@@ -124,7 +126,7 @@ public class NovelController {
         model.addAttribute("continueBookmark", continueBookmark);
         model.addAttribute("commentCounts", commentCountsFor(novel));
         model.addAttribute("fromWriter", "writer".equalsIgnoreCase(from));
-        if (owned) {
+        if (canManageContent) {
             model.addAttribute("partStatuses", StoryPartStatus.values());
             model.addAttribute("episodeStatuses", EpisodeStatus.values());
         }
@@ -360,7 +362,7 @@ public class NovelController {
     }
 
     private boolean canWrite(ExperienceRole role) {
-        return role == ExperienceRole.WRITER || role == ExperienceRole.ADMIN;
+        return role == ExperienceRole.WRITER;
     }
 
     private void addFormOptions(Model model, boolean editing, Long novelId) {

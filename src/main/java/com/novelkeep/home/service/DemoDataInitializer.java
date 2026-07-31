@@ -9,7 +9,9 @@ import java.util.Random;
 import java.util.Set;
 
 import com.novelkeep.funding.domain.FundingCampaign;
+import com.novelkeep.funding.domain.FundingParticipation;
 import com.novelkeep.funding.repository.FundingCampaignRepository;
+import com.novelkeep.funding.repository.FundingParticipationRepository;
 import com.novelkeep.member.domain.Member;
 import com.novelkeep.member.domain.MemberType;
 import com.novelkeep.member.repository.MemberRepository;
@@ -22,6 +24,9 @@ import com.novelkeep.novel.domain.NovelVisibility;
 import com.novelkeep.novel.domain.StoryPart;
 import com.novelkeep.novel.domain.StoryPartStatus;
 import com.novelkeep.novel.repository.NovelRepository;
+import com.novelkeep.order.domain.BookOrder;
+import com.novelkeep.order.domain.BookOrderStatus;
+import com.novelkeep.order.repository.BookOrderRepository;
 
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -32,7 +37,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class DemoDataInitializer implements ApplicationRunner {
 
     private static final int NOVEL_COUNT = 50;
-    private static final int OPEN_FUNDING_COUNT = 5;
+    private static final int OPEN_FUNDING_COUNT = 12;
     private static final long RANDOM_SEED = 20260731L;
 
     private static final String[] TITLE_PREFIXES = {
@@ -67,15 +72,21 @@ public class DemoDataInitializer implements ApplicationRunner {
     private final MemberRepository memberRepository;
     private final NovelRepository novelRepository;
     private final FundingCampaignRepository fundingCampaignRepository;
+    private final FundingParticipationRepository fundingParticipationRepository;
+    private final BookOrderRepository bookOrderRepository;
 
     public DemoDataInitializer(
             MemberRepository memberRepository,
             NovelRepository novelRepository,
-            FundingCampaignRepository fundingCampaignRepository
+            FundingCampaignRepository fundingCampaignRepository,
+            FundingParticipationRepository fundingParticipationRepository,
+            BookOrderRepository bookOrderRepository
     ) {
         this.memberRepository = memberRepository;
         this.novelRepository = novelRepository;
         this.fundingCampaignRepository = fundingCampaignRepository;
+        this.fundingParticipationRepository = fundingParticipationRepository;
+        this.bookOrderRepository = bookOrderRepository;
     }
 
     @Override
@@ -85,22 +96,51 @@ public class DemoDataInitializer implements ApplicationRunner {
             return;
         }
 
-        memberRepository.save(Member.create(MemberType.READER));
+        Member reader = memberRepository.save(Member.create(MemberType.READER));
         Member author = memberRepository.save(Member.create(MemberType.AUTHOR));
-        Member admin = memberRepository.save(Member.create(MemberType.ADMIN));
+        memberRepository.save(Member.create(MemberType.ADMIN));
 
-        List<Novel> novels = createNovels(author, admin);
+        List<Novel> novels = createNovels(author);
         novelRepository.saveAll(novels);
-        fundingCampaignRepository.saveAll(createOpenFundings(novels));
+        List<FundingCampaign> campaigns = fundingCampaignRepository.saveAll(createOpenFundings(novels));
+        seedOrders(reader, campaigns);
     }
 
-    private List<Novel> createNovels(Member author, Member admin) {
+    private void seedOrders(Member reader, List<FundingCampaign> campaigns) {
+        LocalDateTime now = LocalDateTime.now();
+        BookOrderStatus[] statuses = BookOrderStatus.values();
+        List<FundingParticipation> participations = new ArrayList<>();
+        List<BookOrder> orders = new ArrayList<>();
+
+        for (int i = 0; i < campaigns.size(); i++) {
+            FundingCampaign campaign = campaigns.get(i);
+            int quantity = 1 + (i % 3);
+            LocalDateTime paidAt = now.minusDays(10 - (i % 8)).minusHours(i);
+            FundingParticipation participation = FundingParticipation.paid(
+                    campaign, reader, quantity, paidAt
+            );
+            participations.add(participation);
+        }
+        fundingParticipationRepository.saveAll(participations);
+
+        for (int i = 0; i < participations.size(); i++) {
+            FundingParticipation participation = participations.get(i);
+            BookOrderStatus status = statuses[i % statuses.length];
+            orders.add(BookOrder.fromParticipation(
+                    participation,
+                    status,
+                    participation.getPaidAt().plusHours(2)
+            ));
+        }
+        bookOrderRepository.saveAll(orders);
+    }
+
+    private List<Novel> createNovels(Member author) {
         Random metadataRandom = new Random(RANDOM_SEED);
         Random structureRandom = new Random(RANDOM_SEED + 1);
         List<Novel> novels = new ArrayList<>();
 
         for (int number = 1; number <= NOVEL_COUNT; number++) {
-            Member owner = number % 6 == 0 ? admin : author;
             NovelStatus status = number % 3 == 0
                     ? NovelStatus.COMPLETED
                     : NovelStatus.SERIALIZING;
@@ -119,7 +159,7 @@ public class DemoDataInitializer implements ApplicationRunner {
                     + "을 추적하는 인물들의 선택과 성장을 그린 이야기.";
 
             Novel novel = Novel.create(
-                    owner, title, penName, genres, synopsis,
+                    author, title, penName, genres, synopsis,
                     status, visibility
             );
             if (!multipleParts) {

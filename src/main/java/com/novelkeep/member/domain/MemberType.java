@@ -4,7 +4,7 @@ public enum MemberType {
 
     READER("독자"),
     AUTHOR("작가"),
-    ADMIN("관리자");
+    ADMIN("운영자");
 
     private final String displayName;
 

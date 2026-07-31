@@ -99,6 +99,7 @@ public class StoryContentController {
         model.addAttribute("novel", novel);
         model.addAttribute("latestParts", storyContentService.latestParts(novel));
         model.addAttribute("owned", true);
+        model.addAttribute("canManageContent", true);
         model.addAttribute("privileged", true);
         model.addAttribute("partStatuses", StoryPartStatus.values());
         model.addAttribute("episodeStatuses", EpisodeStatus.values());
@@ -470,12 +471,14 @@ public class StoryContentController {
         Novel novel = episode.getStoryPart().getNovel();
         EpisodeNavigation navigation = storyContentService.buildNavigation(episodeId, memberId, role);
         boolean owned = novel.isOwnedBy(memberId);
+        boolean canManageContent = owned && role == ExperienceRole.WRITER;
 
         model.addAttribute("episode", episode);
         model.addAttribute("novel", novel);
         model.addAttribute("part", episode.getStoryPart());
         model.addAttribute("navigation", navigation);
         model.addAttribute("owned", owned);
+        model.addAttribute("canManageContent", canManageContent);
         model.addAttribute("multiPart", novel.isMultiPart());
         model.addAttribute(
                 "bookmarked",
@@ -519,7 +522,7 @@ public class StoryContentController {
     }
 
     private boolean canWrite(ExperienceRole role) {
-        return role == ExperienceRole.WRITER || role == ExperienceRole.ADMIN;
+        return role == ExperienceRole.WRITER;
     }
 
     private Object unauthorized(HttpServletRequest request) {

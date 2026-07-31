@@ -4,7 +4,8 @@
 <th:block th:fragment="siteNav(active)">
     <nav class="navbar navbar-expand-lg bg-white border-bottom sticky-top nk-navbar" aria-label="공통 메뉴">
         <div class="container py-2">
-            <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" th:href="@{/main}">
+            <a class="navbar-brand d-flex align-items-center gap-2 fw-bold"
+               th:href="${roleKey == 'ADMIN'} ? @{/admin/orders} : @{/main}">
                 <span class="brand-mark" aria-hidden="true">N</span>
                 <span>노벨킵</span>
             </a>
@@ -13,7 +14,7 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div id="siteNavbar" class="collapse navbar-collapse">
-                <ul class="navbar-nav me-auto ms-lg-4 mb-3 mb-lg-0">
+                <ul th:unless="${roleKey == 'ADMIN'}" class="navbar-nav me-auto ms-lg-4 mb-3 mb-lg-0">
                     <li class="nav-item">
                         <a class="nav-link" th:classappend="${active == 'home'} ? ' active'" th:href="@{/main}">홈</a>
                     </li>
@@ -34,7 +35,7 @@
                            th:href="@{/main#funding}">소장본 펀딩</a>
                     </li>
                 </ul>
-                <div class="d-flex align-items-center gap-2 flex-wrap">
+                <div class="d-flex align-items-center gap-2 flex-wrap ms-lg-auto">
                     <button class="btn btn-sm btn-outline-secondary theme-toggle" type="button"
                             data-theme-toggle aria-label="다크 모드로 전환" aria-pressed="false">
                         <span aria-hidden="true">◐</span>
@@ -53,7 +54,7 @@
     <section class="role-menu border-bottom" th:if="${roleKey != null}">
         <div class="container py-2">
             <div class="role-menu-inner">
-                <div class="role-menu-group">
+                <div th:unless="${roleKey == 'ADMIN'}" class="role-menu-group">
                     <div class="role-links">
                         <a class="role-link" th:classappend="${active == 'novels'} ? ' is-active'"
                            th:href="@{/novels}">작품 탐색</a>
@@ -72,11 +73,10 @@
                     </div>
                 </div>
                 <div th:if="${roleKey == 'ADMIN'}" class="role-menu-group">
-                    <strong class="role-menu-title">관리자 메뉴</strong>
+                    <strong class="role-menu-title">운영자 메뉴</strong>
                     <div class="role-links">
-                        <span class="role-link disabled">운영 통계 <small>준비 중</small></span>
-                        <span class="role-link disabled">전체 주문 관리 <small>준비 중</small></span>
-                        <span class="role-link disabled">데이터 내보내기 <small>준비 중</small></span>
+                        <a class="role-link" th:classappend="${active == 'admin-orders'} ? ' is-active'"
+                           th:href="@{/admin/orders}">전체 주문 관리</a>
                     </div>
                 </div>
                 <div class="role-menu-actions">

@@ -241,12 +241,6 @@ public class StoryContentService {
                 form.getStatus()
         );
         part.addEpisode(episode);
-        if (form.getStatus() != EpisodeStatus.PUBLISHED && part.getStatus() == StoryPartStatus.COMPLETED) {
-            part.update(part.getTitle(), StoryPartStatus.SERIALIZING);
-            if (part.getNovel().getStatus() == NovelStatus.COMPLETED) {
-                part.getNovel().changeStatus(NovelStatus.SERIALIZING);
-            }
-        }
         storyPartRepository.save(part);
         return episode.getId();
     }
@@ -254,19 +248,11 @@ public class StoryContentService {
     @Transactional
     public void updateEpisode(Long episodeId, Long memberId, EpisodeForm form) {
         Episode episode = findOwnedEpisode(episodeId, memberId);
-        StoryPart part = episode.getStoryPart();
         episode.update(
                 normalize(form.getTitle()),
                 form.getContent() == null ? "" : form.getContent(),
                 form.getStatus()
         );
-
-        if (form.getStatus() != EpisodeStatus.PUBLISHED && part.getStatus() == StoryPartStatus.COMPLETED) {
-            part.update(part.getTitle(), StoryPartStatus.SERIALIZING);
-            if (part.getNovel().getStatus() == NovelStatus.COMPLETED) {
-                part.getNovel().changeStatus(NovelStatus.SERIALIZING);
-            }
-        }
     }
 
     @Transactional
@@ -277,7 +263,6 @@ public class StoryContentService {
         bookmarkRepository.deleteByEpisodeId(episodeId);
         part.removeEpisode(episode);
         renumberEpisodes(part);
-        refreshPartCompletion(part);
         return novelId;
     }
 
@@ -295,13 +280,8 @@ public class StoryContentService {
         if (targets.size() != requested.size()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "선택한 회차 중 처리할 수 없는 항목이 있습니다.");
         }
-        Set<StoryPart> touchedParts = new LinkedHashSet<>();
         for (Episode episode : targets) {
             episode.changeStatus(status);
-            touchedParts.add(episode.getStoryPart());
-        }
-        for (StoryPart part : touchedParts) {
-            refreshPartCompletion(part);
         }
     }
 
@@ -328,7 +308,6 @@ public class StoryContentService {
                 part.removeEpisode(episode);
             }
             renumberEpisodes(part);
-            refreshPartCompletion(part);
         }
         return novelId;
     }
@@ -343,15 +322,6 @@ public class StoryContentService {
             }
         }
         return found;
-    }
-
-    private void refreshPartCompletion(StoryPart part) {
-        if (!part.allEpisodesPublished() && part.getStatus() == StoryPartStatus.COMPLETED) {
-            part.update(part.getTitle(), StoryPartStatus.SERIALIZING);
-            if (part.getNovel().getStatus() == NovelStatus.COMPLETED) {
-                part.getNovel().changeStatus(NovelStatus.SERIALIZING);
-            }
-        }
     }
 
     @Transactional(readOnly = true)

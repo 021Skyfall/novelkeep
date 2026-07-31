@@ -45,6 +45,9 @@ public class HomeController {
                     Member member = memberService.findExperienceMember(selectedRole.getMemberType());
                     session.setAttribute(SESSION_ROLE, selectedRole);
                     session.setAttribute(SESSION_MEMBER_ID, member.getId());
+                    if (selectedRole == ExperienceRole.ADMIN) {
+                        return "redirect:/admin/orders";
+                    }
                     return "redirect:/main";
                 })
                 .orElseGet(() -> {

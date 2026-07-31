@@ -28,8 +28,12 @@ public class NavigationModelAdvice {
 
     @ModelAttribute("canWrite")
     public boolean canWrite(HttpServletRequest request) {
-        ExperienceRole role = currentRole(request);
-        return role == ExperienceRole.WRITER || role == ExperienceRole.ADMIN;
+        return currentRole(request) == ExperienceRole.WRITER;
+    }
+
+    @ModelAttribute("canOperate")
+    public boolean canOperate(HttpServletRequest request) {
+        return currentRole(request) == ExperienceRole.ADMIN;
     }
 
     @ModelAttribute("memberId")

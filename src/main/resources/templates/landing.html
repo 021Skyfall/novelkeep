@@ -77,7 +77,7 @@
             <div th:if="${param.roleRequired}" class="alert alert-warning text-center" role="alert"
                  data-push-notification data-notification-type="warning"
                  data-notification-label="역할 선택 필요">
-                이 기능을 이용하려면 먼저 독자·작가·관리자 중 체험할 역할을 선택해 주세요.
+                이 기능을 이용하려면 먼저 독자·작가·운영자 중 체험할 역할을 선택해 주세요.
             </div>
 
             <div class="row g-4 justify-content-center">
@@ -115,12 +115,12 @@
                     <article class="card role-card h-100 border-0 shadow-sm">
                         <div class="card-body p-4 p-lg-5 d-flex flex-column">
                             <span class="role-symbol admin-symbol" aria-hidden="true">A</span>
-                            <h3 class="h4 fw-bold mt-4">관리자로 체험</h3>
+                            <h3 class="h4 fw-bold mt-4">운영자로 체험</h3>
                             <p class="text-secondary flex-grow-1">
-                                전체 주문과 제작 상태를 관리하고 펀딩·주문 운영 통계를 확인합니다.
+                                전체 주문 내역을 확인하고 상태를 관리하며, 주문 데이터를 CSV·JSON으로 내려받습니다.
                             </p>
                             <form th:action="@{/experience/admin}" method="post">
-                                <button class="btn btn-outline-dark role-button w-100" type="submit">관리자 화면 시작</button>
+                                <button class="btn btn-outline-dark role-button w-100" type="submit">운영자 화면 시작</button>
                             </form>
                         </div>
                     </article>

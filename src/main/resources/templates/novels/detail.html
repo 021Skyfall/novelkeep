@@ -92,7 +92,7 @@
                                 th:text="${recommended} ? '추천 취소' : '추천하기'">추천하기</button>
                     </form>
                 </div>
-                <div th:if="${owned}" class="d-flex flex-wrap gap-2 justify-content-lg-end writer-detail-actions">
+                <div th:if="${canManageContent}" class="d-flex flex-wrap gap-2 justify-content-lg-end writer-detail-actions">
                     <a class="btn btn-content-action btn-outline-dark"
                        th:href="@{/writer/novels/{id}/edit(id=${novel.id})}">기본 정보 수정</a>
                     <form th:action="@{/writer/novels/{id}/delete(id=${novel.id})}" method="post"
@@ -110,7 +110,7 @@
 
     <section class="mt-5"
              data-parts-root
-             th:attr="data-parts-partial=${owned} ? @{/writer/novels/{id}/detail-parts/partial(id=${novel.id})} : null">
+             th:attr="data-parts-partial=${canManageContent} ? @{/writer/novels/{id}/detail-parts/partial(id=${novel.id})} : null">
         <div th:replace="~{novels/fragments/detail-parts :: partsPanel}"></div>
     </section>
 </main>
@@ -120,6 +120,6 @@
 </footer>
 <script th:src="@{/vendor/bootstrap/js/bootstrap.bundle.min.js}"></script>
 <script th:src="@{/js/novel-actions.js}"></script>
-<script th:if="${owned}" th:src="@{/js/novel-detail-writer.js}"></script>
+<script th:if="${canManageContent}" th:src="@{/js/novel-detail-writer.js}"></script>
 </body>
 </html>

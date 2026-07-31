@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="노벨킵 운영자 주문 관리">
+    <title>전체 주문 관리 | 노벨킵</title>
+    <script th:src="@{/js/theme.js}"></script>
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/navigation.css}">
+    <link rel="stylesheet" th:href="@{/css/novel.css}">
+</head>
+<body th:classappend="${roleKey != null} ? | role-${#strings.toLowerCase(roleKey)}|">
+<div th:replace="~{fragments/navigation :: siteNav(${navActive})}"></div>
+
+<main class="container py-5">
+    <header class="page-heading mb-4">
+        <span class="eyebrow">OPERATOR DASHBOARD</span>
+        <h1 class="display-6 fw-bold mt-2">전체 주문 관리</h1>
+        <p class="text-secondary mb-0">펀딩 성공 건에서 전환된 책 제작 주문을 확인하고 상태를 관리합니다.</p>
+    </header>
+
+    <div th:if="${orderUpdated}" class="alert alert-success"
+         data-push-notification data-notification-type="success"
+         data-notification-label="주문 상태 변경">주문 상태가 변경되었습니다.</div>
+    <div th:if="${orderError}" class="alert alert-danger" th:text="${orderError}">오류</div>
+
+    <form class="search-panel mb-4" method="get" th:action="@{/admin/orders}" th:object="${criteria}">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label fw-semibold" for="novelTitle">작품명</label>
+                <input id="novelTitle" class="form-control" type="search" th:field="*{novelTitle}"
+                       placeholder="작품 제목">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-semibold" for="status">주문 상태</label>
+                <select id="status" class="form-select" th:field="*{status}">
+                    <option value="">전체</option>
+                    <option th:each="statusOption : ${statuses}"
+                            th:value="${statusOption}"
+                            th:text="${statusOption.displayName}">접수</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-semibold" for="orderedFrom">주문 시작일</label>
+                <input id="orderedFrom" class="form-control" type="date" th:field="*{orderedFrom}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-semibold" for="orderedTo">주문 종료일</label>
+                <input id="orderedTo" class="form-control" type="date" th:field="*{orderedTo}">
+            </div>
+            <div class="col-md-2 d-flex flex-wrap gap-2">
+                <button class="btn btn-dark flex-grow-1" type="submit">조회</button>
+                <a class="btn btn-outline-secondary" th:href="@{/admin/orders}">초기화</a>
+            </div>
+        </div>
+    </form>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <p class="mb-0 text-secondary small"
+           th:text="|총 ${#lists.size(orders)}건|">총 0건</p>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-sm btn-outline-dark"
+               th:href="@{/admin/orders/export.csv(novelTitle=${criteria.novelTitle}, status=${criteria.status}, orderedFrom=${criteria.orderedFrom}, orderedTo=${criteria.orderedTo})}">
+                CSV 다운로드
+            </a>
+            <a class="btn btn-sm btn-outline-dark"
+               th:href="@{/admin/orders/export.json(novelTitle=${criteria.novelTitle}, status=${criteria.status}, orderedFrom=${criteria.orderedFrom}, orderedTo=${criteria.orderedTo})}">
+                JSON 다운로드
+            </a>
+        </div>
+    </div>
+
+    <div th:if="${#lists.isEmpty(orders)}" class="empty-state border rounded-3 p-5 text-center">
+        <strong>조회된 주문이 없습니다.</strong>
+        <p class="mb-3 text-secondary">필터 조건을 바꿔 보거나 초기화해 주세요.</p>
+        <a class="btn btn-outline-dark" th:href="@{/admin/orders}">필터 초기화</a>
+    </div>
+
+    <div th:unless="${#lists.isEmpty(orders)}" class="table-responsive border rounded-3">
+        <table class="table align-middle mb-0">
+            <thead class="table-light">
+            <tr>
+                <th scope="col">주문번호</th>
+                <th scope="col">작품</th>
+                <th scope="col">권</th>
+                <th scope="col" class="text-end">수량</th>
+                <th scope="col">주문일</th>
+                <th scope="col">상태</th>
+                <th scope="col" class="text-end">처리</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="order : ${orders}">
+                <td th:text="${order.id()}">1</td>
+                <td class="fw-semibold" th:text="${order.novelTitle()}">작품명</td>
+                <td th:text="${order.partLabel()}">1부</td>
+                <td class="text-end" th:text="${order.quantity()}">1</td>
+                <td th:text="${#temporals.format(order.orderedAt(), 'yyyy-MM-dd HH:mm')}">2026-01-01</td>
+                <td>
+                    <span class="badge text-bg-light border" th:text="${order.statusLabel()}">접수</span>
+                </td>
+                <td class="text-end">
+                    <form th:if="${order.canAdvance()}"
+                          th:action="@{/admin/orders/{id}/status(id=${order.id()})}" method="post"
+                          class="d-inline"
+                          th:attr="data-confirm-message=|상태를 '${order.nextStatusLabel()}'(으)로 변경할까요?|,
+                                   data-confirm-title='주문 상태 변경',
+                                   data-confirm-text='예, 변경'">
+                        <input type="hidden" name="novelTitle" th:value="${criteria.novelTitle}">
+                        <input th:if="${criteria.status != null}" type="hidden" name="status" th:value="${criteria.status}">
+                        <input th:if="${criteria.orderedFrom != null}" type="hidden" name="orderedFrom" th:value="${criteria.orderedFrom}">
+                        <input th:if="${criteria.orderedTo != null}" type="hidden" name="orderedTo" th:value="${criteria.orderedTo}">
+                        <button class="btn btn-sm btn-outline-dark" type="submit"
+                                th:text="|→ ${order.nextStatusLabel()}|">→ 제작 중</button>
+                    </form>
+                    <span th:unless="${order.canAdvance()}" class="small text-secondary">완료</span>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<footer class="border-top py-4">
+    <div class="container small text-secondary">NovelKeep · 운영자 주문 대시보드</div>
+</footer>
+<script th:src="@{/vendor/bootstrap/js/bootstrap.bundle.min.js}"></script>
+</body>
+</html>

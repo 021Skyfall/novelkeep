@@ -282,7 +282,7 @@ public class NovelService {
     private Member findAuthor(Long memberId) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
-        if (member.getMemberType() != MemberType.AUTHOR && member.getMemberType() != MemberType.ADMIN) {
+        if (member.getMemberType() != MemberType.AUTHOR) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
         return member;
