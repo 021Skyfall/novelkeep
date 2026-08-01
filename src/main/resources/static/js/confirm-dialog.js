@@ -51,9 +51,9 @@
             var actions = document.createElement("div");
             actions.className = "nk-confirm-actions";
 
-            var cancelButton = createButton(settings.cancelText || "아니오", "btn-outline-secondary");
             var confirmClass = tone === "danger" ? "btn-danger" : "btn-warning";
             var confirmButton = createButton(settings.confirmText || "예", confirmClass);
+            var cancelButton = createButton(settings.cancelText || "아니오", "btn-outline-secondary");
 
             function close(confirmed) {
                 document.removeEventListener("keydown", handleKeydown);
@@ -76,8 +76,8 @@
                     return;
                 }
 
-                var first = cancelButton;
-                var last = confirmButton;
+                var first = confirmButton;
+                var last = cancelButton;
                 if (event.shiftKey && document.activeElement === first) {
                     event.preventDefault();
                     last.focus();
@@ -99,8 +99,8 @@
                 }
             });
 
-            actions.appendChild(cancelButton);
             actions.appendChild(confirmButton);
+            actions.appendChild(cancelButton);
             dialog.appendChild(title);
             dialog.appendChild(messageBox);
             dialog.appendChild(actions);
@@ -109,7 +109,7 @@
             document.documentElement.classList.add("nk-confirm-scroll-lock");
             document.addEventListener("keydown", handleKeydown);
             activeDialog = backdrop;
-            cancelButton.focus();
+            confirmButton.focus();
         });
     }
 

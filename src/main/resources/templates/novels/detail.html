@@ -114,7 +114,7 @@
                     <a class="btn btn-content-action btn-outline-dark"
                        th:href="@{/writer/novels/{id}/edit(id=${novel.id})}">기본 정보 수정</a>
                     <a class="btn btn-content-action btn-outline-secondary"
-                       th:href="@{/writer/publishing}">내 펀딩 관리</a>
+                       th:href="@{/writer/publishing(novelTitle=${novel.title})}">펀딩 관리</a>
                     <form th:action="@{/writer/novels/{id}/delete(id=${novel.id})}" method="post"
                           data-confirm-delete="작품과 모든 권(부)·회차를 영구 삭제합니다. 삭제 후에는 되돌릴 수 없습니다."
                           data-confirm-title="작품 영구 삭제"

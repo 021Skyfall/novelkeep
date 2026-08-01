@@ -259,8 +259,8 @@ erDiagram
 - `approved_at`: 운영자 승인 시각. 마감 직후는 승인 대기이며, 승인 시에만 주문 생성 또는 모의 환불.
 - `target_quantity`: 목표 부수(최소 10). `current_quantity`는 참여 합으로 갱신·표시한다.
 - 홈에는 `OPEN`이면서 기간 내·공개 작품인 캠페인을 최신순 최대 5건 노출한다.
-- 작가 OPEN·수정·취소·마감과 독자 참여·운영자 승인까지 구현. 독자 「내 펀딩·주문」 전용 화면만 Lv2 잔여.
-- 한 부에 OPEN은 동시에 1개. 종료 후 재개설 가능. 작품당 동시 OPEN 상한은 보류.
+- 작가 OPEN·수정·취소·마감과 독자 참여·내 펀딩·주문·운영자 승인까지 구현. 운영 통계(A-01)만 Lv2 잔여.
+- 한 부에 OPEN은 동시에 1개. 종료 후 재개설 가능. 작품당 동시 OPEN 상한은 두지 않음(취소/불필요).
 
 ### FUNDING_PARTICIPATION — 펀딩 참여
 
@@ -339,7 +339,7 @@ DB 제약조건으로 표현하기 어려운 아래 규칙은 Service에서 검�
 | EPISODE_BOOKMARK | `UNIQUE(member_id, novel_id)` | 이어읽기 저장·조회 |
 | STORY_PART | `(novel_id, part_number)` | 작품 상세 |
 | EPISODE | `(story_part_id, episode_number)` | 회차 목록·읽기 |
-| FUNDING_CAMPAIGN | `(status, end_at)` | 진행 중 펀딩 목록 |
+| FUNDING_CAMPAIGN | `(status, end_at)` | 펀딩 중(OPEN) 목록 |
 | FUNDING_PARTICIPATION | `(member_id, created_at)` | 내 펀딩 |
 | BOOK_ORDER | `(status, ordered_at)` | 관리자 주문 관리·통계·내보내기 |
 
@@ -439,7 +439,13 @@ PENDING → PROCESSING → PRODUCTION_DONE → SHIP_READY → SHIPPING → DELIV
 1. 펀딩이 `OPEN`이고 현재 시간이 기간 안인지 확인
 2. 회원의 중복 참여 여부 확인
 3. 서버에서 모의 결제 금액 계산
-4. `PAID_MOCK` 참여 저장
+4. `PAID_MOCK` 참여 저장 · `currentQuantity` 증가
+
+### OPEN 중 환불(참여 취소)
+
+1. 캠페인이 `OPEN`인지 확인(성공 마감 이후 불가)
+2. 본인 `PAID_MOCK` 참여 건을 `REFUNDED_MOCK`으로 변경
+3. `currentQuantity` 감소
 
 ### 펀딩 마감·승인
 
@@ -470,6 +476,6 @@ PENDING → PROCESSING → PRODUCTION_DONE → SHIP_READY → SHIPPING → DELIV
 - 리소스 ID와 작품 작성자 회원 ID를 결합한 소유권 검증
 - 공통 플랫폼 메인과 누적 권한 메뉴
 - 번호가 포함된 부 완결 표시 (`1부 완결`, `2부 완결`)
-- 운영자 주문 상태 관리와 CSV·JSON 내보내기 (A-02), 펀딩 승인(`/admin/fundings`). 운영 통계(A-01)는 이후 보강
-- 작품·부·회차·펀딩·참여·주문 시드 구현 완료. **독자·작가 Lv1·Lv2 핵심 완료.** 다음은 독자 내 펀딩·주문 화면
-- 진행률(2026-08-01): Phase1 100% · Lv1 100% · Lv2 ~85% · Lv3 UX ~85% → **전체 약 85%**
+- 운영자 주문 상태 관리와 CSV·JSON 내보내기 (A-02, 캠페인 묶음 목록·상세·영수증), 펀딩 승인(`/admin/fundings`). 운영 통계(A-01)는 이후 보강
+- 작품·부·회차·펀딩·참여·주문 시드 구현 완료. **독자·작가 Lv1·Lv2 핵심 완료.** Lv2 잔여는 운영자 통계(A-01)만.
+- 진행률(2026-08-01): Phase1 100% · Lv1 100% · Lv2 ~92% · Lv3 UX ~85% → **전체 약 90%**

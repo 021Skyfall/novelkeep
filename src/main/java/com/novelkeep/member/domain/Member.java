@@ -21,8 +21,11 @@ public class Member {
     private Long id;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "member_type", nullable = false, unique = true, length = 20)
+    @Column(name = "member_type", nullable = false, length = 20)
     private MemberType memberType;
+
+    @Column(name = "display_name", length = 40)
+    private String displayName;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
@@ -33,6 +36,13 @@ public class Member {
     public static Member create(MemberType memberType) {
         Member member = new Member();
         member.memberType = memberType;
+        return member;
+    }
+
+    public static Member createMockReader(String displayName) {
+        Member member = new Member();
+        member.memberType = MemberType.READER;
+        member.displayName = displayName;
         return member;
     }
 
@@ -47,6 +57,17 @@ public class Member {
 
     public MemberType getMemberType() {
         return memberType;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public String resolveLabel() {
+        if (displayName != null && !displayName.isBlank()) {
+            return displayName;
+        }
+        return memberType.getDisplayName();
     }
 
     public LocalDateTime getCreatedAt() {

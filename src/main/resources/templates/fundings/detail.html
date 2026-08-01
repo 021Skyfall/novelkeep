@@ -25,13 +25,14 @@
     <article class="funding-card"
              th:attr="data-campaign-id=${campaign.id},
                       data-participate-url=@{/fundings/{id}/participate(id=${campaign.id})},
+                      data-refund-url=@{/fundings/{id}/refund(id=${campaign.id})},
                       data-price-label=${#numbers.formatInteger(campaign.priceAmount, 1, 'COMMA') + '원'}">
         <div class="d-flex flex-column flex-sm-row justify-content-between gap-3">
             <div class="flex-grow-1">
                 <div class="d-flex flex-column flex-sm-row justify-content-between gap-2">
                     <div>
                         <span class="badge status-completed mb-2" th:text="${campaign.partCompletionLabel()}">1부 완결</span>
-                        <span class="badge text-bg-light border mb-2" th:text="${campaign.status.displayName}">진행 중</span>
+                        <span class="badge text-bg-light border mb-2" th:text="${campaign.status.displayName}">펀딩 중</span>
                         <h1 class="h3 fw-bold mb-1" th:text="${campaign.displayTitle()}">작품 1부</h1>
                         <p class="text-secondary mb-0">
                             <a th:href="@{/novels/{id}(id=${novel.id})}" th:text="${novel.title}">작품</a>
@@ -57,7 +58,7 @@
                         <strong th:text="${#temporals.format(campaign.endAt, 'yyyy-MM-dd HH:mm')}">마감</strong>
                     </div>
                     <div th:if="${memberOrderStatus != null}">
-                        <span>출판 상태</span>
+                        <span>제품 상태</span>
                         <strong th:text="${memberOrderStatus.displayName}">접수</strong>
                     </div>
                 </div>
@@ -83,10 +84,24 @@
                           method="post"
                           data-funding-participate-form>
                         <button class="btn btn-dark" type="submit" data-funding-participate-btn>
-                            결제하고 1부 참여하기
+                            결제하고 참여하기
                         </button>
                     </form>
-                    <button th:unless="${canParticipate}"
+                    <form th:if="${canRefund}"
+                          th:action="@{/fundings/{id}/refund(id=${campaign.id})}"
+                          method="post"
+                          class="d-inline"
+                          data-funding-refund-form
+                          th:attr="data-confirm-message='진행 중인 펀딩 참여를 환불할까요?',
+                                   data-confirm-title='환불 확인',
+                                   data-confirm-text='예, 환불',
+                                   data-cancel-text='아니오',
+                                   data-confirm-tone='warning'">
+                        <button class="btn btn-outline-danger" type="submit" data-funding-refund-btn>
+                            환불하기
+                        </button>
+                    </form>
+                    <button th:if="${!canParticipate and !canRefund}"
                             class="btn btn-dark"
                             type="button"
                             disabled

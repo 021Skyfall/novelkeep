@@ -83,7 +83,7 @@
 
 @media (max-width: 575.98px) {
     .nk-confirm-actions {
-        flex-direction: column-reverse;
+        flex-direction: column;
     }
 
     .nk-confirm-button {

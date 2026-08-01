@@ -12,7 +12,7 @@
     }
 
     function confirmParticipate(priceLabel) {
-        var message = (priceLabel || '판매가') + '로 결제하고 1부 참여할까요?\n같은 펀딩에는 한 번만 참여할 수 있습니다.';
+        var message = (priceLabel || '판매가') + '로 결제하고 참여할까요?\n같은 펀딩에는 한 번만 참여할 수 있습니다.';
         if (window.NovelKeepConfirm && typeof window.NovelKeepConfirm.open === 'function') {
             return window.NovelKeepConfirm.open(message, {
                 title: '결제 확인',
@@ -41,16 +41,35 @@
         if (existingBtn) {
             existingBtn.remove();
         }
-        var disabled = document.createElement('button');
-        disabled.type = 'button';
-        disabled.className = 'btn btn-dark';
-        disabled.disabled = true;
-        disabled.textContent = '이미 참여했습니다';
-        actions.insertBefore(disabled, actions.firstChild);
+        var disabled = actions.querySelector('button[disabled]');
+        if (disabled) {
+            disabled.remove();
+        }
+
+        var refundUrl = card.getAttribute('data-refund-url');
+        if (refundUrl && !actions.querySelector('[data-funding-refund-form]')) {
+            var refundForm = document.createElement('form');
+            refundForm.method = 'post';
+            refundForm.action = refundUrl;
+            refundForm.className = 'd-inline';
+            refundForm.setAttribute('data-funding-refund-form', '');
+            refundForm.setAttribute('data-confirm-message', '진행 중인 펀딩 참여를 환불할까요?');
+            refundForm.setAttribute('data-confirm-title', '환불 확인');
+            refundForm.setAttribute('data-confirm-text', '예, 환불');
+            refundForm.setAttribute('data-cancel-text', '아니오');
+            refundForm.setAttribute('data-confirm-tone', 'warning');
+            var refundBtn = document.createElement('button');
+            refundBtn.type = 'submit';
+            refundBtn.className = 'btn btn-outline-danger';
+            refundBtn.setAttribute('data-funding-refund-btn', '');
+            refundBtn.textContent = '환불하기';
+            refundForm.appendChild(refundBtn);
+            actions.insertBefore(refundForm, actions.firstChild);
+        }
 
         var hint = actions.querySelector('[data-funding-hint]');
         if (hint) {
-            hint.textContent = '이미 이 펀딩에 참여했습니다. 결제 완료 상태입니다.';
+            hint.textContent = '이미 이 펀딩에 참여했습니다. 진행 중에는 환불할 수 있습니다.';
         }
 
         var quantity = card.querySelector('[data-funding-quantity]');

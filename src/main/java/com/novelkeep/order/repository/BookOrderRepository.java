@@ -72,10 +72,35 @@ public interface BookOrderRepository extends JpaRepository<BookOrder, Long> {
             select o
               from BookOrder o
               join fetch o.participation p
+              join fetch p.member m
+              join fetch p.campaign c
+              join fetch c.storyPart sp
+              join fetch sp.novel n
+             where p.campaign.id = :campaignId
+             order by o.id asc
+            """)
+    List<BookOrder> findDetailByCampaignId(@Param("campaignId") Long campaignId);
+
+    @Query("""
+            select o
+              from BookOrder o
+              join fetch o.participation p
               join fetch p.campaign c
               join fetch c.storyPart sp
               join fetch sp.novel n
              where o.id = :id
             """)
     Optional<BookOrder> findDetailById(@Param("id") Long id);
+
+    @Query("""
+            select distinct o
+              from BookOrder o
+              join fetch o.participation p
+              join fetch p.campaign c
+              join fetch c.storyPart sp
+              join fetch sp.novel n
+             where p.member.id = :memberId
+             order by o.orderedAt desc, o.id desc
+            """)
+    List<BookOrder> findDetailByMemberId(@Param("memberId") Long memberId);
 }

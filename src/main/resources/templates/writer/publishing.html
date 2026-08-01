@@ -48,17 +48,15 @@
         <div class="row g-3 align-items-end">
             <div class="col-md-6">
                 <label class="form-label fw-semibold" for="novelTitle">작품명</label>
-                <div class="search-input-wrap">
-                    <span class="search-input-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" width="18" height="18" focusable="false">
-                            <path fill="currentColor"
-                                  d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
-                        </svg>
-                    </span>
-                    <input id="novelTitle" class="form-control search-input-with-icon" type="search" name="novelTitle"
+                <div class="keyword-search-field">
+                    <input id="novelTitle" class="form-control" type="search" name="novelTitle"
                            th:value="${criteria.novelTitle}"
                            placeholder="작품명으로 검색" autocomplete="off"
                            data-publishing-title>
+                    <button class="keyword-search-btn" type="button" data-publishing-search-btn
+                            aria-label="검색">
+                        <span aria-hidden="true">⌕</span>
+                    </button>
                 </div>
             </div>
             <div class="col-md-6">
@@ -76,8 +74,8 @@
             </div>
         </div>
         <div class="mt-3">
-            <span class="form-label fw-semibold d-block mb-2">출판 상태</span>
-            <div class="publishing-chip-row" role="group" aria-label="출판 상태 필터">
+            <span class="form-label fw-semibold d-block mb-2">제품 상태</span>
+            <div class="publishing-chip-row" role="group" aria-label="제품 상태 필터">
                 <button type="button" class="btn btn-sm publishing-chip"
                         data-order-status=""
                         th:classappend="${criteria.orderStatus == null} ? ' is-active'">전체</button>
@@ -177,7 +175,7 @@
                         <div th:if="${campaign.status.name() != 'OPEN'}"
                              class="publishing-status-bar publishing-status-bar-stack mb-0"
                              th:with="orderStatus=${orderStatusByCampaignId != null ? orderStatusByCampaignId.get(campaign.id) : null}">
-                            <div th:if="${campaign.storyPart.publishedCharacterCount() > guideVolumeChars}"
+                            <div th:if="${!campaign.approved and campaign.storyPart.publishedCharacterCount() > guideVolumeChars}"
                                  class="alert alert-warning py-2 small mb-0"
                                  th:text="|해당 작품은 ${#numbers.formatInteger(campaign.storyPart.publishedCharacterCount(), 1, 'COMMA')}자 입니다. 공개 회차 합이 10만 자를 넘습니다. 출판 담당과 문의가 필요합니다.|">
                                 분량 안내
@@ -189,7 +187,7 @@
                             <p class="publishing-status-note is-success mb-0"
                                th:if="${campaign.approved and campaign.status.name() == 'SUCCESS'}">
                                 <th:block th:if="${orderStatus != null}"
-                                          th:text="|주문이 접수되었습니다. 현재 ${orderStatus.displayName} 단계입니다.|">주문</th:block>
+                                          th:text="${orderStatus.progressNote()}">주문</th:block>
                                 <th:block th:unless="${orderStatus != null}">
                                     주문이 접수되었습니다.
                                 </th:block>
@@ -266,7 +264,7 @@
                             </div>
 
                             <div class="publishing-status-bar publishing-status-bar-stack mb-0">
-                                <div th:if="${campaign.storyPart.publishedCharacterCount() > guideVolumeChars}"
+                                <div th:if="${!campaign.approved and campaign.storyPart.publishedCharacterCount() > guideVolumeChars}"
                                      class="alert alert-warning py-2 small mb-0"
                                      th:text="|해당 작품은 ${#numbers.formatInteger(campaign.storyPart.publishedCharacterCount(), 1, 'COMMA')}자 입니다. 공개 회차 합이 10만 자를 넘습니다. 출판 담당과 문의가 필요합니다.|">
                                     분량 안내
@@ -283,7 +281,9 @@
                                                 class="btn btn-sm btn-dark" type="button"
                                                 data-funding-close
                                                 th:attr="data-close-url=@{/writer/publishing/campaigns/{cid}/close(cid=${campaign.id})},
-                                                         data-close-ready=${campaign.successReady}"
+                                                         data-close-ready=${campaign.successReady},
+                                                         data-volume-over=${campaign.storyPart.publishedCharacterCount() > guideVolumeChars},
+                                                         data-volume-chars=${#numbers.formatInteger(campaign.storyPart.publishedCharacterCount(), 1, 'COMMA')}"
                                                 data-confirm-title="펀딩 마감"
                                                 data-confirm-text="예, 마감">마감</button>
                                         <button th:if="${campaign.currentQuantity <= 0}"

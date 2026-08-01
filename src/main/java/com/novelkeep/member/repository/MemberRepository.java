@@ -9,5 +9,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface MemberRepository extends JpaRepository<Member, Long> {
 
-    Optional<Member> findByMemberType(MemberType memberType);
+    Optional<Member> findFirstByMemberTypeOrderByIdAsc(MemberType memberType);
 }

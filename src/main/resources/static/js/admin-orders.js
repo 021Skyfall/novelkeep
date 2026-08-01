@@ -19,7 +19,6 @@
         status = activeStatus.getAttribute('data-orders-status') || '';
     }
 
-    var timer = null;
     var abortController = null;
 
     function currentParams() {
@@ -89,13 +88,20 @@
             });
     }
 
-    function scheduleRefresh() {
-        clearTimeout(timer);
-        timer = setTimeout(refresh, 280);
-    }
-
     if (titleInput) {
-        titleInput.addEventListener('input', scheduleRefresh);
+        titleInput.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                refresh();
+            }
+        });
+    }
+    var titleSearchBtn = panel.querySelector('[data-orders-search-btn]');
+    if (titleSearchBtn) {
+        titleSearchBtn.addEventListener('click', function (event) {
+            event.preventDefault();
+            refresh();
+        });
     }
     if (fromInput) {
         fromInput.addEventListener('change', refresh);

@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="노벨킵 운영자 주문 상세">
+    <title th:text="${batch.novelTitle() + ' · 주문 상세 | 노벨킵'}">주문 상세 | 노벨킵</title>
+    <script th:src="@{/js/theme.js}"></script>
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/navigation.css}">
+    <link rel="stylesheet" th:href="@{/css/novel.css}">
+    <link rel="stylesheet" th:href="@{/css/confirm-dialog.css}">
+    <link rel="stylesheet" th:href="@{/css/receipt-mock.css}">
+</head>
+<body th:classappend="${roleKey != null} ? | role-${#strings.toLowerCase(roleKey)}|">
+<div th:replace="~{fragments/navigation :: siteNav(${navActive})}"></div>
+
+<main class="container py-5">
+    <div class="mb-4">
+        <a class="btn btn-outline-secondary" th:href="@{/admin/orders}">← 주문 관리</a>
+    </div>
+
+    <header class="page-heading mb-4">
+        <span class="eyebrow">ORDER DETAIL</span>
+        <h1 class="display-6 fw-bold mt-2">주문 상세</h1>
+        <p class="text-secondary mb-0">
+            작품 단위로 합산된 제작 수량과, 결제자별 영수증 내역입니다.
+        </p>
+    </header>
+
+    <section class="border rounded-3 p-3 mb-4">
+        <div class="d-flex flex-wrap justify-content-between gap-3">
+            <div>
+                <div class="small text-secondary mb-1">작품</div>
+                <a class="h5 fw-bold link-body-emphasis text-decoration-underline mb-0"
+                   th:href="@{/novels/{id}(id=${batch.novelId()})}"
+                   th:text="${batch.novelTitle()}">작품명</a>
+                <div class="small text-secondary mt-1" th:text="${batch.partLabel()}">본편</div>
+            </div>
+            <div class="text-sm-end">
+                <div class="small text-secondary mb-1">제작 수량</div>
+                <strong class="fs-4" th:text="|${batch.totalQuantity()}부|">12부</strong>
+                <div class="small text-secondary" th:text="|참여 ${batch.orderCount()}건 · 묶음 #${batch.campaignId()}|">참여 2건</div>
+            </div>
+        </div>
+        <div class="d-flex flex-wrap gap-3 mt-3 small">
+            <span>제품 상태
+                <strong class="badge text-bg-light border ms-1" th:text="${batch.statusLabel()}">접수</strong>
+            </span>
+            <span>주문일
+                <strong th:text="${#temporals.format(batch.orderedAt(), 'yyyy-MM-dd HH:mm')}">-</strong>
+            </span>
+            <a th:href="@{/fundings/{id}(id=${batch.campaignId()})}">펀딩 상세</a>
+        </div>
+        <div class="mt-3" th:if="${batch.canAdvance()}">
+            <form th:action="@{/admin/orders/campaigns/{id}/status(id=${batch.campaignId()})}" method="post"
+                  class="d-inline"
+                  th:attr="data-confirm-message=|이 작품 주문 묶음(${batch.totalQuantity()}부) 상태를 '${batch.nextStatusLabel()}'(으)로 변경할까요?|,
+                           data-confirm-title='주문 상태 변경',
+                           data-confirm-text='예, 변경'">
+                <button class="btn btn-sm btn-dark" type="submit"
+                        th:text="|→ ${batch.nextStatusLabel()}|">→ 제작중</button>
+            </form>
+        </div>
+    </section>
+
+    <h2 class="h5 fw-bold mb-3">결제자별 내역</h2>
+    <div class="table-responsive border rounded-3">
+        <table class="table align-middle mb-0">
+            <thead class="table-light">
+            <tr>
+                <th scope="col">주문번호</th>
+                <th scope="col">결제자</th>
+                <th scope="col" class="text-end">수량</th>
+                <th scope="col" class="text-end">결제금액</th>
+                <th scope="col">결제일</th>
+                <th scope="col">주문일</th>
+                <th scope="col">제품 상태</th>
+                <th scope="col">상세 내역</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="line : ${lines}">
+                <td th:text="${line.orderId()}">1</td>
+                <td th:text="${line.memberLabel()}">독자</td>
+                <td class="text-end" th:text="|${line.quantity()}부|">1부</td>
+                <td class="text-end"
+                    th:text="${#numbers.formatInteger(line.paidAmount(), 1, 'COMMA') + '원'}">15,000원</td>
+                <td th:text="${#temporals.format(line.paidAt(), 'yyyy-MM-dd HH:mm')}">-</td>
+                <td th:text="${#temporals.format(line.orderedAt(), 'yyyy-MM-dd HH:mm')}">-</td>
+                <td>
+                    <span class="badge text-bg-light border" th:text="${line.statusLabel()}">접수</span>
+                </td>
+                <td>
+                    <button type="button"
+                            class="btn btn-sm btn-outline-secondary"
+                            data-receipt-mock
+                            th:attr="data-receipt-title=${batch.novelTitle()},
+                                     data-receipt-part=${batch.partLabel()},
+                                     data-receipt-kind='주문',
+                                     data-receipt-qty=${line.quantity()},
+                                     data-receipt-amount=${#numbers.formatInteger(line.paidAmount(), 1, 'COMMA') + '원'},
+                                     data-receipt-status=${line.statusLabel()},
+                                     data-receipt-paid-at=${#temporals.format(line.paidAt(), 'yyyy-MM-dd HH:mm')},
+                                     data-receipt-member=${line.memberLabel()},
+                                     data-receipt-order-id=${line.orderId()}">상세 내역</button>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<footer class="border-top py-4">
+    <div class="container small text-secondary">NovelKeep · 주문 상세</div>
+</footer>
+<script th:src="@{/vendor/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/js/receipt-mock.js}"></script>
+</body>
+</html>

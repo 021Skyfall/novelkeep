@@ -249,6 +249,16 @@ public class FundingCampaign {
         this.currentQuantity += quantity;
     }
 
+    public void withdrawParticipation(int quantity) {
+        if (status != FundingCampaignStatus.OPEN) {
+            throw new IllegalStateException("진행 중인 펀딩에서만 참여를 취소할 수 있습니다.");
+        }
+        if (quantity < 1) {
+            throw new IllegalArgumentException("취소 수량은 1 이상이어야 합니다.");
+        }
+        this.currentQuantity = Math.max(0, this.currentQuantity - quantity);
+    }
+
     public void closeAsSuccess() {
         if (status != FundingCampaignStatus.OPEN) {
             throw new IllegalStateException("진행 중인 펀딩만 마감할 수 있습니다.");

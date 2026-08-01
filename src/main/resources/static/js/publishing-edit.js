@@ -43,16 +43,16 @@
             dialog.className = 'nk-confirm-dialog is-warning';
             dialog.innerHTML = '<h2 class="nk-confirm-title"></h2><p class="nk-confirm-message"></p>'
                 + '<div class="nk-confirm-actions">'
-                + '<button type="button" class="btn btn-outline-secondary nk-confirm-button">닫기</button>'
-                + '<button type="button" class="btn btn-warning nk-confirm-button">확인</button></div>';
+                + '<button type="button" class="btn btn-warning nk-confirm-button">확인</button>'
+                + '<button type="button" class="btn btn-outline-secondary nk-confirm-button">닫기</button></div>';
             dialog.querySelector('.nk-confirm-title').textContent = title || '안내';
             dialog.querySelector('.nk-confirm-message').textContent = String(message || '');
             function close(ok) {
                 backdrop.remove();
                 resolve(ok);
             }
-            dialog.querySelectorAll('button')[0].addEventListener('click', function () { close(false); });
-            dialog.querySelectorAll('button')[1].addEventListener('click', function () { close(true); });
+            dialog.querySelectorAll('button')[0].addEventListener('click', function () { close(true); });
+            dialog.querySelectorAll('button')[1].addEventListener('click', function () { close(false); });
             backdrop.appendChild(dialog);
             document.body.appendChild(backdrop);
         });
@@ -264,6 +264,12 @@
 
                 var ready = closeBtn.getAttribute('data-close-ready') === 'true';
                 var confirmMessage = ready ? CLOSE_READY_MESSAGE : CLOSE_FAIL_MESSAGE;
+                if (closeBtn.getAttribute('data-volume-over') === 'true') {
+                    var volumeChars = closeBtn.getAttribute('data-volume-chars') || '';
+                    confirmMessage += '\n\n[분량 안내]\n'
+                        + '해당 작품은 ' + volumeChars + '자 입니다. '
+                        + '공개 회차 합이 10만 자를 넘습니다. 출판 담당과 문의가 필요합니다.';
+                }
 
                 function sendClose() {
                     closeBtn.disabled = true;
@@ -345,7 +351,6 @@
             orderStatus = activeOrderStatus.getAttribute('data-order-status') || '';
         }
 
-        var timer = null;
         var abortController = null;
 
         function refresh() {
@@ -399,9 +404,18 @@
         }
 
         if (titleInput) {
-            titleInput.addEventListener('input', function () {
-                clearTimeout(timer);
-                timer = setTimeout(refresh, 280);
+            titleInput.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    refresh();
+                }
+            });
+        }
+        var titleSearchBtn = panel.querySelector('[data-publishing-search-btn]');
+        if (titleSearchBtn) {
+            titleSearchBtn.addEventListener('click', function (event) {
+                event.preventDefault();
+                refresh();
             });
         }
 

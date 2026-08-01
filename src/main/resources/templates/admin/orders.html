@@ -18,7 +18,7 @@
     <header class="page-heading mb-4">
         <span class="eyebrow">OPERATOR DASHBOARD</span>
         <h1 class="display-6 fw-bold mt-2">주문 관리</h1>
-        <p class="text-secondary mb-0">펀딩 성공 건에서 전환된 책 제작·배송 주문을 확인하고 상태를 관리합니다.</p>
+        <p class="text-secondary mb-0">펀딩 성공 건을 작품(펀딩) 단위로 합산해 제작·배송합니다. 결제자별 내역은 주문 상세에서 확인합니다.</p>
     </header>
 
     <div th:if="${orderUpdated}" class="alert alert-success"
@@ -36,16 +36,14 @@
         <div class="row g-3 align-items-end">
             <div class="col-md-4">
                 <label class="form-label fw-semibold" for="novelTitle">작품명</label>
-                <div class="search-input-wrap">
-                    <span class="search-input-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" width="18" height="18" focusable="false">
-                            <path fill="currentColor"
-                                  d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
-                        </svg>
-                    </span>
-                    <input id="novelTitle" class="form-control search-input-with-icon" type="search"
+                <div class="keyword-search-field">
+                    <input id="novelTitle" class="form-control" type="search"
                            th:value="${criteria.novelTitle}" placeholder="작품 제목" autocomplete="off"
                            data-orders-title>
+                    <button class="keyword-search-btn" type="button" data-orders-search-btn
+                            aria-label="검색">
+                        <span aria-hidden="true">⌕</span>
+                    </button>
                 </div>
             </div>
             <div class="col-md-4">
@@ -60,8 +58,8 @@
             </div>
         </div>
         <div class="mt-3">
-            <span class="form-label fw-semibold d-block mb-2">상태</span>
-            <div class="publishing-chip-row" role="group" aria-label="상태">
+            <span class="form-label fw-semibold d-block mb-2">제품 상태</span>
+            <div class="publishing-chip-row" role="group" aria-label="제품 상태">
                 <button type="button" class="btn btn-sm publishing-chip"
                         data-orders-status=""
                         th:classappend="${criteria.status == null} ? ' is-active'">전체</button>
@@ -96,7 +94,7 @@
         <div th:fragment="orderList">
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                 <p class="mb-0 text-secondary small"
-                   th:text="|총 ${#lists.size(orders)}건|">총 0건</p>
+                   th:text="|총 ${#lists.size(orders)}건 (작품·펀딩 단위)|">총 0건</p>
             </div>
 
             <div th:if="${#lists.isEmpty(orders)}" class="empty-state border rounded-3 p-5 text-center">
@@ -108,39 +106,46 @@
                 <table class="table align-middle mb-0">
                     <thead class="table-light">
                     <tr>
-                        <th scope="col">주문번호</th>
+                        <th scope="col">묶음번호</th>
                         <th scope="col">작품</th>
                         <th scope="col">권</th>
                         <th scope="col" class="text-end">수량</th>
+                        <th scope="col" class="text-end">참여</th>
                         <th scope="col">주문일</th>
-                        <th scope="col">상태</th>
-                        <th scope="col">작품 이동</th>
+                        <th scope="col">제품 상태</th>
+                        <th scope="col">펀딩 상세</th>
+                        <th scope="col">주문 상세</th>
                         <th scope="col" class="text-end">처리</th>
                     </tr>
                     </thead>
                     <tbody>
                     <tr th:each="order : ${orders}">
-                        <td th:text="${order.id()}">1</td>
+                        <td th:text="${order.campaignId()}">1</td>
                         <td>
                             <a class="fw-semibold link-body-emphasis text-decoration-underline"
-                               th:href="@{/fundings/{id}(id=${order.campaignId()})}"
+                               th:href="@{/novels/{id}(id=${order.novelId()})}"
                                th:text="${order.novelTitle()}">작품명</a>
                         </td>
                         <td th:text="${order.partLabel()}">1부</td>
-                        <td class="text-end" th:text="${order.quantity()}">1</td>
+                        <td class="text-end" th:text="${order.totalQuantity()}">1</td>
+                        <td class="text-end" th:text="|${order.orderCount()}건|">1건</td>
                         <td th:text="${#temporals.format(order.orderedAt(), 'yyyy-MM-dd HH:mm')}">2026-01-01</td>
                         <td>
                             <span class="badge text-bg-light border" th:text="${order.statusLabel()}">접수</span>
                         </td>
                         <td>
                             <a class="btn btn-sm btn-outline-secondary"
-                               th:href="@{/novels/{id}(id=${order.novelId()})}">작품 보기</a>
+                               th:href="@{/fundings/{id}(id=${order.campaignId()})}">상세</a>
+                        </td>
+                        <td>
+                            <a class="btn btn-sm btn-outline-dark"
+                               th:href="@{/admin/orders/campaigns/{id}(id=${order.campaignId()})}">주문 상세</a>
                         </td>
                         <td class="text-end">
                             <form th:if="${order.canAdvance()}"
-                                  th:action="@{/admin/orders/{id}/status(id=${order.id()})}" method="post"
+                                  th:action="@{/admin/orders/campaigns/{id}/status(id=${order.campaignId()})}" method="post"
                                   class="d-inline"
-                                  th:attr="data-confirm-message=|상태를 '${order.nextStatusLabel()}'(으)로 변경할까요?|,
+                                  th:attr="data-confirm-message=|이 작품 주문 묶음(${order.totalQuantity()}부) 상태를 '${order.nextStatusLabel()}'(으)로 변경할까요?|,
                                            data-confirm-title='주문 상태 변경',
                                            data-confirm-text='예, 변경'">
                                 <input type="hidden" name="novelTitle" th:value="${criteria.novelTitle}">

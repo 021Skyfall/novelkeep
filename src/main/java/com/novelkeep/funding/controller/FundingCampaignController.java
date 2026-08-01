@@ -50,8 +50,10 @@ public class FundingCampaignController {
         FundingCampaign campaign = fundingCampaignService.findReadable(campaignId);
         boolean ownCampaign = campaign.getStoryPart().getNovel().getAuthor().getId().equals(memberId);
         boolean alreadyParticipated = fundingCampaignService.hasParticipated(campaignId, memberId);
+        boolean paidParticipation = fundingCampaignService.hasPaidParticipation(campaignId, memberId);
         boolean openForJoin = campaign.isOpenForJoin(FundingGuide.nowKorea());
         boolean canParticipate = openForJoin && !ownCampaign && !alreadyParticipated;
+        boolean canRefund = openForJoin && paidParticipation && !ownCampaign;
 
         model.addAttribute("campaign", campaign);
         model.addAttribute("novel", campaign.getStoryPart().getNovel());
@@ -60,12 +62,45 @@ public class FundingCampaignController {
         model.addAttribute("alreadyParticipated", alreadyParticipated);
         model.addAttribute("openForJoin", openForJoin);
         model.addAttribute("canParticipate", canParticipate);
+        model.addAttribute("canRefund", canRefund);
         var memberOrderStatus = fundingCampaignService.findMemberOrderStatus(campaignId, memberId);
         model.addAttribute("memberOrderStatus", memberOrderStatus);
         model.addAttribute("participateHint", resolveParticipateHint(
-                campaign, ownCampaign, alreadyParticipated, openForJoin, memberOrderStatus
+                campaign, ownCampaign, alreadyParticipated, paidParticipation, openForJoin, memberOrderStatus
         ));
         return "fundings/detail";
+    }
+
+    @PostMapping("/fundings/{campaignId}/refund")
+    public Object refund(
+            @PathVariable Long campaignId,
+            @SessionAttribute(name = SESSION_ROLE, required = false) ExperienceRole role,
+            @SessionAttribute(name = SESSION_MEMBER_ID, required = false) Long memberId,
+            HttpServletRequest request,
+            RedirectAttributes redirectAttributes
+    ) {
+        if (role == null || memberId == null) {
+            if (wantsJson(request)) {
+                return ResponseEntity.status(401).body(FundingActionResult.fail("체험 역할을 선택해 주세요."));
+            }
+            return "redirect:/?roleRequired=true";
+        }
+        try {
+            FundingCampaign campaign = fundingCampaignService.cancelParticipation(campaignId, memberId);
+            String message = "환불이 완료되었습니다.";
+            if (wantsJson(request)) {
+                return ResponseEntity.ok(toResult(message, campaign));
+            }
+            redirectAttributes.addFlashAttribute("fundingMessage", message);
+            return "redirect:/fundings/" + campaignId;
+        } catch (ResponseStatusException ex) {
+            String message = resolveMessage(ex);
+            if (wantsJson(request)) {
+                return ResponseEntity.badRequest().body(FundingActionResult.fail(message));
+            }
+            redirectAttributes.addFlashAttribute("fundingError", message);
+            return "redirect:/fundings/" + campaignId;
+        }
     }
 
     @PostMapping("/fundings/{campaignId}/participate")
@@ -84,7 +119,7 @@ public class FundingCampaignController {
         }
         try {
             FundingCampaign campaign = fundingCampaignService.participate(campaignId, memberId);
-            String message = "결제 " + formatWon(campaign.getPriceAmount()) + "으로 1부 참여했습니다.";
+            String message = "결제 " + formatWon(campaign.getPriceAmount()) + "으로 참여했습니다.";
             if (wantsJson(request)) {
                 return ResponseEntity.ok(toResult(message, campaign));
             }
@@ -104,22 +139,29 @@ public class FundingCampaignController {
             FundingCampaign campaign,
             boolean ownCampaign,
             boolean alreadyParticipated,
+            boolean paidParticipation,
             boolean openForJoin,
             BookOrderStatus memberOrderStatus
     ) {
         if (alreadyParticipated) {
             if (memberOrderStatus != null) {
-                return "이미 이 펀딩에 참여했습니다. 현재 " + memberOrderStatus.getDisplayName() + " 단계입니다.";
+                return "이미 이 펀딩에 참여했습니다. " + memberOrderStatus.progressNote();
             }
             if (campaign.getStatus() == FundingCampaignStatus.SUCCESS && campaign.isAwaitingApproval()) {
                 return "이미 이 펀딩에 참여했습니다. 운영자 승인 대기 중입니다.";
             }
+            if (campaign.getStatus() == FundingCampaignStatus.SUCCESS && campaign.isApproved()) {
+                return "이미 이 펀딩에 참여했습니다. 성공 마감 후 환불은 불가합니다.";
+            }
             if (campaign.getStatus() == FundingCampaignStatus.FAILED) {
                 return campaign.isApproved()
-                        ? "이미 이 펀딩에 참여했습니다. 환불이 완료되었습니다."
-                        : "이미 이 펀딩에 참여했습니다. 실패 승인 대기 중입니다.";
+                        ? "이미 이 펀딩에 참여했습니다. 실패 승인으로 환불되었습니다."
+                        : "이미 이 펀딩에 참여했습니다. 실패 마감 · 운영자 승인 대기 중입니다.";
             }
-            return "이미 이 펀딩에 참여했습니다. 결제 완료 상태입니다.";
+            if (!paidParticipation) {
+                return "이미 환불한 펀딩입니다. 같은 펀딩에는 다시 참여할 수 없습니다.";
+            }
+            return "이미 이 펀딩에 참여했습니다. 진행 중에는 환불할 수 있습니다.";
         }
         if (ownCampaign) {
             return "본인 작품의 펀딩에는 참여할 수 없습니다.";

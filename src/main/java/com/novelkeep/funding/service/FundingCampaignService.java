@@ -339,6 +339,16 @@ public class FundingCampaignService {
     }
 
     @Transactional(readOnly = true)
+    public boolean hasPaidParticipation(Long campaignId, Long memberId) {
+        if (campaignId == null || memberId == null) {
+            return false;
+        }
+        return fundingParticipationRepository.findByCampaignIdAndMemberId(campaignId, memberId)
+                .filter(p -> p.getPaymentStatus() == FundingPaymentStatus.PAID_MOCK)
+                .isPresent();
+    }
+
+    @Transactional(readOnly = true)
     public Set<Long> findParticipatedCampaignIds(Long memberId, Collection<Long> campaignIds) {
         if (memberId == null || campaignIds == null || campaignIds.isEmpty()) {
             return Set.of();
@@ -422,6 +432,35 @@ public class FundingCampaignService {
         }
     }
 
+    /**
+     * 진행 중(OPEN) 펀딩 참여 취소·환불. 성공 마감 이후에는 불가.
+     */
+    @Transactional
+    public FundingCampaign cancelParticipation(Long campaignId, Long memberId) {
+        if (memberId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "체험 역할을 선택해 주세요.");
+        }
+        FundingCampaign campaign = fundingCampaignRepository.findDetailById(campaignId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (campaign.getStatus() != FundingCampaignStatus.OPEN) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "진행 중인 펀딩에서만 환불할 수 있습니다.");
+        }
+        FundingParticipation participation = fundingParticipationRepository
+                .findByCampaignIdAndMemberId(campaignId, memberId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "참여 내역이 없습니다."));
+        if (participation.getPaymentStatus() != FundingPaymentStatus.PAID_MOCK) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "이미 환불된 참여입니다.");
+        }
+        LocalDateTime now = FundingGuide.nowKorea();
+        try {
+            participation.refundMock(now);
+            campaign.withdrawParticipation(participation.getQuantity());
+            return campaign;
+        } catch (IllegalStateException | IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
+        }
+    }
+
     @Transactional
     public FundingApproveResult approveCampaign(Long campaignId) {
         FundingCampaign campaign = fundingCampaignRepository.findDetailById(campaignId)
@@ -439,21 +478,25 @@ public class FundingCampaignService {
         try {
             if (campaign.getStatus() == FundingCampaignStatus.SUCCESS) {
                 List<BookOrder> orders = new ArrayList<>(paid.size());
+                int totalQuantity = 0;
                 for (FundingParticipation participation : paid) {
                     orders.add(BookOrder.fromParticipation(participation, BookOrderStatus.PENDING, now));
+                    totalQuantity += participation.getQuantity();
                 }
                 if (!orders.isEmpty()) {
                     bookOrderRepository.saveAll(orders);
                 }
                 campaign.markApproved(now);
-                return new FundingApproveResult(true, orders.size(), campaign);
+                return new FundingApproveResult(true, orders.size(), totalQuantity, campaign);
             }
 
+            int totalQuantity = 0;
             for (FundingParticipation participation : paid) {
                 participation.refundMock(now);
+                totalQuantity += participation.getQuantity();
             }
             campaign.markApproved(now);
-            return new FundingApproveResult(false, paid.size(), campaign);
+            return new FundingApproveResult(false, paid.size(), totalQuantity, campaign);
         } catch (IllegalStateException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         }

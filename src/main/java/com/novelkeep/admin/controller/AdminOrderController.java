@@ -59,7 +59,7 @@ public class AdminOrderController {
             return "redirect:/?roleRequired=true";
         }
         applyEntrySortDefaults(criteria, request);
-        model.addAttribute("orders", bookOrderService.search(criteria));
+        model.addAttribute("orders", bookOrderService.searchBatches(criteria));
         model.addAttribute("statuses", BookOrderStatus.values());
         model.addAttribute("sortFields", BookOrderSearchCriteria.SortField.values());
         model.addAttribute("navActive", "admin-orders");
@@ -67,6 +67,27 @@ public class AdminOrderController {
             return "admin/orders :: orderList";
         }
         return "admin/orders";
+    }
+
+    @GetMapping("/orders/campaigns/{campaignId}")
+    public String orderDetail(
+            @PathVariable Long campaignId,
+            @SessionAttribute(name = SESSION_ROLE, required = false) ExperienceRole role,
+            @SessionAttribute(name = SESSION_MEMBER_ID, required = false) Long memberId,
+            Model model
+    ) {
+        if (!isOperator(role, memberId)) {
+            return "redirect:/?roleRequired=true";
+        }
+        try {
+            var detail = bookOrderService.findBatchDetail(campaignId);
+            model.addAttribute("batch", detail.batch());
+            model.addAttribute("lines", detail.lines());
+            model.addAttribute("navActive", "admin-orders");
+            return "admin/order-detail";
+        } catch (ResponseStatusException ex) {
+            return "redirect:/admin/orders";
+        }
     }
 
     private void applyEntrySortDefaults(BookOrderSearchCriteria criteria, HttpServletRequest request) {
@@ -81,9 +102,9 @@ public class AdminOrderController {
         }
     }
 
-    @PostMapping("/orders/{orderId}/status")
-    public String advanceStatus(
-            @PathVariable Long orderId,
+    @PostMapping("/orders/campaigns/{campaignId}/status")
+    public String advanceCampaignStatus(
+            @PathVariable Long campaignId,
             @ModelAttribute BookOrderSearchCriteria criteria,
             @SessionAttribute(name = SESSION_ROLE, required = false) ExperienceRole role,
             @SessionAttribute(name = SESSION_MEMBER_ID, required = false) Long memberId,
@@ -93,7 +114,7 @@ public class AdminOrderController {
             return "redirect:/?roleRequired=true";
         }
         try {
-            bookOrderService.advanceStatus(orderId);
+            bookOrderService.advanceCampaignStatus(campaignId);
             redirectAttributes.addFlashAttribute("orderUpdated", true);
         } catch (ResponseStatusException ex) {
             redirectAttributes.addFlashAttribute(

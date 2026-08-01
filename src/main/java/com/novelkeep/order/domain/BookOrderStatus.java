@@ -19,6 +19,13 @@ public enum BookOrderStatus {
         return displayName;
     }
 
+    public String progressNote() {
+        if (this == PENDING) {
+            return "주문이 접수되었습니다.";
+        }
+        return "현재 " + displayName + " 단계입니다.";
+    }
+
     public BookOrderStatus next() {
         return switch (this) {
             case PENDING -> PROCESSING;

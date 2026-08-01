@@ -24,6 +24,16 @@ public interface FundingParticipationRepository extends JpaRepository<FundingPar
     );
 
     @Query("""
+            select p from FundingParticipation p
+             where p.campaign.id = :campaignId
+               and p.member.id = :memberId
+            """)
+    java.util.Optional<FundingParticipation> findByCampaignIdAndMemberId(
+            @Param("campaignId") Long campaignId,
+            @Param("memberId") Long memberId
+    );
+
+    @Query("""
             select p.campaign.id from FundingParticipation p
             where p.member.id = :memberId
               and p.campaign.id in :campaignIds
@@ -32,4 +42,15 @@ public interface FundingParticipationRepository extends JpaRepository<FundingPar
             @Param("memberId") Long memberId,
             @Param("campaignIds") Collection<Long> campaignIds
     );
+
+    @Query("""
+            select distinct p
+              from FundingParticipation p
+              join fetch p.campaign c
+              join fetch c.storyPart sp
+              join fetch sp.novel n
+             where p.member.id = :memberId
+             order by p.paidAt desc, p.id desc
+            """)
+    List<FundingParticipation> findDetailByMemberId(@Param("memberId") Long memberId);
 }

@@ -3,6 +3,7 @@ package com.novelkeep.home.service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -48,6 +49,11 @@ public class DemoDataInitializer implements ApplicationRunner {
 
     private static final int NOVEL_COUNT = 50;
     private static final int ORDER_SEED_COUNT = 12;
+    private static final int AWAITING_SUCCESS_COUNT = 4;
+    private static final int AWAITING_FAIL_COUNT = 4;
+    private static final int REFUND_DONE_COUNT = 3;
+    private static final int RESERVED_OPEN_SUCCESS = 4;
+    private static final int RESERVED_OPEN_FAIL = 3;
     private static final long RANDOM_SEED = 20260801L;
 
     private static final String[] TITLE_PREFIXES = {
@@ -99,6 +105,14 @@ public class DemoDataInitializer implements ApplicationRunner {
         this.bookOrderRepository = bookOrderRepository;
     }
 
+    private static final String[] MOCK_READER_NAMES = {
+            "김서연", "이준호", "박민지", "최하늘", "정우성",
+            "한지우", "오세린", "윤도현", "강예린", "조현우",
+            "임수아", "신재민", "배소희", "노태윤", "문채원",
+            "홍기석", "서유진", "곽도윤", "남보라", "류진호",
+            "심하은", "권태양", "배수빈", "안지호", "송다은"
+    };
+
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
@@ -106,16 +120,145 @@ public class DemoDataInitializer implements ApplicationRunner {
             return;
         }
 
-        Member reader = memberRepository.save(Member.create(MemberType.READER));
+        // 체험 역할용 회원은 id가 가장 작은 READER/AUTHOR/ADMIN로 고정한다.
+        Member experienceReader = memberRepository.save(Member.create(MemberType.READER));
         Member author = memberRepository.save(Member.create(MemberType.AUTHOR));
         memberRepository.save(Member.create(MemberType.ADMIN));
+        List<Member> mockReaders = createMockReaders();
 
         List<Novel> novels = createNovels(author);
         novelRepository.saveAll(novels);
         seedNovelBrowseStats(novels);
         List<FundingCampaign> campaigns = fundingCampaignRepository.saveAll(createFundings(novels));
-        seedParticipationsAndOrders(reader, campaigns);
+        seedParticipationsAndOrders(experienceReader, mockReaders, campaigns);
         seedCampaignUpdatedAt(fundingCampaignRepository.findAll());
+        pinBrowseShowcaseNovels(campaigns, mockReaders, experienceReader);
+    }
+
+    /**
+     * 작품 탐색(수정일 DESC) 1·2위에 목표 달성 OPEN 펀딩 작품을 올린다.
+     * 체험 독자가 참여만 하면 마감→승인→주문 흐름을 이어서 볼 수 있다.
+     */
+    private void pinBrowseShowcaseNovels(
+            List<FundingCampaign> campaigns,
+            List<Member> mockReaders,
+            Member experienceReader
+    ) {
+        LocalDateTime now = LocalDateTime.now();
+        Random random = new Random(RANDOM_SEED + 99);
+        List<FundingCampaign> picked = new ArrayList<>();
+        Set<Long> usedNovelIds = new LinkedHashSet<>();
+
+        List<FundingCampaign> readyOpen = campaigns.stream()
+                .filter(c -> c.getStatus() == com.novelkeep.funding.domain.FundingCampaignStatus.OPEN)
+                .filter(FundingCampaign::isSuccessReady)
+                .filter(c -> c.getStoryPart().getNovel().getVisibility() == NovelVisibility.PUBLIC)
+                .filter(c -> !fundingParticipationRepository.existsByCampaignIdAndMemberId(
+                        c.getId(), experienceReader.getId()))
+                .toList();
+
+        for (FundingCampaign campaign : readyOpen) {
+            if (picked.size() >= 2) {
+                break;
+            }
+            Long novelId = campaign.getStoryPart().getNovel().getId();
+            if (usedNovelIds.contains(novelId)) {
+                continue;
+            }
+            picked.add(campaign);
+            usedNovelIds.add(novelId);
+        }
+
+        if (picked.size() < 2) {
+            for (FundingCampaign campaign : campaigns) {
+                if (picked.size() >= 2) {
+                    break;
+                }
+                if (campaign.getStatus() != com.novelkeep.funding.domain.FundingCampaignStatus.OPEN) {
+                    continue;
+                }
+                if (campaign.getStoryPart().getStatus() != StoryPartStatus.COMPLETED) {
+                    continue;
+                }
+                if (campaign.getStoryPart().getNovel().getVisibility() != NovelVisibility.PUBLIC) {
+                    continue;
+                }
+                Long novelId = campaign.getStoryPart().getNovel().getId();
+                if (usedNovelIds.contains(novelId)) {
+                    continue;
+                }
+                if (fundingParticipationRepository.existsByCampaignIdAndMemberId(
+                        campaign.getId(), experienceReader.getId())) {
+                    continue;
+                }
+                topUpCampaignToTarget(campaign, mockReaders, now, random);
+                if (!campaign.isSuccessReady()) {
+                    continue;
+                }
+                picked.add(campaign);
+                usedNovelIds.add(novelId);
+            }
+        }
+
+        if (picked.isEmpty()) {
+            return;
+        }
+
+        Novel first = picked.get(0).getStoryPart().getNovel();
+        novelRepository.seedDemoStats(first.getId(), 99_999L, now);
+        if (picked.size() > 1) {
+            Novel second = picked.get(1).getStoryPart().getNovel();
+            novelRepository.seedDemoStats(second.getId(), 99_998L, now.minusMinutes(1));
+        }
+        fundingCampaignRepository.saveAll(picked);
+    }
+
+    private void topUpCampaignToTarget(
+            FundingCampaign campaign,
+            List<Member> mockReaders,
+            LocalDateTime paidAt,
+            Random random
+    ) {
+        int need = campaign.getTargetQuantity() - campaign.getCurrentQuantity();
+        if (need <= 0) {
+            return;
+        }
+        Set<Long> usedMemberIds = new LinkedHashSet<>();
+        for (FundingParticipation existing : fundingParticipationRepository.findByCampaignId(campaign.getId())) {
+            usedMemberIds.add(existing.getMember().getId());
+        }
+        List<Member> shuffled = new ArrayList<>(mockReaders);
+        Collections.shuffle(shuffled, random);
+        List<FundingParticipation> added = new ArrayList<>();
+        for (Member mock : shuffled) {
+            if (need <= 0) {
+                break;
+            }
+            if (usedMemberIds.contains(mock.getId())) {
+                continue;
+            }
+            FundingParticipation participation = FundingParticipation.paid(
+                    campaign, mock, 1, paidAt.minusHours(added.size())
+            );
+            added.add(participation);
+            usedMemberIds.add(mock.getId());
+            campaign.recordParticipation(1);
+            need--;
+        }
+        if (!added.isEmpty()) {
+            fundingParticipationRepository.saveAll(added);
+        }
+        if (campaign.getCurrentQuantity() < campaign.getTargetQuantity()) {
+            campaign.syncCurrentQuantity(campaign.getTargetQuantity());
+        }
+    }
+
+    private List<Member> createMockReaders() {
+        List<Member> mocks = new ArrayList<>(MOCK_READER_NAMES.length);
+        for (String name : MOCK_READER_NAMES) {
+            mocks.add(memberRepository.save(Member.createMockReader(name)));
+        }
+        return mocks;
     }
 
     private void seedNovelBrowseStats(List<Novel> novels) {
@@ -151,28 +294,37 @@ public class DemoDataInitializer implements ApplicationRunner {
     }
 
     /**
-     * 게이지(currentQuantity)와 실제 참여 행을 맞춘다.
-     * 독자 회원은 1명이므로 캠페인당 참여 1건·quantity = 수요 부로 맞춘다.
-     * 일부는 성공 가능(완결부 + 목표 달성), 일부는 승인 대기·승인 완료 시나리오를 만든다.
+     * 역할별 즉시 테스트용 시드.
+     * <ul>
+     *   <li>운영자: 성공/실패 승인 대기, 주문 6단계, 환불 완료</li>
+     *   <li>작가: 성공·실패 마감용 OPEN, 수요 0 취소용 OPEN, 승인 대기/완료</li>
+     *   <li>체험 독자: 참여 중·주문·환불 탭 + 아직 참여 가능한 OPEN</li>
+     * </ul>
      */
-    private void seedParticipationsAndOrders(Member reader, List<FundingCampaign> campaigns) {
+    private void seedParticipationsAndOrders(
+            Member experienceReader,
+            List<Member> mockReaders,
+            List<FundingCampaign> campaigns
+    ) {
         LocalDateTime now = LocalDateTime.now();
         Random random = new Random(RANDOM_SEED + 17);
         BookOrderStatus[] statuses = BookOrderStatus.values();
         List<FundingParticipation> participations = new ArrayList<>();
         List<BookOrder> orders = new ArrayList<>();
 
-        List<FundingCampaign> openCampaigns = campaigns.stream()
+        List<FundingCampaign> openCampaigns = new ArrayList<>(campaigns.stream()
                 .filter(campaign -> campaign.getStatus() == com.novelkeep.funding.domain.FundingCampaignStatus.OPEN)
-                .toList();
+                .toList());
 
         int orderSeedIndex = 0;
         int awaitingSuccessSeed = 0;
         int awaitingFailSeed = 0;
+        int refundSeed = 0;
         int reservedOpenSuccess = 0;
+        int reservedOpenFail = 0;
+        int multiPersonOrders = 0;
 
-        for (int i = 0; i < openCampaigns.size(); i++) {
-            FundingCampaign campaign = openCampaigns.get(i);
+        for (FundingCampaign campaign : openCampaigns) {
             int demand = campaign.getCurrentQuantity();
             if (demand <= 0) {
                 campaign.syncCurrentQuantity(0);
@@ -183,72 +335,108 @@ public class DemoDataInitializer implements ApplicationRunner {
                     .minusDays(random.nextInt(40))
                     .minusHours(random.nextInt(24))
                     .minusMinutes(random.nextInt(60));
-            FundingParticipation participation = FundingParticipation.paid(
+            boolean multiPerson = multiPersonOrders < 3 && demand >= 5;
+            List<FundingParticipation> filled = fillParticipations(
                     campaign,
-                    reader,
                     demand,
-                    paidAt
+                    mockReaders,
+                    participations,
+                    paidAt,
+                    random,
+                    multiPerson
             );
-            participations.add(participation);
-            campaign.syncCurrentQuantity(demand);
+            if (filled.isEmpty()) {
+                continue;
+            }
+            if (multiPerson) {
+                multiPersonOrders++;
+            }
 
             if (campaign.isSuccessReady()) {
-                // 출판 상태 6단계 필터·문구 확인용: 먼저 전 단계 1건씩 확보
                 if (orderSeedIndex < statuses.length) {
                     campaign.closeAsSuccess();
                     campaign.markApproved(now
                             .minusDays(random.nextInt(12))
                             .minusHours(random.nextInt(24))
                             .minusMinutes(random.nextInt(60)));
-                    orders.add(BookOrder.fromParticipation(
-                            participation,
-                            statuses[orderSeedIndex],
-                            now.minusDays(random.nextInt(20))
-                                    .minusHours(random.nextInt(24))
-                                    .minusMinutes(random.nextInt(60))
-                    ));
+                    for (FundingParticipation participation : filled) {
+                        orders.add(BookOrder.fromParticipation(
+                                participation,
+                                statuses[orderSeedIndex],
+                                now.minusDays(random.nextInt(20))
+                                        .minusHours(random.nextInt(24))
+                                        .minusMinutes(random.nextInt(60))
+                        ));
+                    }
                     orderSeedIndex++;
                     continue;
                 }
-                // 작가 성공 마감 테스트용 OPEN을 확보
-                if (reservedOpenSuccess < 3) {
+                if (reservedOpenSuccess < RESERVED_OPEN_SUCCESS) {
                     reservedOpenSuccess++;
                     continue;
                 }
-                // 승인 대기 성공 샘플
-                if (awaitingSuccessSeed < 2) {
+                if (awaitingSuccessSeed < AWAITING_SUCCESS_COUNT) {
                     campaign.closeAsSuccess();
                     awaitingSuccessSeed++;
                     continue;
                 }
-                // 추가 승인 완료 주문
                 if (orderSeedIndex < ORDER_SEED_COUNT) {
                     campaign.closeAsSuccess();
                     campaign.markApproved(now
                             .minusDays(random.nextInt(12))
                             .minusHours(random.nextInt(24))
                             .minusMinutes(random.nextInt(60)));
-                    orders.add(BookOrder.fromParticipation(
-                            participation,
-                            statuses[orderSeedIndex % statuses.length],
-                            now.minusDays(random.nextInt(20))
-                                    .minusHours(random.nextInt(24))
-                                    .minusMinutes(random.nextInt(60))
-                    ));
+                    for (FundingParticipation participation : filled) {
+                        orders.add(BookOrder.fromParticipation(
+                                participation,
+                                statuses[orderSeedIndex % statuses.length],
+                                now.minusDays(random.nextInt(20))
+                                        .minusHours(random.nextInt(24))
+                                        .minusMinutes(random.nextInt(60))
+                        ));
+                    }
                     orderSeedIndex++;
                 }
                 continue;
             }
 
-            // 승인 대기 실패 샘플
-            if (awaitingFailSeed < 2) {
+            if (reservedOpenFail < RESERVED_OPEN_FAIL) {
+                reservedOpenFail++;
+                continue;
+            }
+            if (awaitingFailSeed < AWAITING_FAIL_COUNT) {
                 campaign.closeAsFailed();
                 awaitingFailSeed++;
+                continue;
+            }
+            if (refundSeed < REFUND_DONE_COUNT) {
+                campaign.closeAsFailed();
+                LocalDateTime refundedAt = now
+                        .minusDays(random.nextInt(8))
+                        .minusHours(random.nextInt(24))
+                        .minusMinutes(random.nextInt(60));
+                for (FundingParticipation participation : filled) {
+                    participation.refundMock(refundedAt);
+                }
+                campaign.markApproved(now
+                        .minusDays(random.nextInt(10))
+                        .minusHours(random.nextInt(24))
+                        .minusMinutes(random.nextInt(60)));
+                refundSeed++;
             }
         }
 
-        // 성공 가능 OPEN이 하나도 없으면, 참여 없는 완결부 캠페인에 목표 달성 수요를 붙인다.
-        ensureSuccessReadyOpen(openCampaigns, reader, participations, now);
+        seedExperienceReaderScenarios(
+                experienceReader,
+                mockReaders,
+                openCampaigns,
+                participations,
+                orders,
+                now,
+                random
+        );
+        ensureSuccessReadyOpen(openCampaigns, mockReaders, participations, now, random);
+        ensureFailCloseOpen(openCampaigns, mockReaders, participations, now, random);
 
         fundingParticipationRepository.saveAll(participations);
         if (!orders.isEmpty()) {
@@ -257,20 +445,79 @@ public class DemoDataInitializer implements ApplicationRunner {
         fundingCampaignRepository.saveAll(campaigns);
     }
 
-    private void ensureSuccessReadyOpen(
-            List<FundingCampaign> openCampaigns,
-            Member reader,
-            List<FundingParticipation> participations,
-            LocalDateTime now
+    /**
+     * 수요를 여러 mock 독자(가능하면 1부씩)로 나눠 넣는다.
+     * multiPerson=false면 1명에게 수요 전체를 넣는다.
+     */
+    private List<FundingParticipation> fillParticipations(
+            FundingCampaign campaign,
+            int demand,
+            List<Member> mockReaders,
+            List<FundingParticipation> sink,
+            LocalDateTime paidAt,
+            Random random,
+            boolean multiPerson
     ) {
-        boolean hasReadyOpen = openCampaigns.stream()
-                .anyMatch(c -> c.getStatus() == com.novelkeep.funding.domain.FundingCampaignStatus.OPEN
-                        && c.isSuccessReady());
-        if (hasReadyOpen) {
-            return;
+        if (demand <= 0 || mockReaders.isEmpty()) {
+            campaign.syncCurrentQuantity(0);
+            return List.of();
+        }
+        List<FundingParticipation> created = new ArrayList<>();
+        if (!multiPerson || mockReaders.size() == 1 || demand == 1) {
+            Member participant = mockReaders.get(random.nextInt(mockReaders.size()));
+            FundingParticipation participation = FundingParticipation.paid(
+                    campaign, participant, demand, paidAt
+            );
+            created.add(participation);
+            sink.add(participation);
+            campaign.syncCurrentQuantity(demand);
+            return created;
         }
 
+        List<Member> shuffled = new ArrayList<>(mockReaders);
+        Collections.shuffle(shuffled, random);
+        int people = Math.min(demand, shuffled.size());
+        for (int i = 0; i < people - 1; i++) {
+            FundingParticipation participation = FundingParticipation.paid(
+                    campaign,
+                    shuffled.get(i),
+                    1,
+                    paidAt.minusHours(i)
+            );
+            created.add(participation);
+            sink.add(participation);
+        }
+        int lastQty = demand - (people - 1);
+        FundingParticipation last = FundingParticipation.paid(
+                campaign,
+                shuffled.get(people - 1),
+                lastQty,
+                paidAt.minusHours(people)
+        );
+        created.add(last);
+        sink.add(last);
+        campaign.syncCurrentQuantity(demand);
+        return created;
+    }
+
+    private void ensureSuccessReadyOpen(
+            List<FundingCampaign> openCampaigns,
+            List<Member> mockReaders,
+            List<FundingParticipation> participations,
+            LocalDateTime now,
+            Random random
+    ) {
+        long readyOpen = openCampaigns.stream()
+                .filter(c -> c.getStatus() == com.novelkeep.funding.domain.FundingCampaignStatus.OPEN)
+                .filter(FundingCampaign::isSuccessReady)
+                .count();
+        if (readyOpen >= RESERVED_OPEN_SUCCESS) {
+            return;
+        }
         for (FundingCampaign campaign : openCampaigns) {
+            if (readyOpen >= RESERVED_OPEN_SUCCESS) {
+                return;
+            }
             if (campaign.getStatus() != com.novelkeep.funding.domain.FundingCampaignStatus.OPEN) {
                 continue;
             }
@@ -283,10 +530,185 @@ public class DemoDataInitializer implements ApplicationRunner {
                 continue;
             }
             int target = campaign.getTargetQuantity();
-            campaign.syncCurrentQuantity(target);
-            participations.add(FundingParticipation.paid(campaign, reader, target, now.minusHours(1)));
+            fillParticipations(campaign, target, mockReaders, participations, now.minusHours(1), random, true);
+            readyOpen++;
+        }
+    }
+
+    /** 실패 마감 테스트용: 목표 미달 OPEN을 수요 있는 상태로 확보 */
+    private void ensureFailCloseOpen(
+            List<FundingCampaign> openCampaigns,
+            List<Member> mockReaders,
+            List<FundingParticipation> participations,
+            LocalDateTime now,
+            Random random
+    ) {
+        long failReadyOpen = openCampaigns.stream()
+                .filter(c -> c.getStatus() == com.novelkeep.funding.domain.FundingCampaignStatus.OPEN)
+                .filter(c -> c.getCurrentQuantity() > 0 && !c.isSuccessReady())
+                .count();
+        if (failReadyOpen >= RESERVED_OPEN_FAIL) {
             return;
         }
+        for (FundingCampaign campaign : openCampaigns) {
+            if (failReadyOpen >= RESERVED_OPEN_FAIL) {
+                return;
+            }
+            if (campaign.getStatus() != com.novelkeep.funding.domain.FundingCampaignStatus.OPEN) {
+                continue;
+            }
+            if (campaign.getCurrentQuantity() > 0) {
+                continue;
+            }
+            boolean alreadyParticipated = participations.stream()
+                    .anyMatch(p -> p.getCampaign() == campaign);
+            if (alreadyParticipated) {
+                continue;
+            }
+            int qty = Math.max(1, campaign.getTargetQuantity() / 4);
+            fillParticipations(campaign, qty, mockReaders, participations, now.minusHours(2), random, true);
+            failReadyOpen++;
+        }
+    }
+
+    /**
+     * 체험 독자 전용: 내 펀딩·주문 전체/참여중/주문/환불 + 추가 참여 가능 OPEN.
+     */
+    private void seedExperienceReaderScenarios(
+            Member experienceReader,
+            List<Member> mockReaders,
+            List<FundingCampaign> openCampaigns,
+            List<FundingParticipation> participations,
+            List<BookOrder> orders,
+            LocalDateTime now,
+            Random random
+    ) {
+        int activeSeed = 0;
+        int orderSeed = 0;
+        int refundSeed = 0;
+        BookOrderStatus[] readerOrderStatuses = {
+                BookOrderStatus.PENDING,
+                BookOrderStatus.PROCESSING,
+                BookOrderStatus.DELIVERED
+        };
+
+        for (FundingCampaign campaign : openCampaigns) {
+            if (campaign.getStatus() != com.novelkeep.funding.domain.FundingCampaignStatus.OPEN) {
+                continue;
+            }
+            if (hasMemberParticipation(participations, campaign, experienceReader)) {
+                continue;
+            }
+
+            // 참여 중 3건 (환불 버튼 테스트)
+            if (activeSeed < 3 && campaign.getCurrentQuantity() > 0) {
+                FundingParticipation participation = FundingParticipation.paid(
+                        campaign,
+                        experienceReader,
+                        1,
+                        now.minusDays(1 + activeSeed).minusHours(3)
+                );
+                participations.add(participation);
+                campaign.recordParticipation(1);
+                activeSeed++;
+                continue;
+            }
+
+            // 주문 3건: 빈 OPEN(완결부)을 성공·승인으로 전환
+            if (orderSeed < readerOrderStatuses.length
+                    && campaign.getStoryPart().getStatus() == StoryPartStatus.COMPLETED
+                    && campaign.getCurrentQuantity() == 0
+                    && !hasAnyParticipation(participations, campaign)) {
+                int target = campaign.getTargetQuantity();
+                fillParticipations(
+                        campaign,
+                        Math.max(target - 1, 1),
+                        mockReaders,
+                        participations,
+                        now.minusDays(5),
+                        random,
+                        true
+                );
+                FundingParticipation readerPart = FundingParticipation.paid(
+                        campaign,
+                        experienceReader,
+                        1,
+                        now.minusDays(4).minusHours(orderSeed)
+                );
+                participations.add(readerPart);
+                campaign.recordParticipation(1);
+                if (campaign.getCurrentQuantity() < campaign.getTargetQuantity()) {
+                    campaign.syncCurrentQuantity(campaign.getTargetQuantity());
+                }
+                campaign.closeAsSuccess();
+                campaign.markApproved(now.minusDays(3).minusHours(orderSeed));
+                for (FundingParticipation participation : participations) {
+                    if (participation.getCampaign() != campaign) {
+                        continue;
+                    }
+                    if (participation.getPaymentStatus() != com.novelkeep.funding.domain.FundingPaymentStatus.PAID_MOCK) {
+                        continue;
+                    }
+                    BookOrderStatus status = participation.getMember().getId().equals(experienceReader.getId())
+                            ? readerOrderStatuses[orderSeed]
+                            : BookOrderStatus.PENDING;
+                    orders.add(BookOrder.fromParticipation(
+                            participation,
+                            status,
+                            now.minusDays(3).minusHours(orderSeed)
+                    ));
+                }
+                orderSeed++;
+                continue;
+            }
+
+            // 환불 2건: 실패 마감·승인
+            if (refundSeed < 2
+                    && campaign.getCurrentQuantity() > 0
+                    && !campaign.isSuccessReady()) {
+                FundingParticipation readerPart = FundingParticipation.paid(
+                        campaign,
+                        experienceReader,
+                        1,
+                        now.minusDays(6).minusHours(refundSeed)
+                );
+                participations.add(readerPart);
+                campaign.recordParticipation(1);
+                campaign.closeAsFailed();
+                LocalDateTime refundedAt = now.minusDays(5).minusHours(refundSeed);
+                for (FundingParticipation participation : participations) {
+                    if (participation.getCampaign() != campaign) {
+                        continue;
+                    }
+                    if (participation.getPaymentStatus()
+                            == com.novelkeep.funding.domain.FundingPaymentStatus.PAID_MOCK) {
+                        participation.refundMock(refundedAt);
+                    }
+                }
+                campaign.markApproved(refundedAt);
+                refundSeed++;
+            }
+        }
+    }
+
+    private boolean hasAnyParticipation(
+            List<FundingParticipation> participations,
+            FundingCampaign campaign
+    ) {
+        return participations.stream().anyMatch(p -> p.getCampaign() == campaign);
+    }
+
+    private boolean hasMemberParticipation(
+            List<FundingParticipation> participations,
+            FundingCampaign campaign,
+            Member member
+    ) {
+        Long memberId = member.getId();
+        return participations.stream().anyMatch(p ->
+                p.getCampaign() == campaign
+                        && p.getMember().getId() != null
+                        && p.getMember().getId().equals(memberId)
+        );
     }
 
     private List<Novel> createNovels(Member author) {

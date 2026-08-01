@@ -22,7 +22,7 @@ public class MemberService {
 
     public Member findExperienceMember(MemberType memberType) {
         for (int attempt = 0; attempt < SEED_WAIT_ATTEMPTS; attempt++) {
-            Member member = memberRepository.findByMemberType(memberType).orElse(null);
+            Member member = memberRepository.findFirstByMemberTypeOrderByIdAsc(memberType).orElse(null);
             if (member != null) {
                 return member;
             }

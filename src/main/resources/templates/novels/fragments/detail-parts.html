@@ -127,6 +127,11 @@
                                              data-end=${#temporals.format(openCampaign.endAt, &quot;yyyy-MM-dd'T'HH:mm&quot;)}">
                                 펀딩 수정
                             </button>
+                            <a th:if="${openCampaign != null}"
+                               class="btn btn-sm btn-outline-secondary flex-shrink-0"
+                               th:href="@{/writer/publishing(novelTitle=${novel.title})}">
+                                펀딩 관리
+                            </a>
                             <button th:if="${openCampaign == null and fundable and novelPublic}"
                                     class="btn btn-sm btn-dark" type="button"
                                     data-funding-modal="start"
@@ -163,7 +168,7 @@
                             <a th:if="${joined}"
                                class="btn btn-sm btn-outline-dark flex-shrink-0"
                                th:href="@{/fundings/{id}(id=${openCampaign.id})}">
-                                참여 완료 · 현황
+                                참여 완료 · 상세
                             </a>
                         </th:block>
                     </div>

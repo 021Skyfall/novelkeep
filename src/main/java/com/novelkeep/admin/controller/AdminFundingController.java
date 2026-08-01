@@ -86,8 +86,8 @@ public class AdminFundingController {
         try {
             FundingApproveResult result = fundingCampaignService.approveCampaign(campaignId);
             String message = result.success()
-                    ? "성공 펀딩을 승인했습니다. 주문 " + result.affectedCount() + "건이 접수되었습니다."
-                    : "실패 펀딩을 승인했습니다. 참여 " + result.affectedCount() + "건을 환불했습니다.";
+                    ? "성공 펀딩을 승인했습니다. 주문 " + result.totalQuantity() + "건이 접수되었습니다."
+                    : "실패 펀딩을 승인했습니다. 참여 " + result.totalQuantity() + "건을 환불했습니다.";
             redirectAttributes.addFlashAttribute("fundingMessage", message);
         } catch (ResponseStatusException ex) {
             redirectAttributes.addFlashAttribute(
