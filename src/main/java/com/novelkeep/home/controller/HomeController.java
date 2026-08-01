@@ -61,7 +61,7 @@ public class HomeController {
                     session.setAttribute(SESSION_ROLE, selectedRole);
                     session.setAttribute(SESSION_MEMBER_ID, member.getId());
                     if (selectedRole == ExperienceRole.ADMIN) {
-                        return "redirect:/admin/orders";
+                        return "redirect:/admin";
                     }
                     return "redirect:/main";
                 })

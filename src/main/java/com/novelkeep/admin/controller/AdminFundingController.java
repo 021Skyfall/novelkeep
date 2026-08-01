@@ -8,6 +8,10 @@ import com.novelkeep.funding.dto.FundingApproveResult;
 import com.novelkeep.funding.service.FundingCampaignService;
 import com.novelkeep.home.domain.ExperienceRole;
 
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -58,6 +62,48 @@ public class AdminFundingController {
             return "admin/fundings :: fundingList";
         }
         return "admin/fundings";
+    }
+
+    @GetMapping("/fundings/export.csv")
+    public ResponseEntity<byte[]> exportCsv(
+            @ModelAttribute AdminFundingSearchCriteria criteria,
+            @SessionAttribute(name = SESSION_ROLE, required = false) ExperienceRole role,
+            @SessionAttribute(name = SESSION_MEMBER_ID, required = false) Long memberId,
+            jakarta.servlet.http.HttpServletRequest request
+    ) {
+        if (!isOperator(role, memberId)) {
+            return ResponseEntity.status(401).build();
+        }
+        applyEntrySortDefaults(criteria, request);
+        byte[] body = fundingCampaignService.exportAdminCsv(criteria);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename("novelkeep-fundings.csv")
+                        .build()
+                        .toString())
+                .contentType(new MediaType("text", "csv"))
+                .body(body);
+    }
+
+    @GetMapping("/fundings/export.json")
+    public ResponseEntity<byte[]> exportJson(
+            @ModelAttribute AdminFundingSearchCriteria criteria,
+            @SessionAttribute(name = SESSION_ROLE, required = false) ExperienceRole role,
+            @SessionAttribute(name = SESSION_MEMBER_ID, required = false) Long memberId,
+            jakarta.servlet.http.HttpServletRequest request
+    ) {
+        if (!isOperator(role, memberId)) {
+            return ResponseEntity.status(401).build();
+        }
+        applyEntrySortDefaults(criteria, request);
+        byte[] body = fundingCampaignService.exportAdminJson(criteria);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename("novelkeep-fundings.json")
+                        .build()
+                        .toString())
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body);
     }
 
     private void applyEntrySortDefaults(AdminFundingSearchCriteria criteria, jakarta.servlet.http.HttpServletRequest request) {
@@ -125,6 +171,12 @@ public class AdminFundingController {
         UriComponentsBuilder builder = UriComponentsBuilder.fromPath("/admin/fundings");
         if (criteria.getNovelTitle() != null && !criteria.getNovelTitle().isBlank()) {
             builder.queryParam("novelTitle", criteria.getNovelTitle().trim());
+        }
+        if (criteria.getClosedFrom() != null) {
+            builder.queryParam("closedFrom", criteria.getClosedFrom());
+        }
+        if (criteria.getClosedTo() != null) {
+            builder.queryParam("closedTo", criteria.getClosedTo());
         }
         if (criteria.getApproval() != null) {
             builder.queryParam("approval", criteria.getApproval().name());

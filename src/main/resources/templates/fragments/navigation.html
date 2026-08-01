@@ -6,7 +6,7 @@
     <nav class="navbar navbar-expand-lg bg-white border-bottom nk-navbar" aria-label="공통 메뉴">
         <div class="container py-2">
             <a class="navbar-brand d-flex align-items-center gap-2 fw-bold"
-               th:href="${roleKey == 'ADMIN'} ? @{/admin/orders} : @{/main}">
+               th:href="${roleKey == 'ADMIN'} ? @{/admin} : @{/main}">
                 <span class="brand-mark" aria-hidden="true">N</span>
                 <span>노벨킵</span>
             </a>
@@ -75,6 +75,8 @@
                 <div th:if="${roleKey == 'ADMIN'}" class="role-menu-group">
                     <strong class="role-menu-title">운영자 메뉴</strong>
                     <div class="role-links">
+                        <a class="role-link" th:classappend="${active == 'admin-dashboard'} ? ' is-active'"
+                           th:href="@{/admin}">대시보드</a>
                         <a class="role-link" th:classappend="${active == 'admin-orders'} ? ' is-active'"
                            th:href="@{/admin/orders}">주문 관리</a>
                         <a class="role-link" th:classappend="${active == 'admin-fundings'} ? ' is-active'"
@@ -104,7 +106,7 @@
             </svg>
         </button>
         <a class="btn btn-dark floating-home"
-           th:href="${roleKey == 'ADMIN'} ? @{/admin/orders} : @{/main}"
+           th:href="${roleKey == 'ADMIN'} ? @{/admin} : @{/main}"
            aria-label="홈으로 이동">
             <svg class="floating-action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <path fill="currentColor"

@@ -36,17 +36,6 @@ public class AdminOrderController {
         this.bookOrderService = bookOrderService;
     }
 
-    @GetMapping({"", "/"})
-    public String index(
-            @SessionAttribute(name = SESSION_ROLE, required = false) ExperienceRole role,
-            @SessionAttribute(name = SESSION_MEMBER_ID, required = false) Long memberId
-    ) {
-        if (!isOperator(role, memberId)) {
-            return "redirect:/?roleRequired=true";
-        }
-        return "redirect:/admin/orders";
-    }
-
     @GetMapping("/orders")
     public String orders(
             @ModelAttribute("criteria") BookOrderSearchCriteria criteria,

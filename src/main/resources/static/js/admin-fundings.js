@@ -7,6 +7,10 @@
 
     var searchUrl = panel.getAttribute('data-search-url') || '/admin/fundings';
     var titleInput = panel.querySelector('[data-admin-title]');
+    var fromInput = panel.querySelector('[data-admin-from]');
+    var toInput = panel.querySelector('[data-admin-to]');
+    var csvLink = panel.querySelector('[data-admin-export-csv]');
+    var jsonLink = panel.querySelector('[data-admin-export-json]');
     var defaultApproval = 'AWAITING';
     var approval = '';
     var status = '';
@@ -23,15 +27,16 @@
 
     var abortController = null;
 
-    function refresh() {
-        if (abortController) {
-            abortController.abort();
-        }
-        abortController = new AbortController();
+    function currentParams() {
         var params = new URLSearchParams();
-        params.set('partial', '1');
         if (titleInput && titleInput.value.trim()) {
             params.set('novelTitle', titleInput.value.trim());
+        }
+        if (fromInput && fromInput.value) {
+            params.set('closedFrom', fromInput.value);
+        }
+        if (toInput && toInput.value) {
+            params.set('closedTo', toInput.value);
         }
         if (approval) {
             params.set('approval', approval);
@@ -45,6 +50,27 @@
         } else {
             params.set('unsorted', 'true');
         }
+        return params;
+    }
+
+    function syncExportLinks() {
+        var query = currentParams().toString();
+        if (csvLink) {
+            csvLink.setAttribute('href', '/admin/fundings/export.csv' + (query ? '?' + query : ''));
+        }
+        if (jsonLink) {
+            jsonLink.setAttribute('href', '/admin/fundings/export.json' + (query ? '?' + query : ''));
+        }
+    }
+
+    function refresh() {
+        if (abortController) {
+            abortController.abort();
+        }
+        abortController = new AbortController();
+        var params = currentParams();
+        params.set('partial', '1');
+        syncExportLinks();
         listHost.classList.add('is-loading');
         fetch(searchUrl + '?' + params.toString(), {
             method: 'GET',
@@ -71,6 +97,8 @@
             });
     }
 
+    syncExportLinks();
+
     if (titleInput) {
         titleInput.addEventListener('keydown', function (event) {
             if (event.key === 'Enter') {
@@ -85,6 +113,12 @@
             event.preventDefault();
             refresh();
         });
+    }
+    if (fromInput) {
+        fromInput.addEventListener('change', refresh);
+    }
+    if (toInput) {
+        toInput.addEventListener('change', refresh);
     }
 
     panel.querySelectorAll('[data-admin-approval]').forEach(function (btn) {
@@ -121,6 +155,12 @@
             if (titleInput) {
                 titleInput.value = '';
             }
+            if (fromInput) {
+                fromInput.value = '';
+            }
+            if (toInput) {
+                toInput.value = '';
+            }
             approval = defaultApproval;
             status = '';
             panel.querySelectorAll('[data-admin-approval]').forEach(function (item) {
@@ -140,4 +180,6 @@
             refresh();
         });
     }
+
+    syncExportLinks();
 })();

@@ -53,4 +53,13 @@ public interface FundingParticipationRepository extends JpaRepository<FundingPar
              order by p.paidAt desc, p.id desc
             """)
     List<FundingParticipation> findDetailByMemberId(@Param("memberId") Long memberId);
+
+    @Query("""
+            select coalesce(sum(p.mockPaidAmount), 0)
+              from FundingParticipation p
+             where p.paymentStatus = :paymentStatus
+            """)
+    java.math.BigDecimal sumMockPaidAmountByPaymentStatus(
+            @Param("paymentStatus") FundingPaymentStatus paymentStatus
+    );
 }

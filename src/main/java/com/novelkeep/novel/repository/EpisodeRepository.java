@@ -55,4 +55,17 @@ public interface EpisodeRepository extends JpaRepository<Episode, Long> {
             @Param("visibility") NovelVisibility visibility,
             org.springframework.data.domain.Pageable pageable
     );
+
+    @Query("""
+            select count(e)
+              from Episode e
+              join e.storyPart sp
+              join sp.novel n
+             where e.status = :episodeStatus
+               and n.visibility = :visibility
+            """)
+    long countByStatusAndStoryPartNovelVisibility(
+            @Param("episodeStatus") EpisodeStatus episodeStatus,
+            @Param("visibility") NovelVisibility visibility
+    );
 }

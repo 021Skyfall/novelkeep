@@ -103,4 +103,6 @@ public interface BookOrderRepository extends JpaRepository<BookOrder, Long> {
              order by o.orderedAt desc, o.id desc
             """)
     List<BookOrder> findDetailByMemberId(@Param("memberId") Long memberId);
+
+    long countByStatus(BookOrderStatus status);
 }

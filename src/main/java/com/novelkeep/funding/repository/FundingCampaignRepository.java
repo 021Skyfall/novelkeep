@@ -137,4 +137,6 @@ public interface FundingCampaignRepository extends JpaRepository<FundingCampaign
             @Param("campaignId") Long campaignId,
             @Param("updatedAt") LocalDateTime updatedAt
     );
+
+    long countByStatus(FundingCampaignStatus status);
 }

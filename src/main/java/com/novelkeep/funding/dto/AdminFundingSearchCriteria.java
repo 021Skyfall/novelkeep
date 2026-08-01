@@ -1,5 +1,7 @@
 package com.novelkeep.funding.dto;
 
+import java.time.LocalDate;
+
 import com.novelkeep.funding.domain.FundingCampaignStatus;
 
 public class AdminFundingSearchCriteria {
@@ -44,6 +46,8 @@ public class AdminFundingSearchCriteria {
     }
 
     private String novelTitle;
+    private LocalDate closedFrom;
+    private LocalDate closedTo;
     private ApprovalFilter approval = ApprovalFilter.AWAITING;
     private FundingCampaignStatus status;
     private SortField sortField;
@@ -55,6 +59,22 @@ public class AdminFundingSearchCriteria {
 
     public void setNovelTitle(String novelTitle) {
         this.novelTitle = novelTitle;
+    }
+
+    public LocalDate getClosedFrom() {
+        return closedFrom;
+    }
+
+    public void setClosedFrom(LocalDate closedFrom) {
+        this.closedFrom = closedFrom;
+    }
+
+    public LocalDate getClosedTo() {
+        return closedTo;
+    }
+
+    public void setClosedTo(LocalDate closedTo) {
+        this.closedTo = closedTo;
     }
 
     public ApprovalFilter getApproval() {

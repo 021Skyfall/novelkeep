@@ -1,5 +1,7 @@
 package com.novelkeep.funding.service;
 
+import java.nio.charset.StandardCharsets;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -204,6 +206,18 @@ public class FundingCampaignService {
             if (approval == AdminFundingSearchCriteria.ApprovalFilter.APPROVED && !campaign.isApproved()) {
                 continue;
             }
+            if (criteria != null && criteria.getClosedFrom() != null) {
+                LocalDateTime closedAt = campaign.getClosedAt();
+                if (closedAt == null || closedAt.toLocalDate().isBefore(criteria.getClosedFrom())) {
+                    continue;
+                }
+            }
+            if (criteria != null && criteria.getClosedTo() != null) {
+                LocalDateTime closedAt = campaign.getClosedAt();
+                if (closedAt == null || closedAt.toLocalDate().isAfter(criteria.getClosedTo())) {
+                    continue;
+                }
+            }
             Novel novel = campaign.getStoryPart().getNovel();
             if (!titleKeyword.isEmpty()) {
                 String title = novel.getTitle() == null ? "" : novel.getTitle().toLowerCase(Locale.ROOT);
@@ -218,6 +232,88 @@ public class FundingCampaignService {
         }
         filtered.sort(resolveAdminComparator(sortField, sortDir));
         return filtered;
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] exportAdminCsv(AdminFundingSearchCriteria criteria) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+        StringBuilder sb = new StringBuilder();
+        sb.append('\ufeff');
+        sb.append("캠페인ID,작품명,권,판정,승인여부,현재부수,목표부수,판매가,종료일시\n");
+        for (FundingCampaign campaign : findAdminCampaigns(criteria)) {
+            Novel novel = campaign.getStoryPart().getNovel();
+            StoryPart part = campaign.getStoryPart();
+            String partLabel = novel.isMultiPart()
+                    ? part.getPartNumber() + "부 · " + part.getTitle()
+                    : "본편";
+            sb.append(campaign.getId()).append(',')
+                    .append(csv(novel.getTitle())).append(',')
+                    .append(csv(partLabel)).append(',')
+                    .append(csv(campaign.getStatus().getDisplayName())).append(',')
+                    .append(campaign.isApproved() ? "승인" : "대기").append(',')
+                    .append(campaign.getCurrentQuantity()).append(',')
+                    .append(campaign.getTargetQuantity()).append(',')
+                    .append(campaign.getPriceAmount()).append(',')
+                    .append(csv(formatter.format(campaign.getEndAt())))
+                    .append('\n');
+        }
+        return sb.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] exportAdminJson(AdminFundingSearchCriteria criteria) {
+        DateTimeFormatter iso = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+        StringBuilder sb = new StringBuilder();
+        sb.append("[\n");
+        List<FundingCampaign> campaigns = findAdminCampaigns(criteria);
+        for (int i = 0; i < campaigns.size(); i++) {
+            FundingCampaign campaign = campaigns.get(i);
+            Novel novel = campaign.getStoryPart().getNovel();
+            StoryPart part = campaign.getStoryPart();
+            String partLabel = novel.isMultiPart()
+                    ? part.getPartNumber() + "부 · " + part.getTitle()
+                    : "본편";
+            if (i > 0) {
+                sb.append(",\n");
+            }
+            sb.append("  {\n")
+                    .append("    \"campaignId\": ").append(campaign.getId()).append(",\n")
+                    .append("    \"novelTitle\": ").append(jsonString(novel.getTitle())).append(",\n")
+                    .append("    \"partLabel\": ").append(jsonString(partLabel)).append(",\n")
+                    .append("    \"status\": ").append(jsonString(campaign.getStatus().name())).append(",\n")
+                    .append("    \"statusLabel\": ").append(jsonString(campaign.getStatus().getDisplayName())).append(",\n")
+                    .append("    \"approved\": ").append(campaign.isApproved()).append(",\n")
+                    .append("    \"currentQuantity\": ").append(campaign.getCurrentQuantity()).append(",\n")
+                    .append("    \"targetQuantity\": ").append(campaign.getTargetQuantity()).append(",\n")
+                    .append("    \"priceAmount\": ").append(campaign.getPriceAmount()).append(",\n")
+                    .append("    \"endAt\": ").append(jsonString(iso.format(campaign.getEndAt()))).append("\n")
+                    .append("  }");
+        }
+        sb.append("\n]\n");
+        return sb.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
+    private static String csv(String value) {
+        if (value == null) {
+            return "";
+        }
+        String escaped = value.replace("\"", "\"\"");
+        if (escaped.contains(",") || escaped.contains("\"") || escaped.contains("\n")) {
+            return "\"" + escaped + "\"";
+        }
+        return escaped;
+    }
+
+    private static String jsonString(String value) {
+        if (value == null) {
+            return "null";
+        }
+        return "\"" + value
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                + "\"";
     }
 
     @Transactional(readOnly = true)

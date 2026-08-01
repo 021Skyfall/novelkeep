@@ -38,7 +38,7 @@ public class OperatorAccessInterceptor implements HandlerInterceptor {
         if (isAllowed(path)) {
             return true;
         }
-        response.sendRedirect(contextPath + "/admin/orders");
+        response.sendRedirect(contextPath + "/admin");
         return false;
     }
 
