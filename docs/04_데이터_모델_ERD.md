@@ -140,6 +140,7 @@ erDiagram
         DATETIME start_at
         DATETIME end_at
         VARCHAR status
+        DATETIME approved_at
         DATETIME created_at
         DATETIME updated_at
     }
@@ -255,9 +256,10 @@ erDiagram
 
 - 특정 부(1권=1부 출판 단위)의 목표 **부수**, 모의 판매가와 펀딩 기간을 관리한다. `StoryPart`에 직접 연결한다.
 - 상태: `OPEN`, `SUCCESS`, `FAILED` (UI는 OPEN 직행. DRAFT 초안 경로는 쓰지 않음)
+- `approved_at`: 운영자 승인 시각. 마감 직후는 승인 대기이며, 승인 시에만 주문 생성 또는 모의 환불.
 - `target_quantity`: 목표 부수(최소 10). `current_quantity`는 참여 합으로 갱신·표시한다.
 - 홈에는 `OPEN`이면서 기간 내·공개 작품인 캠페인을 최신순 최대 5건 노출한다.
-- 작가 OPEN 시작·수정·취소와 독자 모의 결제 참여는 구현 완료. 마감·주문 전환은 Lv2 잔여.
+- 작가 OPEN·수정·취소·마감과 독자 참여·운영자 승인까지 구현. 독자 「내 펀딩·주문」 전용 화면만 Lv2 잔여.
 - 한 부에 OPEN은 동시에 1개. 종료 후 재개설 가능. 작품당 동시 OPEN 상한은 보류.
 
 ### FUNDING_PARTICIPATION — 펀딩 참여
@@ -271,8 +273,8 @@ erDiagram
 
 - 성공한 펀딩의 참여 건을 참여자별 주문으로 전환한 결과다.
 - 하나의 참여 건은 최대 하나의 주문만 가질 수 있다.
-- 상태: `PENDING`, `PROCESSING`, `COMPLETED`
-- 실제 수령인, 주소, 송장과 배송 상태는 저장하지 않는다.
+- 상태: `PENDING`, `PROCESSING`, `PRODUCTION_DONE`, `SHIP_READY`, `SHIPPING`, `DELIVERED` (표시: 접수→제작중→제작완료→배송준비중→배송중→배송완료)
+- 실제 수령인, 주소, 송장 번호는 저장하지 않는다. 배송 단계는 출판 상태 모의다.
 
 ## 4. 주요 키와 제약조건
 
@@ -320,7 +322,7 @@ DB 제약조건으로 표현하기 어려운 아래 규칙은 Service에서 검�
 |---|---|
 | `EPISODE.published_at` | 미공개 회차는 아직 공개 시각이 없음 |
 | `FUNDING_PARTICIPATION.refunded_at` | 환불되지 않은 참여는 환불 시각이 없음 |
-| `BOOK_ORDER.completed_at` | 제작 완료 전에는 완료 시각이 없음 |
+| `BOOK_ORDER.completed_at` | 배송완료 전에는 완료 시각이 없음 |
 
 - 부 사용 여부 때문에 FK를 NULL로 만들지 않는다.
 - 빈 문자열은 값 없음으로 인정하지 않고 입력 검증에서 차단한다.
@@ -409,7 +411,7 @@ PAID_MOCK → REFUNDED_MOCK
 ### 주문
 
 ```text
-PENDING → PROCESSING → COMPLETED
+PENDING → PROCESSING → PRODUCTION_DONE → SHIP_READY → SHIPPING → DELIVERED
 ```
 
 ## 8. 삭제 정책
@@ -439,19 +441,18 @@ PENDING → PROCESSING → COMPLETED
 3. 서버에서 모의 결제 금액 계산
 4. `PAID_MOCK` 참여 저장
 
-### 펀딩 마감
+### 펀딩 마감·승인
 
-1. 목표 수량, 부/작품 완결과 권 예상 분량 확인
-2. 성공이면 펀딩을 `SUCCESS`로 변경
-3. 참여자마다 `PENDING` 주문 생성
-4. 실패면 펀딩을 `FAILED`로 변경하고 참여를 `REFUNDED_MOCK`으로 변경
+1. 작가가 마감: 목표 부수·부 완결 확인 → `SUCCESS` 또는 `FAILED` (아직 주문/환불 없음, `approved_at` null)
+2. 운영자 승인: SUCCESS면 참여자마다 `PENDING` 주문, FAILED면 `REFUNDED_MOCK`
+3. 운영자 거절: 캠페인을 `OPEN`으로 되돌림
 
 ### 주문 상태 변경
 
 1. 세션의 체험 역할이 `ADMIN`인지 확인
 2. 현재 상태와 요청 상태의 순서 검증
-3. `PENDING → PROCESSING → COMPLETED`만 허용
-4. 완료 시각 기록
+3. `PENDING → PROCESSING → PRODUCTION_DONE → SHIP_READY → SHIPPING → DELIVERED`만 허용
+4. 완료(배송완료) 시각 기록
 
 ## 11. 현재 확정한 범위
 
@@ -469,6 +470,6 @@ PENDING → PROCESSING → COMPLETED
 - 리소스 ID와 작품 작성자 회원 ID를 결합한 소유권 검증
 - 공통 플랫폼 메인과 누적 권한 메뉴
 - 번호가 포함된 부 완결 표시 (`1부 완결`, `2부 완결`)
-- 운영자 주문 상태 관리와 CSV·JSON 내보내기 (A-02 1차 구현, 시드 주문). 운영 통계(A-01)·실펀딩 전환 연동은 Lv2 보강
-- 작품·부·회차 엔티티와 CRUD·열람, 회차 댓글, 홈용 `funding_campaign`, `funding_participation`·`book_order` 시드 구현 완료. **독자·작가 Lv1 완료.** **작가 OPEN 펀딩 관리·독자 모의 결제 참여 완료.** 다음은 Lv2 마감·주문 전환
-- 진행률(2026-08-01): Phase1 100% · Lv1 100% · Lv2 ~50% · Lv3 UX ~75% → **전체 약 72%**
+- 운영자 주문 상태 관리와 CSV·JSON 내보내기 (A-02), 펀딩 승인(`/admin/fundings`). 운영 통계(A-01)는 이후 보강
+- 작품·부·회차·펀딩·참여·주문 시드 구현 완료. **독자·작가 Lv1·Lv2 핵심 완료.** 다음은 독자 내 펀딩·주문 화면
+- 진행률(2026-08-01): Phase1 100% · Lv1 100% · Lv2 ~85% · Lv3 UX ~85% → **전체 약 85%**

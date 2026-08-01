@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="노벨킵 운영자 펀딩 관리">
+    <title>펀딩 관리 | 노벨킵</title>
+    <script th:src="@{/js/theme.js}"></script>
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/navigation.css}">
+    <link rel="stylesheet" th:href="@{/css/novel.css}">
+    <link rel="stylesheet" th:href="@{/css/confirm-dialog.css}">
+</head>
+<body th:classappend="${roleKey != null} ? | role-${#strings.toLowerCase(roleKey)}|">
+<div th:replace="~{fragments/navigation :: siteNav(${navActive})}"></div>
+
+<main class="container py-5">
+    <header class="page-heading mb-4">
+        <span class="eyebrow">OPERATOR DASHBOARD</span>
+        <h1 class="display-6 fw-bold mt-2">펀딩 관리</h1>
+        <p class="text-secondary mb-0">작가가 마감한 펀딩을 검토합니다. 승인 시 주문 접수 또는 환불, 거절 시 진행 중으로 되돌립니다.</p>
+    </header>
+
+    <div th:if="${fundingMessage}" class="alert alert-success"
+         data-push-notification data-notification-type="success"
+         data-notification-label="펀딩 관리"
+         th:text="${fundingMessage}">완료</div>
+    <div th:if="${fundingError}" class="alert alert-danger" th:text="${fundingError}">오류</div>
+
+    <div class="search-panel mb-3"
+         data-admin-funding-ajax
+         data-default-sort-field="CLOSED"
+         data-default-sort-dir="DESC"
+         th:attr="data-search-url=@{/admin/fundings},
+                  data-active-sort-field=${criteria.sortField},
+                  data-active-sort-dir=${criteria.sortDir}">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label fw-semibold" for="novelTitle">작품명</label>
+                <div class="search-input-wrap">
+                    <span class="search-input-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="18" height="18" focusable="false">
+                            <path fill="currentColor"
+                                  d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                        </svg>
+                    </span>
+                    <input id="novelTitle" class="form-control search-input-with-icon" type="search"
+                           th:value="${criteria.novelTitle}" placeholder="작품 제목" autocomplete="off"
+                           data-admin-title>
+                </div>
+            </div>
+            <div class="col-md-7">
+                <span class="form-label fw-semibold d-block">승인 여부</span>
+                <div class="publishing-chip-row" role="group" aria-label="승인 여부">
+                    <button type="button" class="btn btn-sm publishing-chip"
+                            th:each="option : ${approvalOptions}"
+                            th:attr="data-admin-approval=${option.name()}"
+                            th:text="${option.displayName}"
+                            th:classappend="${criteria.approval == option} ? ' is-active'">전체</button>
+                </div>
+            </div>
+        </div>
+        <div class="mt-3">
+            <span class="form-label fw-semibold d-block mb-2">판정</span>
+            <div class="publishing-chip-row" role="group" aria-label="판정">
+                <button type="button" class="btn btn-sm publishing-chip"
+                        data-admin-status=""
+                        th:classappend="${criteria.status == null} ? ' is-active'">전체</button>
+                <button type="button" class="btn btn-sm publishing-chip"
+                        th:each="statusOption : ${statusOptions}"
+                        th:attr="data-admin-status=${statusOption.name()}"
+                        th:text="${statusOption.displayName}"
+                        th:classappend="${criteria.status == statusOption} ? ' is-active'">성공</button>
+            </div>
+        </div>
+        <div class="mt-3">
+            <span class="form-label fw-semibold d-block mb-2">정렬</span>
+            <div class="publishing-chip-row" role="group" aria-label="정렬">
+                <button type="button" class="btn btn-sm publishing-chip"
+                        th:each="field : ${sortFields}"
+                        th:attr="data-sort-field=${field.name()}, data-sort-label=${field.displayName}"
+                        th:text="${field.displayName}">요청일</button>
+            </div>
+        </div>
+        <div class="d-flex justify-content-end mt-3">
+            <button type="button" class="btn btn-outline-secondary" data-search-reset>초기화</button>
+        </div>
+    </div>
+
+    <div data-admin-funding-list>
+        <div th:fragment="fundingList">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <h2 class="h5 fw-bold mb-0">펀딩 목록</h2>
+                <span class="small text-secondary" th:text="|총 ${#lists.size(campaigns)}건|">0건</span>
+            </div>
+
+            <div th:if="${#lists.isEmpty(campaigns)}" class="alert alert-light border">
+                조건에 맞는 펀딩이 없습니다.
+            </div>
+
+            <div th:each="campaign : ${campaigns}" class="border rounded-3 p-3 mb-3">
+                <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
+                    <div class="publishing-title-row">
+                        <span class="badge"
+                              th:classappend="${campaign.status.name() == 'SUCCESS'} ? ' text-bg-success' : ' text-bg-danger'"
+                              th:text="${campaign.status.displayName}">성공</span>
+                        <span th:if="${campaign.awaitingApproval}"
+                              class="badge text-bg-warning text-dark">승인 대기</span>
+                        <span th:if="${campaign.approved}"
+                              class="badge text-bg-primary">승인 완료</span>
+                        <strong th:text="${campaign.displayTitle()}">작품</strong>
+                    </div>
+                    <strong th:text="${#numbers.formatInteger(campaign.priceAmount, 1, 'COMMA') + '원'}">0원</strong>
+                </div>
+
+                <div class="funding-meter-row mb-3">
+                    <span class="funding-meter-pct" th:text="|${campaign.achievementPercent()}%|">0%</span>
+                    <div class="progress progress-funding-sm flex-grow-1" role="progressbar"
+                         th:attr="aria-valuenow=${campaign.achievementPercent()}"
+                         aria-valuemin="0" aria-valuemax="100">
+                        <div class="progress-bar" th:style="|width: ${campaign.achievementPercent()}%|"></div>
+                    </div>
+                    <span class="small text-secondary ms-2"
+                          th:text="|${campaign.currentQuantity}/${campaign.targetQuantity}부|">0/10부</span>
+                </div>
+
+                <div class="admin-funding-meta small mb-3">
+                    <span>판매가 <strong th:text="${#numbers.formatInteger(campaign.priceAmount, 1, 'COMMA') + '원'}">0원</strong></span>
+                    <span>요청일
+                        <strong th:if="${campaign.closedAt != null}"
+                                th:text="${#temporals.format(campaign.closedAt, 'yyyy-MM-dd HH:mm')}">-</strong>
+                        <strong th:if="${campaign.closedAt == null}">-</strong>
+                    </span>
+                    <span>기간
+                        <strong th:text="${#temporals.format(campaign.startAt, 'yyyy-MM-dd')}">-</strong>
+                        ~
+                        <strong th:text="${#temporals.format(campaign.endAt, 'yyyy-MM-dd')}">-</strong>
+                    </span>
+                    <span th:if="${campaign.approvedAt != null}">승인일
+                        <strong th:text="${#temporals.format(campaign.approvedAt, 'yyyy-MM-dd HH:mm')}">-</strong>
+                    </span>
+                    <span>부 상태 <strong th:text="${campaign.storyPart.status.displayName}">완결</strong></span>
+                </div>
+
+                <p class="publishing-status-note mb-3"
+                   th:if="${campaign.awaitingApproval and campaign.status.name() == 'SUCCESS'}">
+                    승인하면 참여 건이 주문으로 접수됩니다. 거절하면 진행 중 펀딩으로 돌아갑니다.
+                </p>
+                <p class="publishing-status-note is-fail mb-3"
+                   th:if="${campaign.awaitingApproval and campaign.status.name() == 'FAILED'}">
+                    승인하면 참여 건이 환불 처리됩니다. 거절하면 진행 중 펀딩으로 돌아갑니다.
+                </p>
+                <p class="publishing-status-note is-success mb-3"
+                   th:if="${campaign.approved and campaign.status.name() == 'SUCCESS'}">
+                    승인 완료 · 주문이 접수된 건입니다.
+                </p>
+                <p class="publishing-status-note is-fail mb-3"
+                   th:if="${campaign.approved and campaign.status.name() == 'FAILED'}">
+                    승인 완료 · 환불이 반영된 건입니다.
+                </p>
+
+                <div th:if="${campaign.awaitingApproval}" class="d-flex flex-wrap gap-2">
+                    <form th:action="@{/admin/fundings/{id}/approve(id=${campaign.id})}" method="post"
+                          data-confirm-message="이 펀딩 마감을 승인할까요?"
+                          data-confirm-title="펀딩 승인"
+                          data-confirm-text="예, 승인"
+                          data-confirm-tone="warning">
+                        <input type="hidden" name="novelTitle" th:value="${criteria.novelTitle}">
+                        <input type="hidden" name="approval" th:value="${criteria.approval}">
+                        <input type="hidden" name="status" th:if="${criteria.status != null}" th:value="${criteria.status}">
+                        <input type="hidden" name="sortField" th:if="${criteria.sortField != null}" th:value="${criteria.sortField}">
+                        <input type="hidden" name="sortDir" th:if="${criteria.sortDir != null}" th:value="${criteria.sortDir}">
+                        <button class="btn btn-sm btn-dark" type="submit">승인</button>
+                    </form>
+                    <form th:action="@{/admin/fundings/{id}/reject(id=${campaign.id})}" method="post"
+                          data-confirm-message="거절하면 펀딩이 진행 중으로 돌아갑니다. 계속할까요?"
+                          data-confirm-title="펀딩 거절"
+                          data-confirm-text="예, 거절"
+                          data-confirm-tone="danger">
+                        <input type="hidden" name="novelTitle" th:value="${criteria.novelTitle}">
+                        <input type="hidden" name="approval" th:value="${criteria.approval}">
+                        <input type="hidden" name="status" th:if="${criteria.status != null}" th:value="${criteria.status}">
+                        <input type="hidden" name="sortField" th:if="${criteria.sortField != null}" th:value="${criteria.sortField}">
+                        <input type="hidden" name="sortDir" th:if="${criteria.sortDir != null}" th:value="${criteria.sortDir}">
+                        <button class="btn btn-sm btn-outline-danger" type="submit">거절</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<footer class="border-top py-4">
+    <div class="container small text-secondary">NovelKeep · 펀딩 승인·거절을 관리합니다.</div>
+</footer>
+<script th:src="@{/vendor/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/js/sort-cycle.js}"></script>
+<script th:src="@{/js/admin-fundings.js}"></script>
+</body>
+</html>

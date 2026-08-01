@@ -241,6 +241,7 @@ a.role-link:focus {
 
 .novel-cover-overlays .cover-badge-row,
 .novel-cover-overlays .cover-favorite,
+.novel-cover-overlays .cover-bottom-row,
 .novel-cover-overlays .cover-recommend {
     pointer-events: auto;
 }
@@ -262,10 +263,33 @@ a.role-link:focus {
     margin: 0;
 }
 
-.cover-recommend {
+.cover-bottom-row {
     position: absolute;
-    bottom: 0.55rem;
+    left: 0.55rem;
     right: 0.55rem;
+    bottom: 0.55rem;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+}
+
+.cover-funding {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.cover-funding .funding-open-badge {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cover-recommend {
+    position: static;
+    flex: 0 0 auto;
+    margin-left: auto;
 }
 
 .novel-cover .favorite-toggle {
@@ -447,6 +471,15 @@ a.role-link:focus {
     align-items: end;
 }
 
+.novel-tag-row {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    gap: 0.5rem;
+    min-height: 3.6rem;
+    margin: 0 0 0.65rem;
+}
+
 .novel-tag-list {
     display: flex;
     flex-wrap: wrap;
@@ -457,6 +490,7 @@ a.role-link:focus {
     max-height: 3.6rem;
     overflow: hidden;
     min-width: 0;
+    flex: 1 1 auto;
 }
 
 .novel-tag-row.is-expanded .novel-tag-list {
@@ -464,14 +498,48 @@ a.role-link:focus {
     overflow: visible;
 }
 
+.genre-tag-row.novel-tag-row {
+    display: block;
+    min-height: 0;
+    gap: 0;
+}
+
+.genre-tag-list.novel-tag-list {
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+    flex: none;
+    width: 100%;
+}
+
 .novel-tag-more {
+    flex: 0 0 auto;
+    align-self: flex-start;
     margin: 0;
-    align-self: end;
-    color: #5f5750;
-    background: #f1eeea;
-    border: 1px solid #d8d1c8;
+    padding: 0.35em 0.65em;
+    font-size: 0.75em;
+    font-weight: 700;
+    line-height: 1;
+    color: #212529;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
     cursor: pointer;
-    line-height: 1.2;
+}
+
+.novel-tag-more:hover,
+.novel-tag-more:focus {
+    color: #212529;
+    background-color: #f8f9fa;
+    border-color: #dee2e6;
+}
+
+[data-bs-theme="dark"] .novel-tag-more,
+[data-bs-theme="dark"] .novel-tag-more:hover,
+[data-bs-theme="dark"] .novel-tag-more:focus {
+    color: #e8e1da;
+    background-color: #2a2522;
+    border-color: #4a4138;
 }
 
 .recommend-badge {
@@ -492,18 +560,29 @@ a.role-link:focus {
     padding: 1.25rem 1.35rem 1.35rem;
 }
 
-.nk-marquee-card .novel-tag-row {
+.nk-marquee-card .novel-tag-row:not(.genre-tag-row) {
     flex: 0 0 auto;
     align-items: start;
     min-height: 3.6rem;
     margin: 0 0 0.65rem;
 }
 
-.nk-marquee-card .novel-tag-list {
+.nk-marquee-card .novel-tag-list:not(.genre-tag-list) {
     min-height: 3.6rem;
     max-height: 3.6rem;
     align-items: flex-start;
     align-content: flex-start;
+}
+
+.nk-marquee-card .genre-tag-row {
+    flex: 0 0 auto;
+    min-height: 0;
+    margin: 0 0 0.65rem;
+}
+
+.nk-marquee-card .genre-tag-list {
+    min-height: 0;
+    max-height: none;
 }
 
 .nk-marquee-card .novel-card-title {
@@ -637,6 +716,61 @@ a.role-link:focus {
     flex: 1;
     min-width: 0;
     overflow: visible;
+    display: flex;
+    flex-direction: column;
+}
+
+.compact-tag-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    align-items: center;
+}
+
+.genre-tag-row,
+.compact-genre-row {
+    display: block;
+    min-height: 0;
+    margin: 0 0 0.65rem;
+}
+
+.genre-tag-list,
+.compact-genre-list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    align-content: flex-start;
+    gap: 0.5rem;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+    flex: none;
+    width: 100%;
+}
+
+.genre-tag-list .novel-tag-more,
+.compact-genre-list .novel-tag-more {
+    flex: 0 0 auto;
+}
+
+.nk-marquee-card .genre-tag-row {
+    min-height: 0;
+    margin: 0 0 0.65rem;
+}
+
+.nk-marquee-card .genre-tag-list {
+    min-height: 0;
+    max-height: none;
+}
+
+.compact-body .novel-card-funding-stack {
+    margin-top: 0.65rem;
+    margin-bottom: 0;
+}
+
+.compact-body .funding-meter-inline {
+    margin-bottom: 0;
+    gap: 0.4rem;
 }
 
 .funding-meter-row,

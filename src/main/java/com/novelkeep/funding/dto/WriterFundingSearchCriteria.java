@@ -1,15 +1,16 @@
-package com.novelkeep.order.dto;
+package com.novelkeep.funding.dto;
 
-import java.time.LocalDate;
-
+import com.novelkeep.funding.domain.FundingCampaignStatus;
 import com.novelkeep.order.domain.BookOrderStatus;
 
-public class BookOrderSearchCriteria {
+public class WriterFundingSearchCriteria {
 
     public enum SortField {
-        ID("번호"),
-        ORDERED("주문일"),
-        STATUS("상태");
+        UPDATED("최근 수정"),
+        END("종료일"),
+        GAUGE("달성률"),
+        TARGET("목표 부수"),
+        PRICE("판매가");
 
         private final String displayName;
 
@@ -28,9 +29,8 @@ public class BookOrderSearchCriteria {
     }
 
     private String novelTitle;
-    private BookOrderStatus status;
-    private LocalDate orderedFrom;
-    private LocalDate orderedTo;
+    private FundingCampaignStatus status;
+    private BookOrderStatus orderStatus;
     private SortField sortField;
     private SortDir sortDir;
 
@@ -42,28 +42,20 @@ public class BookOrderSearchCriteria {
         this.novelTitle = novelTitle;
     }
 
-    public BookOrderStatus getStatus() {
+    public FundingCampaignStatus getStatus() {
         return status;
     }
 
-    public void setStatus(BookOrderStatus status) {
+    public void setStatus(FundingCampaignStatus status) {
         this.status = status;
     }
 
-    public LocalDate getOrderedFrom() {
-        return orderedFrom;
+    public BookOrderStatus getOrderStatus() {
+        return orderStatus;
     }
 
-    public void setOrderedFrom(LocalDate orderedFrom) {
-        this.orderedFrom = orderedFrom;
-    }
-
-    public LocalDate getOrderedTo() {
-        return orderedTo;
-    }
-
-    public void setOrderedTo(LocalDate orderedTo) {
-        this.orderedTo = orderedTo;
+    public void setOrderStatus(BookOrderStatus orderStatus) {
+        this.orderStatus = orderStatus;
     }
 
     public SortField getSortField() {
@@ -80,12 +72,5 @@ public class BookOrderSearchCriteria {
 
     public void setSortDir(SortDir sortDir) {
         this.sortDir = sortDir;
-    }
-
-    public String normalizedTitle() {
-        if (novelTitle == null || novelTitle.isBlank()) {
-            return null;
-        }
-        return novelTitle.trim();
     }
 }

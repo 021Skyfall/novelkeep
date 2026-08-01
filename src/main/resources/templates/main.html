@@ -117,7 +117,9 @@
                              th:attr="data-novel-id=${novel.id},
                                       data-novel-href=@{/novels/{id}(id=${novel.id})}">
                         <div class="novel-cover"
-                             th:classappend="${stat.count % 6 == 1} ? ' cover-one' : (${stat.count % 6 == 2} ? ' cover-two' : (${stat.count % 6 == 3} ? ' cover-three' : (${stat.count % 6 == 4} ? ' cover-four' : (${stat.count % 6 == 5} ? ' cover-five' : ' cover-six'))))">
+                             th:classappend="${stat.count % 6 == 1} ? ' cover-one' : (${stat.count % 6 == 2} ? ' cover-two' : (${stat.count % 6 == 3} ? ' cover-three' : (${stat.count % 6 == 4} ? ' cover-four' : (${stat.count % 6 == 5} ? ' cover-five' : ' cover-six'))))"
+                             th:with="campaigns=${openFundingByNovelId != null ? openFundingByNovelId.get(novel.id) : null},
+                                      recommendLabel=${novel.recommendationCount > 9999 ? '추천 9999+' : '추천 ' + novel.recommendationCount}">
                             <div class="novel-cover-overlays">
                                 <div class="cover-badge-row">
                                     <span class="badge"
@@ -138,39 +140,53 @@
                                             th:aria-label="${favoritedIds != null and #sets.contains(favoritedIds, novel.id) ? '내 즐겨찾기 해제' : '내 즐겨찾기'}"
                                             th:text="${favoritedIds != null and #sets.contains(favoritedIds, novel.id) ? '★' : '☆'}">☆</button>
                                 </form>
-                                <form th:if="${currentMemberId == null or novel.author.id != currentMemberId}"
-                                      class="cover-recommend"
-                                      th:action="@{/novels/{id}/recommend(id=${novel.id})}" method="post"
-                                      data-novel-action="recommend"
-                                      th:attr="data-novel-id=${novel.id}">
-                                    <input type="hidden" name="returnTo" value="main">
-                                    <button class="btn btn-sm recommend-toggle" data-action-button
-                                            th:classappend="${recommendedIds != null and #sets.contains(recommendedIds, novel.id)} ? ' is-active'"
-                                            type="submit"
-                                            th:attr="aria-pressed=${recommendedIds != null and #sets.contains(recommendedIds, novel.id)}"
-                                            th:aria-label="${recommendedIds != null and #sets.contains(recommendedIds, novel.id) ? '추천 취소' : '추천하기'}">
-                                        <span data-recommend-count
-                                              th:text="|추천 ${novel.recommendationCount}|">추천 0</span>
-                                        <svg class="recommend-thumb-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                            <path fill="currentColor"
-                                                  d="M2 10.5h3.2V21H2zm19.1 1.1c0-.7-.6-1.3-1.3-1.3h-5.1l.8-3.6.1-.6c0-.3-.1-.6-.3-.8l-.8-.8L9.8 9.2c-.3.3-.5.7-.5 1.1V19c0 .8.7 1.5 1.5 1.5h6.7c.5 0 1-.3 1.2-.8l2.3-5.4c.1-.2.1-.4.1-.6v-.1z"/>
-                                        </svg>
-                                    </button>
-                                </form>
-                                <span th:if="${currentMemberId != null and novel.author.id == currentMemberId}"
-                                      class="badge recommend-badge cover-recommend" data-recommend-count
-                                      th:text="|추천 ${novel.recommendationCount}|">추천 0</span>
+                                <div class="cover-bottom-row">
+                                    <div th:if="${campaigns != null and #lists.size(campaigns) == 1}"
+                                         class="cover-funding">
+                                        <span class="badge funding-open-badge"
+                                              th:text="${novel.multiPart ? campaigns[0].storyPart.partNumber + '부 펀딩 중' : '펀딩 중'}">펀딩 중</span>
+                                    </div>
+                                    <div th:if="${campaigns != null and #lists.size(campaigns) > 1}"
+                                         class="cover-funding">
+                                        <span class="badge funding-open-badge">다수 펀딩 중</span>
+                                    </div>
+                                    <form th:if="${currentMemberId == null or novel.author.id != currentMemberId}"
+                                          class="cover-recommend"
+                                          th:action="@{/novels/{id}/recommend(id=${novel.id})}" method="post"
+                                          data-novel-action="recommend"
+                                          th:attr="data-novel-id=${novel.id}">
+                                        <input type="hidden" name="returnTo" value="main">
+                                        <button class="btn btn-sm recommend-toggle" data-action-button
+                                                th:classappend="${recommendedIds != null and #sets.contains(recommendedIds, novel.id)} ? ' is-active'"
+                                                type="submit"
+                                                th:attr="aria-pressed=${recommendedIds != null and #sets.contains(recommendedIds, novel.id)}"
+                                                th:aria-label="${recommendedIds != null and #sets.contains(recommendedIds, novel.id) ? '추천 취소' : '추천하기'}">
+                                            <span data-recommend-count
+                                                  th:text="${recommendLabel}">추천 0</span>
+                                            <svg class="recommend-thumb-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                                <path fill="currentColor"
+                                                      d="M2 10.5h3.2V21H2zm19.1 1.1c0-.7-.6-1.3-1.3-1.3h-5.1l.8-3.6.1-.6c0-.3-.1-.6-.3-.8l-.8-.8L9.8 9.2c-.3.3-.5.7-.5 1.1V19c0 .8.7 1.5 1.5 1.5h6.7c.5 0 1-.3 1.2-.8l2.3-5.4c.1-.2.1-.4.1-.6v-.1z"/>
+                                            </svg>
+                                        </button>
+                                    </form>
+                                    <span th:if="${currentMemberId != null and novel.author.id == currentMemberId}"
+                                          class="badge recommend-badge cover-recommend" data-recommend-count
+                                          th:text="${recommendLabel}">추천 0</span>
+                                </div>
                             </div>
                         </div>
                         <div class="novel-card-body">
-                            <div class="novel-tag-row" data-tag-row>
-                                <div class="novel-tag-list" data-tag-list>
+                            <div th:if="${!#lists.isEmpty(novel.genres)}"
+                                 class="novel-tag-row genre-tag-row"
+                                 data-tag-row data-tag-mode="inline">
+                                <div class="novel-tag-list genre-tag-list" data-tag-list>
                                     <span th:each="genreItem : ${novel.genres}"
                                           class="badge text-bg-light border"
+                                          data-clamp-tag
                                           th:text="${genreItem.displayName}">장르</span>
+                                    <button class="badge text-bg-light border novel-tag-more d-none" type="button"
+                                            data-tag-more aria-label="태그 더 보기">...</button>
                                 </div>
-                                <button class="badge novel-tag-more d-none" type="button" data-tag-more
-                                        aria-label="태그 더 보기">...</button>
                             </div>
                             <h3 class="h5 fw-bold title-clamp-2 novel-card-title" th:text="${novel.title}"
                                 th:title="${novel.title}">작품명</h3>
@@ -234,29 +250,49 @@
                 <div class="nk-marquee-track" data-marquee-track>
                     <a class="nk-marquee-link nk-marquee-compact compact-card"
                        th:each="novel, stat : ${completedNovels}"
-                       th:href="@{/novels/{id}(id=${novel.id})}">
+                       th:href="@{/novels/{id}(id=${novel.id})}"
+                       th:with="campaigns=${openFundingByNovelId != null ? openFundingByNovelId.get(novel.id) : null}">
                         <div class="novel-cover compact-cover"
-                             th:classappend="${novel.id % 6 == 1} ? ' cover-one' : (${novel.id % 6 == 2} ? ' cover-two' : (${novel.id % 6 == 3} ? ' cover-three' : (${novel.id % 6 == 4} ? ' cover-four' : (${novel.id % 6 == 5} ? ' cover-five' : ' cover-six'))))">
-                            <div class="novel-cover-overlays">
-                                <div class="cover-badge-row">
-                                    <span class="badge status-completed">전체 완결</span>
-                                    <span th:if="${novel.latestCompletedPartLabel() != null}"
-                                          class="badge status-completed"
-                                          th:text="${novel.latestCompletedPartLabel()}">1부 완결</span>
-                                </div>
-                                <span class="badge recommend-badge cover-recommend"
-                                      th:text="|추천 ${novel.recommendationCount}|">추천 0</span>
-                            </div>
-                        </div>
+                             th:classappend="${novel.id % 6 == 1} ? ' cover-one' : (${novel.id % 6 == 2} ? ' cover-two' : (${novel.id % 6 == 3} ? ' cover-three' : (${novel.id % 6 == 4} ? ' cover-four' : (${novel.id % 6 == 5} ? ' cover-five' : ' cover-six'))))"
+                             aria-hidden="true"></div>
                         <div class="compact-body">
+                            <div class="compact-tag-meta mb-1">
+                                <span class="badge status-completed">전체 완결</span>
+                                <span th:if="${novel.latestCompletedPartLabel() != null}"
+                                      class="badge status-completed"
+                                      th:text="${novel.latestCompletedPartLabel()}">1부 완결</span>
+                                <span class="badge recommend-badge"
+                                      th:text="|추천 ${novel.recommendationCount > 9999 ? '9999+' : novel.recommendationCount}|">추천 0</span>
+                            </div>
+                            <div th:if="${!#lists.isEmpty(novel.genres)}"
+                                 class="novel-tag-row compact-genre-row genre-tag-row mb-1"
+                                 data-tag-row data-tag-mode="inline">
+                                <div class="novel-tag-list compact-genre-list genre-tag-list" data-tag-list>
+                                    <span th:each="genreItem : ${novel.genres}"
+                                          class="badge text-bg-light border"
+                                          data-clamp-tag
+                                          th:text="${genreItem.displayName}">장르</span>
+                                    <button class="badge text-bg-light border novel-tag-more d-none" type="button"
+                                            data-tag-more aria-label="태그 더 보기">...</button>
+                                </div>
+                            </div>
                             <h3 class="h5 fw-bold mb-1 title-clamp-2"
                                 th:text="${novel.title}"
                                 th:title="${novel.title}">작품명</h3>
-                            <p class="mb-0 text-clamp-1">
-                                <span th:text="|필명 ${novel.penName}|">필명</span>
-                                <span th:if="${novel.primaryGenre() != null}"
-                                      th:text="| · ${novel.primaryGenre().displayName}|">장르</span>
-                            </p>
+                            <p class="mb-0 text-clamp-1"
+                               th:text="|필명 ${novel.penName}|">필명</p>
+                            <div th:if="${campaigns != null and #lists.size(campaigns) == 1}"
+                                 class="novel-card-funding-stack mb-0 mt-2">
+                                <div th:replace="~{fragments/funding-badge :: openFundingBadgeLabeled(
+                                    ${campaigns[0]},
+                                    ${novel.multiPart ? campaigns[0].storyPart.partNumber + '부 펀딩 중' : '펀딩 중'}
+                                )}"></div>
+                            </div>
+                            <div th:if="${campaigns != null and #lists.size(campaigns) > 1}"
+                                 class="novel-card-funding-stack mb-0 mt-2"
+                                 th:with="avgPct=${T(com.novelkeep.funding.domain.FundingCampaign).averageAchievementPercent(campaigns)}">
+                                <div th:replace="~{fragments/funding-badge :: fundingMeterLabeled('다수 펀딩 중', ${avgPct})}"></div>
+                            </div>
                         </div>
                     </a>
                 </div>

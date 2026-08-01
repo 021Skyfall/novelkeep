@@ -12,10 +12,10 @@
     }
 
     function confirmParticipate(priceLabel) {
-        var message = (priceLabel || '판매가') + '로 모의 결제하고 1부 참여할까요?\n같은 펀딩에는 한 번만 참여할 수 있습니다.';
+        var message = (priceLabel || '판매가') + '로 결제하고 1부 참여할까요?\n같은 펀딩에는 한 번만 참여할 수 있습니다.';
         if (window.NovelKeepConfirm && typeof window.NovelKeepConfirm.open === 'function') {
             return window.NovelKeepConfirm.open(message, {
-                title: '모의 결제 확인',
+                title: '결제 확인',
                 tone: 'warning',
                 confirmText: '참여하기',
                 cancelText: '취소'
@@ -50,7 +50,7 @@
 
         var hint = actions.querySelector('[data-funding-hint]');
         if (hint) {
-            hint.textContent = '이미 이 펀딩에 참여했습니다. 모의 결제 완료 상태입니다.';
+            hint.textContent = '이미 이 펀딩에 참여했습니다. 결제 완료 상태입니다.';
         }
 
         var quantity = card.querySelector('[data-funding-quantity]');

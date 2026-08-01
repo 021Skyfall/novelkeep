@@ -83,6 +83,7 @@ public class NovelController {
         if (page != null) {
             criteria.setPage(page);
         }
+        applyEntrySortDefaults(criteria, request);
         if (role != ExperienceRole.ADMIN) {
             criteria.setVisibility(null);
         }
@@ -226,6 +227,7 @@ public class NovelController {
         if (page != null) {
             criteria.setPage(page);
         }
+        applyEntrySortDefaults(criteria, request);
 
         Page<Novel> novels = novelService.searchOwned(criteria, memberId);
         model.addAttribute("novels", novels);
@@ -378,6 +380,18 @@ public class NovelController {
         }
         return "1".equals(request.getParameter("partial"))
                 || "true".equalsIgnoreCase(request.getParameter("partial"));
+    }
+
+    private void applyEntrySortDefaults(NovelSearchCriteria criteria, HttpServletRequest request) {
+        if (!request.getParameterMap().containsKey("sort")) {
+            criteria.setSort("latest");
+            criteria.setSortDir("DESC");
+            return;
+        }
+        if (criteria.getSort() == null || criteria.getSort().isBlank()) {
+            criteria.setSort("");
+            criteria.setSortDir("");
+        }
     }
 
     private String resolveNavActive(NovelSearchCriteria criteria) {

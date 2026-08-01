@@ -56,6 +56,10 @@
                         <span>남은 기간</span>
                         <strong th:text="${#temporals.format(campaign.endAt, 'yyyy-MM-dd HH:mm')}">마감</strong>
                     </div>
+                    <div th:if="${memberOrderStatus != null}">
+                        <span>출판 상태</span>
+                        <strong th:text="${memberOrderStatus.displayName}">접수</strong>
+                    </div>
                 </div>
 
                 <div class="funding-meter-row mt-3">
@@ -79,7 +83,7 @@
                           method="post"
                           data-funding-participate-form>
                         <button class="btn btn-dark" type="submit" data-funding-participate-btn>
-                            모의 결제하고 1부 참여하기
+                            결제하고 1부 참여하기
                         </button>
                     </form>
                     <button th:unless="${canParticipate}"

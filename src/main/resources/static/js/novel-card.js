@@ -37,6 +37,56 @@
         }
     }
 
+    function visibleClampTags(list) {
+        return Array.prototype.slice.call(list.querySelectorAll('[data-clamp-tag]'))
+            .filter(function (tag) {
+                return !tag.classList.contains('d-none');
+            });
+    }
+
+    function wrapsPastFirstLine(list, more) {
+        var tags = visibleClampTags(list);
+        if (tags.length === 0) {
+            return false;
+        }
+        var lineTop = tags[0].offsetTop;
+        var tagWraps = tags.some(function (tag) {
+            return tag.offsetTop > lineTop + 1;
+        });
+        var moreWraps = more && !more.classList.contains('d-none') && more.offsetTop > lineTop + 1;
+        return tagWraps || moreWraps;
+    }
+
+    function measureInlineTagRow(row, list, more) {
+        var tags = Array.prototype.slice.call(list.querySelectorAll('[data-clamp-tag]'));
+        tags.forEach(function (tag) {
+            tag.classList.remove('d-none');
+        });
+        more.classList.add('d-none');
+        more.textContent = '...';
+        more.setAttribute('aria-expanded', 'false');
+
+        if (tags.length === 0 || !wrapsPastFirstLine(list, more)) {
+            return;
+        }
+
+        more.classList.remove('d-none');
+        for (var i = tags.length - 1; i >= 0; i--) {
+            if (!wrapsPastFirstLine(list, more)) {
+                break;
+            }
+            tags[i].classList.add('d-none');
+        }
+    }
+
+    function measureMaxHeightTagRow(row, list, more) {
+        more.classList.add('d-none');
+        more.setAttribute('aria-expanded', 'false');
+        more.textContent = '...';
+        var overflows = list.scrollHeight > list.clientHeight + 1;
+        more.classList.toggle('d-none', !overflows);
+    }
+
     function measureTagRow(row) {
         var list = row.querySelector('[data-tag-list]');
         var more = row.querySelector('[data-tag-more]');
@@ -44,11 +94,11 @@
             return;
         }
         row.classList.remove('is-expanded');
-        more.classList.add('d-none');
-        more.setAttribute('aria-expanded', 'false');
-        // force layout with collapsed max-height
-        var overflows = list.scrollHeight > list.clientHeight + 1;
-        more.classList.toggle('d-none', !overflows);
+        if (row.getAttribute('data-tag-mode') === 'inline') {
+            measureInlineTagRow(row, list, more);
+            return;
+        }
+        measureMaxHeightTagRow(row, list, more);
     }
 
     function bindTagRow(row) {
@@ -75,9 +125,22 @@
         }
         event.preventDefault();
         event.stopPropagation();
+        var list = row.querySelector('[data-tag-list]');
         var expanded = row.classList.toggle('is-expanded');
         more.setAttribute('aria-expanded', expanded ? 'true' : 'false');
         more.textContent = expanded ? '접기' : '...';
+        if (row.getAttribute('data-tag-mode') === 'inline' && list) {
+            var tags = list.querySelectorAll('[data-clamp-tag]');
+            if (expanded) {
+                tags.forEach(function (tag) {
+                    tag.classList.remove('d-none');
+                });
+                more.classList.remove('d-none');
+            } else {
+                measureTagRow(row);
+            }
+            return;
+        }
         if (!expanded) {
             measureTagRow(row);
         }

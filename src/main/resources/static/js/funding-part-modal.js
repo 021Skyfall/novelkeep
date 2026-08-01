@@ -81,7 +81,12 @@
     function updateWarn() {
         if (!warn) return;
         var limit = Number(modalEl.dataset.limit || 100000);
-        warn.classList.toggle('d-none', !(chars > limit));
+        var over = chars > limit;
+        warn.classList.toggle('d-none', !over);
+        if (over) {
+            warn.textContent = '해당 작품은 ' + chars.toLocaleString('ko-KR')
+                + '자 입니다. 공개 회차 합이 10만 자를 넘습니다. 출판 담당과 문의가 필요합니다.';
+        }
     }
 
     function openModal(button) {
@@ -93,7 +98,7 @@
         partLabel.textContent = button.getAttribute('data-part-label') || '대상 부';
 
         var minDays = Number(modalEl.dataset.minDays || 7);
-        var defaults = defaultRange(Math.max(minDays, 14));
+        var defaults = defaultRange(minDays || 7);
 
         if (mode === 'edit') {
             titleEl.textContent = '펀딩 수정';

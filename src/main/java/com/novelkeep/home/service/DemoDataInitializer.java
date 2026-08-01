@@ -112,44 +112,181 @@ public class DemoDataInitializer implements ApplicationRunner {
 
         List<Novel> novels = createNovels(author);
         novelRepository.saveAll(novels);
+        seedNovelBrowseStats(novels);
         List<FundingCampaign> campaigns = fundingCampaignRepository.saveAll(createFundings(novels));
-        seedOrders(reader, campaigns);
+        seedParticipationsAndOrders(reader, campaigns);
+        seedCampaignUpdatedAt(fundingCampaignRepository.findAll());
     }
 
-    private void seedOrders(Member reader, List<FundingCampaign> campaigns) {
+    private void seedNovelBrowseStats(List<Novel> novels) {
         LocalDateTime now = LocalDateTime.now();
+        Random random = new Random(RANDOM_SEED + 31);
+        for (Novel novel : novels) {
+            long recommendations = random.nextInt(180);
+            // 탐색 카드 9999+ 표기·게이지 길이 확인용
+            if (novel.getId() != null && novel.getId() % 17 == 0) {
+                recommendations = 10_000L + random.nextInt(2_500);
+            } else if (novel.getId() != null && novel.getId() % 11 == 0) {
+                recommendations = 1_000L + random.nextInt(8_000);
+            }
+            LocalDateTime updatedAt = now
+                    .minusDays(random.nextInt(60))
+                    .minusHours(random.nextInt(24))
+                    .minusMinutes(random.nextInt(60));
+            novelRepository.seedDemoStats(novel.getId(), recommendations, updatedAt);
+        }
+    }
+
+    private void seedCampaignUpdatedAt(List<FundingCampaign> campaigns) {
+        LocalDateTime now = LocalDateTime.now();
+        Random random = new Random(RANDOM_SEED + 47);
+        for (FundingCampaign campaign : campaigns) {
+            LocalDateTime updatedAt = now
+                    .minusDays(random.nextInt(90))
+                    .minusHours(random.nextInt(24))
+                    .minusMinutes(random.nextInt(60))
+                    .minusSeconds(random.nextInt(60));
+            fundingCampaignRepository.seedDemoUpdatedAt(campaign.getId(), updatedAt);
+        }
+    }
+
+    /**
+     * 게이지(currentQuantity)와 실제 참여 행을 맞춘다.
+     * 독자 회원은 1명이므로 캠페인당 참여 1건·quantity = 수요 부로 맞춘다.
+     * 일부는 성공 가능(완결부 + 목표 달성), 일부는 승인 대기·승인 완료 시나리오를 만든다.
+     */
+    private void seedParticipationsAndOrders(Member reader, List<FundingCampaign> campaigns) {
+        LocalDateTime now = LocalDateTime.now();
+        Random random = new Random(RANDOM_SEED + 17);
         BookOrderStatus[] statuses = BookOrderStatus.values();
         List<FundingParticipation> participations = new ArrayList<>();
         List<BookOrder> orders = new ArrayList<>();
 
         List<FundingCampaign> openCampaigns = campaigns.stream()
                 .filter(campaign -> campaign.getStatus() == com.novelkeep.funding.domain.FundingCampaignStatus.OPEN)
-                .filter(campaign -> campaign.getCurrentQuantity() > 0)
-                .limit(ORDER_SEED_COUNT)
                 .toList();
+
+        int orderSeedIndex = 0;
+        int awaitingSuccessSeed = 0;
+        int awaitingFailSeed = 0;
+        int reservedOpenSuccess = 0;
 
         for (int i = 0; i < openCampaigns.size(); i++) {
             FundingCampaign campaign = openCampaigns.get(i);
-            LocalDateTime paidAt = now.minusHours(6L + i);
+            int demand = campaign.getCurrentQuantity();
+            if (demand <= 0) {
+                campaign.syncCurrentQuantity(0);
+                continue;
+            }
+
+            LocalDateTime paidAt = now
+                    .minusDays(random.nextInt(40))
+                    .minusHours(random.nextInt(24))
+                    .minusMinutes(random.nextInt(60));
             FundingParticipation participation = FundingParticipation.paid(
                     campaign,
                     reader,
-                    1,
+                    demand,
                     paidAt
             );
             participations.add(participation);
-        }
-        fundingParticipationRepository.saveAll(participations);
+            campaign.syncCurrentQuantity(demand);
 
-        for (int i = 0; i < participations.size(); i++) {
-            FundingParticipation participation = participations.get(i);
-            orders.add(BookOrder.fromParticipation(
-                    participation,
-                    statuses[i % statuses.length],
-                    now.minusHours(i)
-            ));
+            if (campaign.isSuccessReady()) {
+                // 출판 상태 6단계 필터·문구 확인용: 먼저 전 단계 1건씩 확보
+                if (orderSeedIndex < statuses.length) {
+                    campaign.closeAsSuccess();
+                    campaign.markApproved(now
+                            .minusDays(random.nextInt(12))
+                            .minusHours(random.nextInt(24))
+                            .minusMinutes(random.nextInt(60)));
+                    orders.add(BookOrder.fromParticipation(
+                            participation,
+                            statuses[orderSeedIndex],
+                            now.minusDays(random.nextInt(20))
+                                    .minusHours(random.nextInt(24))
+                                    .minusMinutes(random.nextInt(60))
+                    ));
+                    orderSeedIndex++;
+                    continue;
+                }
+                // 작가 성공 마감 테스트용 OPEN을 확보
+                if (reservedOpenSuccess < 3) {
+                    reservedOpenSuccess++;
+                    continue;
+                }
+                // 승인 대기 성공 샘플
+                if (awaitingSuccessSeed < 2) {
+                    campaign.closeAsSuccess();
+                    awaitingSuccessSeed++;
+                    continue;
+                }
+                // 추가 승인 완료 주문
+                if (orderSeedIndex < ORDER_SEED_COUNT) {
+                    campaign.closeAsSuccess();
+                    campaign.markApproved(now
+                            .minusDays(random.nextInt(12))
+                            .minusHours(random.nextInt(24))
+                            .minusMinutes(random.nextInt(60)));
+                    orders.add(BookOrder.fromParticipation(
+                            participation,
+                            statuses[orderSeedIndex % statuses.length],
+                            now.minusDays(random.nextInt(20))
+                                    .minusHours(random.nextInt(24))
+                                    .minusMinutes(random.nextInt(60))
+                    ));
+                    orderSeedIndex++;
+                }
+                continue;
+            }
+
+            // 승인 대기 실패 샘플
+            if (awaitingFailSeed < 2) {
+                campaign.closeAsFailed();
+                awaitingFailSeed++;
+            }
         }
-        bookOrderRepository.saveAll(orders);
+
+        // 성공 가능 OPEN이 하나도 없으면, 참여 없는 완결부 캠페인에 목표 달성 수요를 붙인다.
+        ensureSuccessReadyOpen(openCampaigns, reader, participations, now);
+
+        fundingParticipationRepository.saveAll(participations);
+        if (!orders.isEmpty()) {
+            bookOrderRepository.saveAll(orders);
+        }
+        fundingCampaignRepository.saveAll(campaigns);
+    }
+
+    private void ensureSuccessReadyOpen(
+            List<FundingCampaign> openCampaigns,
+            Member reader,
+            List<FundingParticipation> participations,
+            LocalDateTime now
+    ) {
+        boolean hasReadyOpen = openCampaigns.stream()
+                .anyMatch(c -> c.getStatus() == com.novelkeep.funding.domain.FundingCampaignStatus.OPEN
+                        && c.isSuccessReady());
+        if (hasReadyOpen) {
+            return;
+        }
+
+        for (FundingCampaign campaign : openCampaigns) {
+            if (campaign.getStatus() != com.novelkeep.funding.domain.FundingCampaignStatus.OPEN) {
+                continue;
+            }
+            if (campaign.getStoryPart().getStatus() != StoryPartStatus.COMPLETED) {
+                continue;
+            }
+            boolean alreadyParticipated = participations.stream()
+                    .anyMatch(p -> p.getCampaign() == campaign);
+            if (alreadyParticipated) {
+                continue;
+            }
+            int target = campaign.getTargetQuantity();
+            campaign.syncCurrentQuantity(target);
+            participations.add(FundingParticipation.paid(campaign, reader, target, now.minusHours(1)));
+            return;
+        }
     }
 
     private List<Novel> createNovels(Member author) {
@@ -206,6 +343,19 @@ public class DemoDataInitializer implements ApplicationRunner {
     }
 
     private void buildParts(Novel novel, int novelNumber, NovelProfile profile, Random random) {
+        // 내 작품 리스트 '외 N건' 확인용: 5부 전부 펀딩 가능
+        if (novelNumber == 20) {
+            for (int partNumber = 1; partNumber <= 5; partNumber++) {
+                String partTitle = PART_TITLES[(novelNumber + partNumber) % PART_TITLES.length];
+                StoryPart part = StoryPart.create(partNumber, partTitle, StoryPartStatus.COMPLETED);
+                // 1부는 10만 자 초과 → 내 펀딩 관리 분량 안내 확인용
+                VolumeTone tone = partNumber == 1 ? VolumeTone.OVER : VolumeTone.NORMAL;
+                addEpisodes(part, 8, true, tone, random);
+                novel.addPart(part);
+            }
+            return;
+        }
+
         if (!profile.multiPart()) {
             StoryPartStatus partStatus = profile.status() == NovelStatus.COMPLETED
                     ? StoryPartStatus.COMPLETED
@@ -361,6 +511,13 @@ public class DemoDataInitializer implements ApplicationRunner {
             int novelIndex,
             Set<Integer> fundableNumbers
     ) {
+        // 독자 탐색·작가 필터 확인용: 공개 완결 다부작에 진행 펀딩 0건
+        if (novel.getId() != null && (novel.getId() == 25L || novel.getId() == 35L)) {
+            return List.of();
+        }
+        if (fundableNumbers.size() >= 5) {
+            return pickExisting(fundableNumbers, 1, 2, 3, 4, 5);
+        }
         if (!novel.isMultiPart()) {
             return novelIndex % 5 == 1 ? List.of() : List.of(1);
         }
@@ -403,11 +560,26 @@ public class DemoDataInitializer implements ApplicationRunner {
         if (openIndex % 11 == 0) {
             current = 0;
         }
+        // 완결부인 일부는 목표 달성 상태로 두어 성공 마감 테스트를 가능하게 한다.
+        if (current > 0
+                && part.getStatus() == StoryPartStatus.COMPLETED
+                && openIndex % 6 == 0) {
+            target = FundingGuide.MIN_TARGET_QUANTITY + random.nextInt(15);
+            current = target + random.nextInt(5);
+        }
         BigDecimal price = BigDecimal.valueOf(12_000L + (random.nextInt(20) * 1_000L));
-        LocalDateTime startAt = now.minusDays(2L + (openIndex % 10));
-        LocalDateTime endAt = startAt.plusDays(FundingGuide.MIN_DURATION_DAYS + 7L + (openIndex % 14));
+        LocalDateTime startAt = now
+                .minusDays(1L + random.nextInt(18))
+                .minusHours(random.nextInt(24))
+                .minusMinutes(random.nextInt(60));
+        LocalDateTime endAt = startAt
+                .plusDays(FundingGuide.MIN_DURATION_DAYS + random.nextInt(12))
+                .plusHours(random.nextInt(12))
+                .plusMinutes(random.nextInt(60));
         if (endAt.isBefore(now.plusDays(FundingGuide.MIN_DURATION_DAYS))) {
-            endAt = now.plusDays(FundingGuide.MIN_DURATION_DAYS + 3L + (openIndex % 5));
+            endAt = now.plusDays(FundingGuide.MIN_DURATION_DAYS + random.nextInt(5))
+                    .plusHours(random.nextInt(12))
+                    .plusMinutes(random.nextInt(60));
         }
         return FundingCampaign.open(part, target, current, price, startAt, endAt);
     }

@@ -3,9 +3,11 @@ package com.novelkeep.order.service;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.List;
 
 import com.novelkeep.order.domain.BookOrder;
+import com.novelkeep.order.domain.BookOrderStatus;
 import com.novelkeep.order.dto.BookOrderRow;
 import com.novelkeep.order.dto.BookOrderSearchCriteria;
 import com.novelkeep.order.repository.BookOrderRepository;
@@ -91,12 +93,59 @@ public class BookOrderService {
         LocalDateTime toAt = criteria.getOrderedTo() == null
                 ? null
                 : criteria.getOrderedTo().plusDays(1).atStartOfDay();
-        return bookOrderRepository.search(
+        List<BookOrder> orders = bookOrderRepository.search(
                 criteria.normalizedTitle(),
                 criteria.getStatus(),
                 fromAt,
                 toAt
         );
+        orders.sort(resolveOrderComparator(criteria.getSortField(), criteria.getSortDir()));
+        return orders;
+    }
+
+    private Comparator<BookOrder> resolveOrderComparator(
+            BookOrderSearchCriteria.SortField sortField,
+            BookOrderSearchCriteria.SortDir sortDir
+    ) {
+        Comparator<BookOrder> byOrderedDesc = Comparator.comparing(
+                o -> toMinute(o.getOrderedAt()),
+                Comparator.nullsLast(Comparator.reverseOrder())
+        );
+        if (sortField == null || sortDir == null) {
+            return byOrderedDesc;
+        }
+        Comparator<BookOrder> byField = switch (sortField) {
+            case ID -> Comparator.comparing(BookOrder::getId);
+            case ORDERED -> Comparator.comparing(
+                    o -> toMinute(o.getOrderedAt()),
+                    Comparator.nullsLast(Comparator.naturalOrder())
+            );
+            case STATUS -> Comparator.comparingInt(order -> statusRank(order.getStatus()));
+        };
+        if (sortDir == BookOrderSearchCriteria.SortDir.DESC) {
+            byField = byField.reversed();
+        }
+        return byField.thenComparing(byOrderedDesc);
+    }
+
+    private static LocalDateTime toMinute(LocalDateTime value) {
+        if (value == null) {
+            return null;
+        }
+        return value.withSecond(0).withNano(0);
+    }
+
+    private int statusRank(BookOrderStatus status) {
+        if (status == null) {
+            return 99;
+        }
+        BookOrderStatus[] values = BookOrderStatus.values();
+        for (int i = 0; i < values.length; i++) {
+            if (values[i] == status) {
+                return i;
+            }
+        }
+        return 99;
     }
 
     private String csv(String value) {

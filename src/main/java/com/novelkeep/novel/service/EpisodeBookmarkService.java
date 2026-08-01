@@ -19,6 +19,8 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class EpisodeBookmarkService {
 
+    public static final int MAX_BOOKMARKS = 10;
+
     private final EpisodeBookmarkRepository bookmarkRepository;
     private final StoryContentService storyContentService;
     private final MemberRepository memberRepository;
@@ -50,6 +52,12 @@ public class EpisodeBookmarkService {
                     return savedResult(episode, novel);
                 })
                 .orElseGet(() -> {
+                    if (bookmarkRepository.countByMemberId(memberId) >= MAX_BOOKMARKS) {
+                        throw new ResponseStatusException(
+                                HttpStatus.BAD_REQUEST,
+                                "책갈피는 최대 " + MAX_BOOKMARKS + "개까지 저장할 수 있습니다."
+                        );
+                    }
                     bookmarkRepository.save(EpisodeBookmark.create(member, novel, episode));
                     return savedResult(episode, novel);
                 });

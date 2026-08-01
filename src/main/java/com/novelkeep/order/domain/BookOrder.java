@@ -41,7 +41,7 @@ public class BookOrder {
     private int quantity;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 30)
     private BookOrderStatus status;
 
     @Column(name = "ordered_at", nullable = false)
@@ -66,7 +66,7 @@ public class BookOrder {
         order.quantity = participation.getQuantity();
         order.status = status;
         order.orderedAt = orderedAt;
-        if (status == BookOrderStatus.COMPLETED) {
+        if (status == BookOrderStatus.DELIVERED) {
             order.completedAt = orderedAt.plusDays(3);
         }
         return order;
@@ -75,10 +75,10 @@ public class BookOrder {
     public void advanceStatus() {
         BookOrderStatus next = status.next();
         if (next == null) {
-            throw new IllegalStateException("이미 제작 완료된 주문입니다.");
+            throw new IllegalStateException("이미 배송 완료된 주문입니다.");
         }
         this.status = next;
-        if (next == BookOrderStatus.COMPLETED) {
+        if (next == BookOrderStatus.DELIVERED) {
             this.completedAt = LocalDateTime.now();
         }
     }

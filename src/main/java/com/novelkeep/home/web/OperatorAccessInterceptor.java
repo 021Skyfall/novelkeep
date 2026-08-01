@@ -49,6 +49,9 @@ public class OperatorAccessInterceptor implements HandlerInterceptor {
         if (path.startsWith("/admin")) {
             return true;
         }
+        if (path.startsWith("/fundings/") || path.startsWith("/novels/")) {
+            return true;
+        }
         if (path.startsWith("/experience") || path.equals("/logout") || path.startsWith("/logout")) {
             return true;
         }

@@ -1,4 +1,8 @@
 (function () {
+    if (window.NovelKeepConfirm) {
+        return;
+    }
+
     var activeDialog = null;
 
     function createButton(text, className) {

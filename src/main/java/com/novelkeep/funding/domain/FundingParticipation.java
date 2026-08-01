@@ -87,6 +87,14 @@ public class FundingParticipation {
         return participation;
     }
 
+    public void refundMock(LocalDateTime refundedAt) {
+        if (paymentStatus != FundingPaymentStatus.PAID_MOCK) {
+            throw new IllegalStateException("결제 완료 건만 환불할 수 있습니다.");
+        }
+        this.paymentStatus = FundingPaymentStatus.REFUNDED_MOCK;
+        this.refundedAt = refundedAt != null ? refundedAt : LocalDateTime.now();
+    }
+
     @PrePersist
     void onCreate() {
         LocalDateTime now = LocalDateTime.now();

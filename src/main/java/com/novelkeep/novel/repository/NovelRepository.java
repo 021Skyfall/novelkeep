@@ -101,4 +101,17 @@ public interface NovelRepository extends JpaRepository<Novel, Long>, JpaSpecific
             @Param("status") NovelStatus status,
             org.springframework.data.domain.Pageable pageable
     );
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update Novel n
+               set n.recommendationCount = :recommendationCount,
+                   n.updatedAt = :updatedAt
+             where n.id = :novelId
+            """)
+    int seedDemoStats(
+            @Param("novelId") Long novelId,
+            @Param("recommendationCount") long recommendationCount,
+            @Param("updatedAt") java.time.LocalDateTime updatedAt
+    );
 }

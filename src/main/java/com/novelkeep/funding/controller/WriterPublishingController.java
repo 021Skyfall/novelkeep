@@ -3,11 +3,14 @@ package com.novelkeep.funding.controller;
 import java.util.List;
 
 import com.novelkeep.funding.domain.FundingCampaign;
+import com.novelkeep.funding.domain.FundingCampaignStatus;
 import com.novelkeep.funding.domain.FundingGuide;
 import com.novelkeep.funding.dto.FundingActionResult;
 import com.novelkeep.funding.dto.WriterFundingForm;
+import com.novelkeep.funding.dto.WriterFundingSearchCriteria;
 import com.novelkeep.funding.service.FundingCampaignService;
 import com.novelkeep.home.domain.ExperienceRole;
+import com.novelkeep.order.domain.BookOrderStatus;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -40,20 +43,52 @@ public class WriterPublishingController {
     @GetMapping({"/writer/publishing", "/writer/novels/{novelId}/publishing"})
     public String publishing(
             @PathVariable(required = false) Long novelId,
+            @ModelAttribute("criteria") WriterFundingSearchCriteria criteria,
             @SessionAttribute(name = SESSION_ROLE, required = false) ExperienceRole role,
             @SessionAttribute(name = SESSION_MEMBER_ID, required = false) Long memberId,
+            HttpServletRequest request,
             Model model
     ) {
         if (!canWrite(role) || memberId == null) {
             return "redirect:/?roleRequired=true";
         }
 
-        List<FundingCampaign> campaigns = fundingCampaignService.findOpenOwnedCampaigns(memberId);
+        applyEntrySortDefaults(criteria, request);
+        bindPublishingModel(memberId, criteria, model);
+        if (wantsFragment(request)) {
+            return "writer/publishing :: campaignList";
+        }
+        return "writer/publishing";
+    }
+
+    private void applyEntrySortDefaults(WriterFundingSearchCriteria criteria, HttpServletRequest request) {
+        if ("true".equalsIgnoreCase(request.getParameter("unsorted"))) {
+            criteria.setSortField(null);
+            criteria.setSortDir(null);
+            return;
+        }
+        if (!request.getParameterMap().containsKey("sortField")) {
+            criteria.setSortField(WriterFundingSearchCriteria.SortField.UPDATED);
+            criteria.setSortDir(WriterFundingSearchCriteria.SortDir.DESC);
+        }
+    }
+
+    private void bindPublishingModel(Long memberId, WriterFundingSearchCriteria criteria, Model model) {
+        List<FundingCampaign> campaigns = fundingCampaignService.findOwnedCampaigns(memberId, criteria);
         model.addAttribute("campaigns", campaigns);
+        model.addAttribute("orderStatusByCampaignId",
+                fundingCampaignService.resolveLeastOrderStatusByCampaignId(campaigns));
+        model.addAttribute("criteria", criteria);
+        model.addAttribute("statusOptions", List.of(
+                FundingCampaignStatus.OPEN,
+                FundingCampaignStatus.SUCCESS,
+                FundingCampaignStatus.FAILED
+        ));
+        model.addAttribute("orderStatusOptions", BookOrderStatus.values());
+        model.addAttribute("sortFields", WriterFundingSearchCriteria.SortField.values());
         model.addAttribute("minTargetQuantity", FundingGuide.MIN_TARGET_QUANTITY);
         model.addAttribute("minDurationDays", FundingGuide.MIN_DURATION_DAYS);
         model.addAttribute("guideVolumeChars", FundingGuide.GUIDE_VOLUME_CHARS);
-        return "writer/publishing";
     }
 
     @PostMapping("/writer/publishing/campaigns")
@@ -177,9 +212,56 @@ public class WriterPublishingController {
         return "redirect:/writer/publishing";
     }
 
+    @PostMapping("/writer/publishing/campaigns/{campaignId}/close")
+    public Object close(
+            @PathVariable Long campaignId,
+            @SessionAttribute(name = SESSION_ROLE, required = false) ExperienceRole role,
+            @SessionAttribute(name = SESSION_MEMBER_ID, required = false) Long memberId,
+            HttpServletRequest request,
+            RedirectAttributes redirectAttributes
+    ) {
+        if (!canWrite(role) || memberId == null) {
+            return unauthorized(request);
+        }
+        try {
+            var result = fundingCampaignService.closeCampaign(campaignId, memberId);
+            String message = result.success()
+                    ? "성공으로 판정되었습니다. 운영자 승인 후 주문이 접수됩니다. 참여 수요 "
+                    + result.paidCount() + "부."
+                    : "실패로 판정되었습니다. 운영자 승인 후 환불이 진행됩니다. 참여 수요 "
+                    + result.paidCount() + "부. 목록에 남겨 두었습니다.";
+            if (wantsJson(request)) {
+                return ResponseEntity.ok(FundingActionResult.closeOk(
+                        message,
+                        snapshot(result.campaign()),
+                        result.success(),
+                        true
+                ));
+            }
+            redirectAttributes.addFlashAttribute("publishingMessage", message);
+        } catch (ResponseStatusException ex) {
+            if (wantsJson(request)) {
+                return ResponseEntity.badRequest().body(FundingActionResult.fail(resolveMessage(ex)));
+            }
+            redirectAttributes.addFlashAttribute("publishingError", resolveMessage(ex));
+        }
+        return "redirect:/writer/publishing";
+    }
+
     private FundingActionResult toResult(String message, FundingCampaign campaign) {
         return FundingActionResult.ok(
                 message,
+                campaign.getId(),
+                campaign.getStoryPart().getId(),
+                campaign.getStoryPart().getNovel().getId(),
+                campaign.achievementPercent(),
+                campaign.getCurrentQuantity(),
+                campaign.getTargetQuantity()
+        );
+    }
+
+    private FundingActionResult.FundingCampaignSnapshot snapshot(FundingCampaign campaign) {
+        return new FundingActionResult.FundingCampaignSnapshot(
                 campaign.getId(),
                 campaign.getStoryPart().getId(),
                 campaign.getStoryPart().getNovel().getId(),
@@ -206,6 +288,11 @@ public class WriterPublishingController {
     private boolean wantsJson(HttpServletRequest request) {
         String accept = request.getHeader("Accept");
         return accept != null && accept.contains(MediaType.APPLICATION_JSON_VALUE);
+    }
+
+    private boolean wantsFragment(HttpServletRequest request) {
+        return "1".equals(request.getHeader("X-Partial"))
+                || "1".equals(request.getParameter("partial"));
     }
 
     private boolean canWrite(ExperienceRole role) {

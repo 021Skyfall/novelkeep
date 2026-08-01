@@ -114,7 +114,7 @@
                     <a class="btn btn-content-action btn-outline-dark"
                        th:href="@{/writer/novels/{id}/edit(id=${novel.id})}">기본 정보 수정</a>
                     <a class="btn btn-content-action btn-outline-secondary"
-                       th:href="@{/writer/publishing}">펀딩 전체 관리</a>
+                       th:href="@{/writer/publishing}">내 펀딩 관리</a>
                     <form th:action="@{/writer/novels/{id}/delete(id=${novel.id})}" method="post"
                           data-confirm-delete="작품과 모든 권(부)·회차를 영구 삭제합니다. 삭제 후에는 되돌릴 수 없습니다."
                           data-confirm-title="작품 영구 삭제"
@@ -169,7 +169,7 @@
                             <div class="form-text" th:text="|최소 ${minTargetQuantity}부|">최소 10부</div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold" for="fundingPriceAmount">부당 판매가(원)</label>
+                            <label class="form-label fw-semibold" for="fundingPriceAmount">1부당 판매가(원)</label>
                             <input id="fundingPriceAmount" class="form-control" type="number" name="priceAmount"
                                    min="1" step="1" required data-funding-price>
                         </div>
@@ -192,7 +192,7 @@
                         </div>
                         <div class="col-12">
                             <div class="alert alert-warning py-2 small d-none mb-0" data-volume-warn>
-                                선택한 부의 공개 회차 합이 10만 자를 넘습니다. 출판 담당과 문의가 필요합니다.
+                                해당 작품은 0자 입니다. 공개 회차 합이 10만 자를 넘습니다. 출판 담당과 문의가 필요합니다.
                             </div>
                         </div>
                     </div>

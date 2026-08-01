@@ -138,6 +138,46 @@
             event.preventDefault();
             runSearch(true);
         });
+
+        if (window.NovelKeepSortCycle && form.querySelector('[data-sort-field]')) {
+            window.NovelKeepSortCycle.bind(form, function (field, dir) {
+                var sortInput = form.querySelector('input[name="sort"]');
+                var dirInput = form.querySelector('input[name="sortDir"]');
+                if (sortInput) {
+                    sortInput.value = field || '';
+                }
+                if (dirInput) {
+                    dirInput.value = dir || '';
+                }
+                form.setAttribute('data-active-sort-field', field || '');
+                form.setAttribute('data-active-sort-dir', dir || '');
+                runSearch(true);
+            });
+        }
+
+        form.querySelectorAll('[data-funding-open]').forEach(function (btn) {
+            if (btn.dataset.boundFundingOpen === '1') {
+                return;
+            }
+            btn.dataset.boundFundingOpen = '1';
+            btn.addEventListener('click', function () {
+                var value = btn.getAttribute('data-funding-open') || '';
+                var input = form.querySelector('[data-funding-open-input]');
+                if (input) {
+                    if (!value) {
+                        input.value = '';
+                        input.removeAttribute('name');
+                    } else {
+                        input.setAttribute('name', 'fundingOpen');
+                        input.value = value;
+                    }
+                }
+                form.querySelectorAll('[data-funding-open]').forEach(function (item) {
+                    item.classList.toggle('is-active', item === btn);
+                });
+                runSearch(true);
+            });
+        });
     }
 
     function bindPagination(root) {

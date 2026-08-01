@@ -9,6 +9,8 @@ import com.novelkeep.novel.domain.StoryPart;
 
 public record BookOrderRow(
         Long id,
+        Long novelId,
+        Long campaignId,
         String novelTitle,
         String partLabel,
         int quantity,
@@ -20,7 +22,8 @@ public record BookOrderRow(
 ) {
 
     public static BookOrderRow from(BookOrder order) {
-        StoryPart part = order.getParticipation().getCampaign().getStoryPart();
+        var campaign = order.getParticipation().getCampaign();
+        StoryPart part = campaign.getStoryPart();
         Novel novel = part.getNovel();
         String partLabel = novel.isMultiPart()
                 ? part.getPartNumber() + "부 · " + part.getTitle()
@@ -28,6 +31,8 @@ public record BookOrderRow(
         BookOrderStatus next = order.getStatus().next();
         return new BookOrderRow(
                 order.getId(),
+                novel.getId(),
+                campaign.getId(),
                 novel.getTitle(),
                 partLabel,
                 order.getQuantity(),

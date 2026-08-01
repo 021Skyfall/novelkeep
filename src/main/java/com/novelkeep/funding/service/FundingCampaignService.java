@@ -2,9 +2,12 @@ package com.novelkeep.funding.service;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.time.LocalDateTime;
@@ -13,7 +16,12 @@ import com.novelkeep.funding.domain.FundingCampaign;
 import com.novelkeep.funding.domain.FundingCampaignStatus;
 import com.novelkeep.funding.domain.FundingGuide;
 import com.novelkeep.funding.domain.FundingParticipation;
+import com.novelkeep.funding.domain.FundingPaymentStatus;
+import com.novelkeep.funding.dto.AdminFundingSearchCriteria;
+import com.novelkeep.funding.dto.FundingApproveResult;
+import com.novelkeep.funding.dto.FundingCloseResult;
 import com.novelkeep.funding.dto.WriterFundingForm;
+import com.novelkeep.funding.dto.WriterFundingSearchCriteria;
 import com.novelkeep.funding.repository.FundingCampaignRepository;
 import com.novelkeep.funding.repository.FundingParticipationRepository;
 import com.novelkeep.member.domain.Member;
@@ -24,6 +32,9 @@ import com.novelkeep.novel.domain.StoryPart;
 import com.novelkeep.novel.domain.StoryPartStatus;
 import com.novelkeep.novel.repository.NovelRepository;
 import com.novelkeep.novel.repository.StoryPartRepository;
+import com.novelkeep.order.domain.BookOrder;
+import com.novelkeep.order.domain.BookOrderStatus;
+import com.novelkeep.order.repository.BookOrderRepository;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -40,19 +51,22 @@ public class FundingCampaignService {
     private final NovelRepository novelRepository;
     private final StoryPartRepository storyPartRepository;
     private final MemberRepository memberRepository;
+    private final BookOrderRepository bookOrderRepository;
 
     public FundingCampaignService(
             FundingCampaignRepository fundingCampaignRepository,
             FundingParticipationRepository fundingParticipationRepository,
             NovelRepository novelRepository,
             StoryPartRepository storyPartRepository,
-            MemberRepository memberRepository
+            MemberRepository memberRepository,
+            BookOrderRepository bookOrderRepository
     ) {
         this.fundingCampaignRepository = fundingCampaignRepository;
         this.fundingParticipationRepository = fundingParticipationRepository;
         this.novelRepository = novelRepository;
         this.storyPartRepository = storyPartRepository;
         this.memberRepository = memberRepository;
+        this.bookOrderRepository = bookOrderRepository;
     }
 
     @Transactional(readOnly = true)
@@ -76,17 +90,134 @@ public class FundingCampaignService {
 
     @Transactional(readOnly = true)
     public List<FundingCampaign> findOpenOwnedCampaigns(Long memberId) {
-        List<FundingCampaign> campaigns = fundingCampaignRepository.findByAuthorIdAndStatus(
-                memberId,
-                FundingCampaignStatus.OPEN
+        WriterFundingSearchCriteria criteria = new WriterFundingSearchCriteria();
+        criteria.setStatus(FundingCampaignStatus.OPEN);
+        return findOwnedCampaigns(memberId, criteria);
+    }
+
+    @Transactional(readOnly = true)
+    public List<FundingCampaign> findOwnedCampaigns(Long memberId, WriterFundingSearchCriteria criteria) {
+        List<FundingCampaign> campaigns = fundingCampaignRepository.findByAuthorId(memberId);
+        EnumSet<FundingCampaignStatus> managed = EnumSet.of(
+                FundingCampaignStatus.OPEN,
+                FundingCampaignStatus.SUCCESS,
+                FundingCampaignStatus.FAILED
         );
-        campaigns.forEach(campaign -> {
+        String titleKeyword = criteria != null && criteria.getNovelTitle() != null
+                ? criteria.getNovelTitle().trim().toLowerCase(Locale.ROOT)
+                : "";
+        FundingCampaignStatus statusFilter = criteria != null ? criteria.getStatus() : null;
+        BookOrderStatus orderStatusFilter = criteria != null ? criteria.getOrderStatus() : null;
+        WriterFundingSearchCriteria.SortField sortField = criteria != null ? criteria.getSortField() : null;
+        WriterFundingSearchCriteria.SortDir sortDir = criteria != null ? criteria.getSortDir() : null;
+
+        List<FundingCampaign> filtered = new ArrayList<>();
+        for (FundingCampaign campaign : campaigns) {
+            if (!managed.contains(campaign.getStatus())) {
+                continue;
+            }
+            if (statusFilter != null && campaign.getStatus() != statusFilter) {
+                continue;
+            }
             Novel novel = campaign.getStoryPart().getNovel();
+            if (!titleKeyword.isEmpty()) {
+                String title = novel.getTitle() == null ? "" : novel.getTitle().toLowerCase(Locale.ROOT);
+                if (!title.contains(titleKeyword)) {
+                    continue;
+                }
+            }
             novel.getParts().size();
             novel.getGenres().size();
             campaign.getStoryPart().getEpisodes().size();
-        });
-        return campaigns;
+            filtered.add(campaign);
+        }
+
+        if (orderStatusFilter != null && !filtered.isEmpty()) {
+            List<Long> campaignIds = filtered.stream().map(FundingCampaign::getId).toList();
+            Set<Long> matched = new LinkedHashSet<>(
+                    bookOrderRepository.findCampaignIdsByStatusAndCampaignIdIn(orderStatusFilter, campaignIds)
+            );
+            filtered.removeIf(campaign -> !matched.contains(campaign.getId()));
+        }
+
+        filtered.sort(resolveOwnedComparator(sortField, sortDir));
+        return filtered;
+    }
+
+    @Transactional(readOnly = true)
+    public Map<Long, BookOrderStatus> resolveLeastOrderStatusByCampaignId(Collection<FundingCampaign> campaigns) {
+        Map<Long, BookOrderStatus> result = new LinkedHashMap<>();
+        if (campaigns == null || campaigns.isEmpty()) {
+            return result;
+        }
+        List<Long> campaignIds = campaigns.stream().map(FundingCampaign::getId).toList();
+        for (BookOrder order : bookOrderRepository.findByCampaignIdIn(campaignIds)) {
+            Long campaignId = order.getParticipation().getCampaign().getId();
+            BookOrderStatus current = result.get(campaignId);
+            if (current == null || order.getStatus().ordinal() < current.ordinal()) {
+                result.put(campaignId, order.getStatus());
+            }
+        }
+        return result;
+    }
+
+    @Transactional(readOnly = true)
+    public BookOrderStatus findMemberOrderStatus(Long campaignId, Long memberId) {
+        if (campaignId == null || memberId == null) {
+            return null;
+        }
+        return bookOrderRepository.findByCampaignIdAndMemberId(campaignId, memberId)
+                .map(BookOrder::getStatus)
+                .orElse(null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<FundingCampaign> findAwaitingApprovalCampaigns() {
+        AdminFundingSearchCriteria criteria = new AdminFundingSearchCriteria();
+        criteria.setApproval(AdminFundingSearchCriteria.ApprovalFilter.AWAITING);
+        return findAdminCampaigns(criteria);
+    }
+
+    @Transactional(readOnly = true)
+    public List<FundingCampaign> findAdminCampaigns(AdminFundingSearchCriteria criteria) {
+        List<FundingCampaign> campaigns = fundingCampaignRepository.findByStatusIn(
+                EnumSet.of(FundingCampaignStatus.SUCCESS, FundingCampaignStatus.FAILED)
+        );
+        String titleKeyword = criteria != null && criteria.getNovelTitle() != null
+                ? criteria.getNovelTitle().trim().toLowerCase(Locale.ROOT)
+                : "";
+        AdminFundingSearchCriteria.ApprovalFilter approval = criteria != null
+                ? criteria.getApproval()
+                : AdminFundingSearchCriteria.ApprovalFilter.AWAITING;
+        FundingCampaignStatus statusFilter = criteria != null ? criteria.getStatus() : null;
+        AdminFundingSearchCriteria.SortField sortField = criteria != null ? criteria.getSortField() : null;
+        AdminFundingSearchCriteria.SortDir sortDir = criteria != null ? criteria.getSortDir() : null;
+
+        List<FundingCampaign> filtered = new ArrayList<>();
+        for (FundingCampaign campaign : campaigns) {
+            if (statusFilter != null && campaign.getStatus() != statusFilter) {
+                continue;
+            }
+            if (approval == AdminFundingSearchCriteria.ApprovalFilter.AWAITING && !campaign.isAwaitingApproval()) {
+                continue;
+            }
+            if (approval == AdminFundingSearchCriteria.ApprovalFilter.APPROVED && !campaign.isApproved()) {
+                continue;
+            }
+            Novel novel = campaign.getStoryPart().getNovel();
+            if (!titleKeyword.isEmpty()) {
+                String title = novel.getTitle() == null ? "" : novel.getTitle().toLowerCase(Locale.ROOT);
+                if (!title.contains(titleKeyword)) {
+                    continue;
+                }
+            }
+            novel.getParts().size();
+            novel.getGenres().size();
+            campaign.getStoryPart().getEpisodes().size();
+            filtered.add(campaign);
+        }
+        filtered.sort(resolveAdminComparator(sortField, sortDir));
+        return filtered;
     }
 
     @Transactional(readOnly = true)
@@ -258,6 +389,144 @@ public class FundingCampaignService {
         } catch (IllegalStateException | IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         }
+    }
+
+    @Transactional
+    public FundingCloseResult closeCampaign(Long campaignId, Long memberId) {
+        FundingCampaign campaign = requireOwnedCampaign(campaignId, memberId);
+        if (campaign.getStatus() != FundingCampaignStatus.OPEN) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "진행 중인 펀딩만 마감할 수 있습니다.");
+        }
+        if (!campaign.canClose()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "수요가 0부인 펀딩은 마감할 수 없습니다. 취소를 이용해 주세요."
+            );
+        }
+
+        List<FundingParticipation> paid = fundingParticipationRepository.findByCampaignIdAndPaymentStatus(
+                campaignId,
+                FundingPaymentStatus.PAID_MOCK
+        );
+        int paidCount = paid.stream().mapToInt(FundingParticipation::getQuantity).sum();
+
+        try {
+            if (campaign.isSuccessReady()) {
+                campaign.closeAsSuccess();
+                return new FundingCloseResult(true, paidCount, campaign);
+            }
+            campaign.closeAsFailed();
+            return new FundingCloseResult(false, paidCount, campaign);
+        } catch (IllegalStateException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
+        }
+    }
+
+    @Transactional
+    public FundingApproveResult approveCampaign(Long campaignId) {
+        FundingCampaign campaign = fundingCampaignRepository.findDetailById(campaignId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (!campaign.isAwaitingApproval()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "승인 대기 중인 펀딩만 처리할 수 있습니다.");
+        }
+
+        LocalDateTime now = FundingGuide.nowKorea();
+        List<FundingParticipation> paid = fundingParticipationRepository.findByCampaignIdAndPaymentStatus(
+                campaignId,
+                FundingPaymentStatus.PAID_MOCK
+        );
+
+        try {
+            if (campaign.getStatus() == FundingCampaignStatus.SUCCESS) {
+                List<BookOrder> orders = new ArrayList<>(paid.size());
+                for (FundingParticipation participation : paid) {
+                    orders.add(BookOrder.fromParticipation(participation, BookOrderStatus.PENDING, now));
+                }
+                if (!orders.isEmpty()) {
+                    bookOrderRepository.saveAll(orders);
+                }
+                campaign.markApproved(now);
+                return new FundingApproveResult(true, orders.size(), campaign);
+            }
+
+            for (FundingParticipation participation : paid) {
+                participation.refundMock(now);
+            }
+            campaign.markApproved(now);
+            return new FundingApproveResult(false, paid.size(), campaign);
+        } catch (IllegalStateException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
+        }
+    }
+
+    @Transactional
+    public FundingCampaign rejectCampaign(Long campaignId) {
+        FundingCampaign campaign = fundingCampaignRepository.findDetailById(campaignId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        try {
+            campaign.reopenAfterReject();
+            return campaign;
+        } catch (IllegalStateException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
+        }
+    }
+
+    private Comparator<FundingCampaign> resolveOwnedComparator(
+            WriterFundingSearchCriteria.SortField sortField,
+            WriterFundingSearchCriteria.SortDir sortDir
+    ) {
+        Comparator<FundingCampaign> base = Comparator.comparing(
+                c -> toMinute(c.getUpdatedAt()),
+                Comparator.nullsLast(Comparator.reverseOrder())
+        );
+        if (sortField == null || sortDir == null) {
+            return base;
+        }
+        Comparator<FundingCampaign> byField = switch (sortField) {
+            case END -> Comparator.comparing(c -> toMinute(c.getEndAt()), Comparator.nullsLast(Comparator.naturalOrder()));
+            case GAUGE -> Comparator.comparingInt(FundingCampaign::achievementPercent);
+            case TARGET -> Comparator.comparingInt(FundingCampaign::getTargetQuantity);
+            case PRICE -> Comparator.comparing(FundingCampaign::getPriceAmount);
+            case UPDATED -> Comparator.comparing(c -> toMinute(c.getUpdatedAt()), Comparator.nullsLast(Comparator.naturalOrder()));
+        };
+        if (sortDir == WriterFundingSearchCriteria.SortDir.DESC) {
+            byField = byField.reversed();
+        }
+        return byField.thenComparing(base);
+    }
+
+    private Comparator<FundingCampaign> resolveAdminComparator(
+            AdminFundingSearchCriteria.SortField sortField,
+            AdminFundingSearchCriteria.SortDir sortDir
+    ) {
+        Comparator<FundingCampaign> byClosedDesc = Comparator.comparing(
+                c -> toMinute(c.getClosedAt()),
+                Comparator.nullsLast(Comparator.reverseOrder())
+        );
+        if (sortField == null || sortDir == null) {
+            return byClosedDesc;
+        }
+        Comparator<FundingCampaign> byField = switch (sortField) {
+            case CLOSED -> Comparator.comparing(
+                    c -> toMinute(c.getClosedAt()),
+                    Comparator.nullsLast(Comparator.naturalOrder())
+            );
+            case GAUGE -> Comparator.comparingInt(FundingCampaign::achievementPercent);
+            case PRICE -> Comparator.comparing(FundingCampaign::getPriceAmount);
+            case TARGET -> Comparator.comparingInt(FundingCampaign::getTargetQuantity);
+            case END -> Comparator.comparing(c -> toMinute(c.getEndAt()), Comparator.nullsLast(Comparator.naturalOrder()));
+        };
+        if (sortDir == AdminFundingSearchCriteria.SortDir.DESC) {
+            byField = byField.reversed();
+        }
+        return byField.thenComparing(byClosedDesc);
+    }
+
+    private static LocalDateTime toMinute(LocalDateTime value) {
+        if (value == null) {
+            return null;
+        }
+        return value.withSecond(0).withNano(0);
     }
 
     public boolean isPartFundable(StoryPart part) {

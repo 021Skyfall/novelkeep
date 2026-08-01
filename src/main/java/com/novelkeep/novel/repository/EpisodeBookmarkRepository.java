@@ -15,6 +15,8 @@ public interface EpisodeBookmarkRepository extends JpaRepository<EpisodeBookmark
     @EntityGraph(attributePaths = {"novel", "episode"})
     List<EpisodeBookmark> findAllByMemberIdOrderByUpdatedAtDesc(Long memberId);
 
+    long countByMemberId(Long memberId);
+
     void deleteByMemberIdAndNovelId(Long memberId, Long novelId);
 
     void deleteByNovelId(Long novelId);

@@ -18,7 +18,7 @@
         <a class="btn btn-back-list"
            th:href="@{/novels/{id}(id=${novel.id}, from='writer')}">← 작품 상세</a>
         <a class="btn btn-outline-dark"
-           th:href="@{/writer/publishing}">펀딩 전체 관리</a>
+           th:href="@{/writer/publishing}">내 펀딩 관리</a>
     </div>
 
     <div th:if="${contentMessage}" class="alert alert-success"

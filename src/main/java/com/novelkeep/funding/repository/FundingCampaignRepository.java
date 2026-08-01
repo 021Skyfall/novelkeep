@@ -11,6 +11,7 @@ import com.novelkeep.novel.domain.NovelVisibility;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -104,4 +105,36 @@ public interface FundingCampaignRepository extends JpaRepository<FundingCampaign
               and n.author.id = :authorId
             """)
     Optional<FundingCampaign> findByIdAndAuthorId(@Param("id") Long id, @Param("authorId") Long authorId);
+
+    @Query("""
+            select c from FundingCampaign c
+            join fetch c.storyPart p
+            join fetch p.novel n
+            join fetch n.author
+            where c.status in :statuses
+            order by c.updatedAt desc
+            """)
+    List<FundingCampaign> findByStatusIn(@Param("statuses") Collection<FundingCampaignStatus> statuses);
+
+    @Query("""
+            select c from FundingCampaign c
+            join fetch c.storyPart p
+            join fetch p.novel n
+            join fetch n.author
+            where c.status in :statuses
+              and c.approvedAt is null
+            order by c.updatedAt desc
+            """)
+    List<FundingCampaign> findAwaitingApproval(@Param("statuses") Collection<FundingCampaignStatus> statuses);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update FundingCampaign c
+               set c.updatedAt = :updatedAt
+             where c.id = :campaignId
+            """)
+    int seedDemoUpdatedAt(
+            @Param("campaignId") Long campaignId,
+            @Param("updatedAt") LocalDateTime updatedAt
+    );
 }

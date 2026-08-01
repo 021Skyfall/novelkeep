@@ -1,5 +1,7 @@
 package com.novelkeep.novel.repository;
 
+import com.novelkeep.funding.domain.FundingCampaign;
+import com.novelkeep.funding.domain.FundingCampaignStatus;
 import com.novelkeep.home.domain.ExperienceRole;
 import com.novelkeep.novel.domain.Novel;
 import com.novelkeep.novel.domain.NovelFavorite;
@@ -9,6 +11,9 @@ import com.novelkeep.novel.domain.StoryPart;
 import com.novelkeep.novel.domain.StoryPartStatus;
 import com.novelkeep.novel.dto.NovelSearchCriteria;
 
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.Order;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
@@ -56,6 +61,42 @@ public final class NovelSpecifications {
         };
     }
 
+    public static Specification<Novel> sorted(NovelSearchCriteria criteria) {
+        return (root, query, cb) -> {
+            Class<?> resultType = query.getResultType();
+            if (resultType == Long.class || resultType == long.class) {
+                return cb.conjunction();
+            }
+
+            Expression<String> updatedMinute = minuteBucket(cb, root.get("updatedAt"));
+            Order updatedTieBreaker = cb.desc(updatedMinute);
+
+            if (!criteria.hasSortSelection()) {
+                query.orderBy(updatedTieBreaker);
+                return cb.conjunction();
+            }
+
+            boolean ascending = criteria.isSortAscending();
+            if (criteria.isRecommendSort()) {
+                Order byRecommend = ascending
+                        ? cb.asc(root.get("recommendationCount"))
+                        : cb.desc(root.get("recommendationCount"));
+                query.orderBy(byRecommend, updatedTieBreaker);
+            } else if (criteria.isTitleSort()) {
+                Order byTitle = ascending ? cb.asc(root.get("title")) : cb.desc(root.get("title"));
+                query.orderBy(byTitle, updatedTieBreaker);
+            } else {
+                Order byUpdated = ascending ? cb.asc(updatedMinute) : cb.desc(updatedMinute);
+                query.orderBy(byUpdated);
+            }
+            return cb.conjunction();
+        };
+    }
+
+    private static Expression<String> minuteBucket(CriteriaBuilder cb, Expression<?> dateTime) {
+        return cb.function("DATE_FORMAT", String.class, dateTime, cb.literal("%Y-%m-%d %H:%i"));
+    }
+
     private static Predicate commonFilters(
             Root<Novel> root,
             jakarta.persistence.criteria.CriteriaQuery<?> query,
@@ -93,8 +134,13 @@ public final class NovelSpecifications {
                     cb.equal(root.get("status"), NovelStatus.SERIALIZING),
                     hasCompletedPart(root, query, cb)
             );
-        } else if (criteria.isCompletedProgress()) {
+        } else         if (criteria.isCompletedProgress()) {
             predicate = cb.and(predicate, cb.equal(root.get("status"), NovelStatus.COMPLETED));
+        }
+
+        if (criteria.hasFundingOpenFilter()) {
+            Predicate hasOpen = hasOpenFunding(root, query, cb);
+            predicate = cb.and(predicate, criteria.isFundingOpenOnly() ? hasOpen : cb.not(hasOpen));
         }
 
         return predicate;
@@ -111,6 +157,21 @@ public final class NovelSpecifications {
         subquery.where(
                 cb.equal(partRoot.get("novel").get("id"), root.get("id")),
                 cb.equal(partRoot.get("status"), StoryPartStatus.COMPLETED)
+        );
+        return cb.exists(subquery);
+    }
+
+    private static Predicate hasOpenFunding(
+            Root<Novel> root,
+            jakarta.persistence.criteria.CriteriaQuery<?> query,
+            jakarta.persistence.criteria.CriteriaBuilder cb
+    ) {
+        Subquery<Long> subquery = query.subquery(Long.class);
+        Root<FundingCampaign> campaignRoot = subquery.from(FundingCampaign.class);
+        subquery.select(campaignRoot.get("id"));
+        subquery.where(
+                cb.equal(campaignRoot.get("storyPart").get("novel").get("id"), root.get("id")),
+                cb.equal(campaignRoot.get("status"), FundingCampaignStatus.OPEN)
         );
         return cb.exists(subquery);
     }

@@ -3,8 +3,11 @@ package com.novelkeep.order.domain;
 public enum BookOrderStatus {
 
     PENDING("접수"),
-    PROCESSING("제작 중"),
-    COMPLETED("제작 완료");
+    PROCESSING("제작중"),
+    PRODUCTION_DONE("제작완료"),
+    SHIP_READY("배송준비중"),
+    SHIPPING("배송중"),
+    DELIVERED("배송완료");
 
     private final String displayName;
 
@@ -19,8 +22,11 @@ public enum BookOrderStatus {
     public BookOrderStatus next() {
         return switch (this) {
             case PENDING -> PROCESSING;
-            case PROCESSING -> COMPLETED;
-            case COMPLETED -> null;
+            case PROCESSING -> PRODUCTION_DONE;
+            case PRODUCTION_DONE -> SHIP_READY;
+            case SHIP_READY -> SHIPPING;
+            case SHIPPING -> DELIVERED;
+            case DELIVERED -> null;
         };
     }
 }

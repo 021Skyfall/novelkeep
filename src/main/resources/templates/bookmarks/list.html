@@ -17,7 +17,10 @@
     <header class="page-heading mb-4">
         <span class="eyebrow">MY BOOKMARKS</span>
         <h1 class="display-6 fw-bold mt-2">내 책갈피</h1>
-        <p class="text-secondary mb-0">작품마다 마지막으로 저장한 회차에서 바로 이어 읽을 수 있습니다.</p>
+        <p class="text-secondary mb-0">
+            회차를 읽다가 책갈피를 저장하면 이곳에서 바로 이어 읽을 수 있습니다.<br>
+            최대 10개까지 저장할 수 있습니다.
+        </p>
     </header>
 
     <div th:if="${param.deleted}" class="alert alert-success"
@@ -26,7 +29,8 @@
 
     <div th:if="${#lists.isEmpty(bookmarks)}" class="empty-state">
         <strong>저장한 책갈피가 없습니다.</strong>
-        <p class="mb-3">회차를 읽다가 책갈피를 저장하면 이곳에서 바로 이어 읽을 수 있습니다.</p>
+        <p class="mb-1">회차를 읽다가 책갈피를 저장하면 이곳에서 바로 이어 읽을 수 있습니다.</p>
+        <p class="mb-3 text-secondary">최대 10개까지 저장할 수 있습니다.</p>
         <a class="btn btn-dark" th:href="@{/novels}">작품 둘러보기</a>
     </div>
 

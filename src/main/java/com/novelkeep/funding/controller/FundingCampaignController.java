@@ -10,6 +10,7 @@ import com.novelkeep.funding.domain.FundingGuide;
 import com.novelkeep.funding.dto.FundingActionResult;
 import com.novelkeep.funding.service.FundingCampaignService;
 import com.novelkeep.home.domain.ExperienceRole;
+import com.novelkeep.order.domain.BookOrderStatus;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -59,8 +60,10 @@ public class FundingCampaignController {
         model.addAttribute("alreadyParticipated", alreadyParticipated);
         model.addAttribute("openForJoin", openForJoin);
         model.addAttribute("canParticipate", canParticipate);
+        var memberOrderStatus = fundingCampaignService.findMemberOrderStatus(campaignId, memberId);
+        model.addAttribute("memberOrderStatus", memberOrderStatus);
         model.addAttribute("participateHint", resolveParticipateHint(
-                campaign, ownCampaign, alreadyParticipated, openForJoin
+                campaign, ownCampaign, alreadyParticipated, openForJoin, memberOrderStatus
         ));
         return "fundings/detail";
     }
@@ -81,7 +84,7 @@ public class FundingCampaignController {
         }
         try {
             FundingCampaign campaign = fundingCampaignService.participate(campaignId, memberId);
-            String message = "모의 결제 " + formatWon(campaign.getPriceAmount()) + "으로 1부 참여했습니다.";
+            String message = "결제 " + formatWon(campaign.getPriceAmount()) + "으로 1부 참여했습니다.";
             if (wantsJson(request)) {
                 return ResponseEntity.ok(toResult(message, campaign));
             }
@@ -101,10 +104,22 @@ public class FundingCampaignController {
             FundingCampaign campaign,
             boolean ownCampaign,
             boolean alreadyParticipated,
-            boolean openForJoin
+            boolean openForJoin,
+            BookOrderStatus memberOrderStatus
     ) {
         if (alreadyParticipated) {
-            return "이미 이 펀딩에 참여했습니다. 모의 결제 완료 상태입니다.";
+            if (memberOrderStatus != null) {
+                return "이미 이 펀딩에 참여했습니다. 현재 " + memberOrderStatus.getDisplayName() + " 단계입니다.";
+            }
+            if (campaign.getStatus() == FundingCampaignStatus.SUCCESS && campaign.isAwaitingApproval()) {
+                return "이미 이 펀딩에 참여했습니다. 운영자 승인 대기 중입니다.";
+            }
+            if (campaign.getStatus() == FundingCampaignStatus.FAILED) {
+                return campaign.isApproved()
+                        ? "이미 이 펀딩에 참여했습니다. 환불이 완료되었습니다."
+                        : "이미 이 펀딩에 참여했습니다. 실패 승인 대기 중입니다.";
+            }
+            return "이미 이 펀딩에 참여했습니다. 결제 완료 상태입니다.";
         }
         if (ownCampaign) {
             return "본인 작품의 펀딩에는 참여할 수 없습니다.";

@@ -40,7 +40,7 @@ public class WriterFundingForm {
         WriterFundingForm form = new WriterFundingForm();
         LocalDateTime now = LocalDateTime.now().withSecond(0).withNano(0);
         form.startAt = now;
-        form.endAt = now.plusDays(14);
+        form.endAt = now.plusDays(FundingGuide.MIN_DURATION_DAYS);
         form.targetQuantity = FundingGuide.MIN_TARGET_QUANTITY;
         return form;
     }

@@ -28,8 +28,6 @@ import com.novelkeep.novel.repository.NovelSpecifications;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -66,8 +64,9 @@ public class NovelService {
     @Transactional(readOnly = true)
     public Page<Novel> searchPublic(NovelSearchCriteria criteria, ExperienceRole role, Long memberId) {
         Page<Novel> novels = novelRepository.findAll(
-                NovelSpecifications.publicBrowse(criteria, role, memberId),
-                toPageable(criteria)
+                NovelSpecifications.publicBrowse(criteria, role, memberId)
+                        .and(NovelSpecifications.sorted(criteria)),
+                PageRequest.of(criteria.getPage(), PAGE_SIZE)
         );
         initializeList(novels);
         return novels;
@@ -76,8 +75,9 @@ public class NovelService {
     @Transactional(readOnly = true)
     public Page<Novel> searchOwned(NovelSearchCriteria criteria, Long memberId) {
         Page<Novel> novels = novelRepository.findAll(
-                NovelSpecifications.ownedBrowse(criteria, memberId),
-                toPageable(criteria)
+                NovelSpecifications.ownedBrowse(criteria, memberId)
+                        .and(NovelSpecifications.sorted(criteria)),
+                PageRequest.of(criteria.getPage(), PAGE_SIZE)
         );
         initializeList(novels);
         return novels;
@@ -228,18 +228,6 @@ public class NovelService {
         favoriteRepository.deleteByNovelId(novelId);
         bookmarkRepository.deleteByNovelId(novelId);
         novelRepository.delete(novel);
-    }
-
-    private Pageable toPageable(NovelSearchCriteria criteria) {
-        Sort sort;
-        if (criteria.isRecommendSort()) {
-            sort = Sort.by(Sort.Order.desc("recommendationCount"), Sort.Order.desc("updatedAt"));
-        } else if (criteria.isTitleSort()) {
-            sort = Sort.by(Sort.Order.asc("title"), Sort.Order.desc("updatedAt"));
-        } else {
-            sort = Sort.by(Sort.Order.desc("updatedAt"));
-        }
-        return PageRequest.of(criteria.getPage(), PAGE_SIZE, sort);
     }
 
     private void initializeList(Page<Novel> novels) {

@@ -68,14 +68,16 @@
                         <a class="role-link" th:classappend="${active == 'writer'} ? ' is-active'"
                            th:href="@{/writer/novels}">내 작품</a>
                         <a class="role-link" th:classappend="${active == 'publishing'} ? ' is-active'"
-                           th:href="@{/writer/publishing}">펀딩 전체 관리</a>
+                           th:href="@{/writer/publishing}">내 펀딩 관리</a>
                     </div>
                 </div>
                 <div th:if="${roleKey == 'ADMIN'}" class="role-menu-group">
                     <strong class="role-menu-title">운영자 메뉴</strong>
                     <div class="role-links">
                         <a class="role-link" th:classappend="${active == 'admin-orders'} ? ' is-active'"
-                           th:href="@{/admin/orders}">전체 주문 관리</a>
+                           th:href="@{/admin/orders}">주문 관리</a>
+                        <a class="role-link" th:classappend="${active == 'admin-fundings'} ? ' is-active'"
+                           th:href="@{/admin/fundings}">펀딩 관리</a>
                     </div>
                 </div>
                 <div class="role-menu-actions">

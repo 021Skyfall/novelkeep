@@ -29,3 +29,19 @@
         </div>
     </div>
 </th:block>
+
+<th:block xmlns:th="http://www.thymeleaf.org"
+          th:fragment="fundingMeterLabeled(label, percent)">
+    <div class="funding-meter-inline">
+        <span class="badge funding-open-badge" th:text="${label}">펀딩 중</span>
+        <span class="funding-meter-pct"
+              th:text="|${percent}%|">0%</span>
+        <div class="progress progress-funding-sm flex-grow-1" role="progressbar"
+             th:attr="aria-valuenow=${percent}"
+             aria-valuemin="0" aria-valuemax="100"
+             th:aria-label="|펀딩 달성률 ${percent}%|">
+            <div class="progress-bar"
+                 th:style="|width: ${percent}%|"></div>
+        </div>
+    </div>
+</th:block>

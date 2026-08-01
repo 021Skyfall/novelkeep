@@ -31,7 +31,10 @@
                 <a class="btn btn-create-novel" th:href="@{/writer/novels/new}">＋ 작품 등록</a>
             </div>
             <form method="get" th:action="@{/writer/novels}" th:object="${criteria}"
-                  data-auto-search-form data-async-search>
+                  data-auto-search-form data-async-search
+                  data-default-sort-field="latest"
+                  data-default-sort-dir="DESC"
+                  th:attr="data-active-sort-field=${criteria.sort}, data-active-sort-dir=${criteria.sortDir}">
                 <div class="row g-3 align-items-end">
                     <div class="col-lg-4">
                         <label class="form-label fw-semibold" for="keyword">제목 검색</label>
@@ -64,13 +67,23 @@
                                     th:selected="${criteria.visibility == visibilityOption}">공개</option>
                         </select>
                     </div>
-                    <div class="col-md-6 col-lg-2">
-                        <label class="form-label fw-semibold" for="sort">정렬</label>
-                        <select id="sort" class="form-select" name="sort" data-auto-search>
-                            <option value="latest" th:selected="${!criteria.titleSort and !criteria.recommendSort}">수정일순</option>
-                            <option value="recommend" th:selected="${criteria.recommendSort}">추천순</option>
-                            <option value="title" th:selected="${criteria.titleSort}">제목순</option>
-                        </select>
+                    <div class="col-md-6 col-lg-3">
+                        <span class="form-label fw-semibold d-block">펀딩 중</span>
+                        <div class="publishing-chip-row" role="group" aria-label="펀딩 중 여부">
+                            <button type="button" class="btn btn-sm publishing-chip"
+                                    data-funding-open=""
+                                    th:classappend="${criteria.fundingOpen == null} ? ' is-active'">전체</button>
+                            <button type="button" class="btn btn-sm publishing-chip"
+                                    data-funding-open="true"
+                                    th:classappend="${criteria.fundingOpen == true} ? ' is-active'">Y</button>
+                            <button type="button" class="btn btn-sm publishing-chip"
+                                    data-funding-open="false"
+                                    th:classappend="${criteria.fundingOpen == false} ? ' is-active'">N</button>
+                        </div>
+                        <input type="hidden"
+                               th:attr="name=${criteria.fundingOpen != null} ? 'fundingOpen' : null"
+                               th:value="${criteria.fundingOpen}"
+                               data-funding-open-input>
                     </div>
                 </div>
 
@@ -106,9 +119,22 @@
                     </div>
                 </div>
 
+                <div class="mt-3">
+                    <span class="form-label fw-semibold d-block mb-2">정렬</span>
+                    <div class="publishing-chip-row" role="group" aria-label="정렬">
+                        <button type="button" class="btn btn-sm publishing-chip"
+                                data-sort-field="latest" data-sort-label="수정일">수정일</button>
+                        <button type="button" class="btn btn-sm publishing-chip"
+                                data-sort-field="recommend" data-sort-label="추천">추천</button>
+                        <button type="button" class="btn btn-sm publishing-chip"
+                                data-sort-field="title" data-sort-label="제목">제목</button>
+                    </div>
+                </div>
                 <div class="d-flex justify-content-end mt-3">
                     <a class="btn btn-outline-secondary" data-async-reset th:href="@{/writer/novels}">초기화</a>
                 </div>
+                <input type="hidden" name="sort" th:value="${criteria.sort}">
+                <input type="hidden" name="sortDir" th:value="${criteria.sortDir}">
             </form>
         </div>
 
@@ -123,41 +149,57 @@
                         fs-4 fw-bold text-secondary d-none"
                  data-async-status aria-label="목록 불러오는 중">...</div>
             <article th:each="novel : ${novels.content}" class="writer-item position-relative">
-                <div class="flex-grow-1">
-                    <div class="d-flex flex-wrap gap-2 mb-2">
-                        <span class="badge status-badge" th:text="${novel.status.displayName}">연재 중</span>
-                        <span class="badge"
-                              th:classappend="${novel.visibility.name() == 'PUBLIC'} ? ' visibility-public' : ' visibility-private'"
-                              th:text="${novel.visibility.displayName}">공개</span>
-                        <span th:if="${novel.multiPart and novel.latestCompletedPartLabel() != null}"
-                              class="badge part-badge"
-                              th:text="${novel.latestCompletedPartLabel()}">1부 완결</span>
-                        <span th:each="genreItem : ${novel.genres}"
-                              class="badge text-bg-light border"
-                              th:text="${genreItem.displayName}">장르</span>
-                        <span class="badge recommend-badge"
-                              th:text="|추천 ${novel.recommendationCount}|">추천 0</span>
+                <div class="flex-grow-1 d-flex flex-column">
+                    <div class="writer-item-tags mb-1">
+                        <div class="compact-tag-meta mb-1">
+                            <span class="badge status-badge" th:text="${novel.status.displayName}">연재 중</span>
+                            <span class="badge"
+                                  th:classappend="${novel.visibility.name() == 'PUBLIC'} ? ' visibility-public' : ' visibility-private'"
+                                  th:text="${novel.visibility.displayName}">공개</span>
+                            <span th:if="${novel.multiPart and novel.latestCompletedPartLabel() != null}"
+                                  class="badge part-badge"
+                                  th:text="${novel.latestCompletedPartLabel()}">1부 완결</span>
+                            <span class="badge recommend-badge"
+                                  th:text="|추천 ${novel.recommendationCount > 9999 ? '9999+' : novel.recommendationCount}|">추천 0</span>
+                        </div>
+                        <div th:if="${!#lists.isEmpty(novel.genres)}"
+                             class="novel-tag-row genre-tag-row"
+                             data-tag-row data-tag-mode="inline">
+                            <div class="novel-tag-list genre-tag-list" data-tag-list>
+                                <span th:each="genreItem : ${novel.genres}"
+                                      class="badge text-bg-light border"
+                                      data-clamp-tag
+                                      th:text="${genreItem.displayName}">장르</span>
+                                <button class="badge text-bg-light border novel-tag-more d-none" type="button"
+                                        data-tag-more aria-label="태그 더 보기">...</button>
+                            </div>
+                        </div>
                     </div>
-                    <h2 class="h5 fw-bold mb-1">
-                        <a class="novel-title-link stretched-link title-clamp-2"
+                    <h2 class="h5 fw-bold writer-item-title mb-0">
+                        <a class="novel-title-link title-clamp-2"
                            th:href="@{/novels/{id}(id=${novel.id}, from='writer')}"
                            th:text="${novel.title}"
                            th:title="${novel.title}">작품명</a>
                     </h2>
-                    <div class="position-relative" style="z-index: 2;"
+                    <p class="text-secondary small mt-2 mb-0"
+                       th:text="|필명 ${novel.penName} · 수정 ${#temporals.format(novel.updatedAt, 'yyyy-MM-dd HH:mm')}|">정보</p>
+                    <div class="position-relative writer-item-funding mt-auto pt-3" style="z-index: 2;"
                          th:with="campaigns=${openFundingByNovelId != null ? openFundingByNovelId.get(novel.id) : null}">
                         <div th:if="${campaigns != null and !#lists.isEmpty(campaigns)}"
-                             class="writer-funding-stack">
-                            <th:block th:each="openCampaign : ${campaigns}">
+                             class="writer-funding-stack mb-0">
+                            <th:block th:each="openCampaign, iter : ${campaigns}"
+                                      th:if="${iter.index < 3}">
                                 <div th:replace="~{fragments/funding-badge :: openFundingBadgeLabeled(
                                     ${openCampaign},
                                     ${novel.multiPart ? openCampaign.storyPart.partNumber + '부 펀딩 중' : '펀딩 중'}
                                 )}"></div>
                             </th:block>
+                            <a th:if="${#lists.size(campaigns) > 3}"
+                               class="small text-secondary"
+                               th:href="@{/writer/publishing(novelTitle=${novel.title})}"
+                               th:text="|외 ${#lists.size(campaigns) - 3}건 · 내 펀딩 관리|">외 N건</a>
                         </div>
                     </div>
-                    <p class="text-secondary small mb-0"
-                       th:text="|필명 ${novel.penName} · 수정 ${#temporals.format(novel.updatedAt, 'yyyy-MM-dd HH:mm')}|">정보</p>
                 </div>
             </article>
         </div>
@@ -166,18 +208,18 @@
             <ul class="pagination justify-content-center flex-wrap">
                 <li class="page-item" th:classappend="${novels.first} ? ' disabled'">
                     <a class="page-link" data-async-page
-                       th:href="@{/writer/novels(keyword=${criteria.keyword}, genres=${criteria.genres}, progress=${criteria.progress}, visibility=${criteria.visibility}, sort=${criteria.sort}, page=${novels.number - 1})}">이전</a>
+                       th:href="@{/writer/novels(keyword=${criteria.keyword}, genres=${criteria.genres}, progress=${criteria.progress}, visibility=${criteria.visibility}, fundingOpen=${criteria.fundingOpen}, sort=${criteria.sort}, sortDir=${criteria.sortDir}, page=${novels.number - 1})}">이전</a>
                 </li>
                 <li class="page-item"
                     th:each="pageNumber : ${#numbers.sequence(0, novels.totalPages - 1)}"
                     th:classappend="${pageNumber == novels.number} ? ' active'">
                     <a class="page-link" data-async-page
                        th:text="${pageNumber + 1}"
-                       th:href="@{/writer/novels(keyword=${criteria.keyword}, genres=${criteria.genres}, progress=${criteria.progress}, visibility=${criteria.visibility}, sort=${criteria.sort}, page=${pageNumber})}">1</a>
+                       th:href="@{/writer/novels(keyword=${criteria.keyword}, genres=${criteria.genres}, progress=${criteria.progress}, visibility=${criteria.visibility}, fundingOpen=${criteria.fundingOpen}, sort=${criteria.sort}, sortDir=${criteria.sortDir}, page=${pageNumber})}">1</a>
                 </li>
                 <li class="page-item" th:classappend="${novels.last} ? ' disabled'">
                     <a class="page-link" data-async-page
-                       th:href="@{/writer/novels(keyword=${criteria.keyword}, genres=${criteria.genres}, progress=${criteria.progress}, visibility=${criteria.visibility}, sort=${criteria.sort}, page=${novels.number + 1})}">다음</a>
+                       th:href="@{/writer/novels(keyword=${criteria.keyword}, genres=${criteria.genres}, progress=${criteria.progress}, visibility=${criteria.visibility}, fundingOpen=${criteria.fundingOpen}, sort=${criteria.sort}, sortDir=${criteria.sortDir}, page=${novels.number + 1})}">다음</a>
                 </li>
             </ul>
         </nav>
@@ -188,7 +230,9 @@
     <div class="container small text-secondary">NovelKeep · 소유 작품만 관리합니다.</div>
 </footer>
 <script th:src="@{/vendor/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/js/sort-cycle.js}"></script>
 <script th:src="@{/js/novel-search.js}"></script>
 <script th:src="@{/js/novel-genre-filter.js}"></script>
+<script th:src="@{/js/novel-card.js}"></script>
 </body>
 </html>

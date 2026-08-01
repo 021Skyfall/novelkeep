@@ -3,8 +3,10 @@ package com.novelkeep.funding.domain;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.Collection;
 
 import com.novelkeep.novel.domain.StoryPart;
+import com.novelkeep.novel.domain.StoryPartStatus;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -56,6 +58,14 @@ public class FundingCampaign {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    /** 성공/실패 마감 후 운영자 승인 시각. null이면 승인 대기. */
+    @Column(name = "approved_at")
+    private LocalDateTime approvedAt;
+
+    /** 작가 마감(승인 요청) 시각. */
+    @Column(name = "closed_at")
+    private LocalDateTime closedAt;
 
     protected FundingCampaign() {
     }
@@ -168,6 +178,17 @@ public class FundingCampaign {
                 .intValue();
     }
 
+    public static int averageAchievementPercent(Collection<FundingCampaign> campaigns) {
+        if (campaigns == null || campaigns.isEmpty()) {
+            return 0;
+        }
+        double average = campaigns.stream()
+                .mapToInt(FundingCampaign::achievementPercent)
+                .average()
+                .orElse(0d);
+        return (int) Math.round(average);
+    }
+
     public String displayTitle() {
         var novel = storyPart.getNovel();
         if (novel.isMultiPart()) {
@@ -185,6 +206,26 @@ public class FundingCampaign {
 
     public boolean canCancel() {
         return status == FundingCampaignStatus.OPEN && currentQuantity <= 0;
+    }
+
+    public boolean canClose() {
+        return status == FundingCampaignStatus.OPEN && currentQuantity > 0;
+    }
+
+    public boolean isAwaitingApproval() {
+        return (status == FundingCampaignStatus.SUCCESS || status == FundingCampaignStatus.FAILED)
+                && approvedAt == null;
+    }
+
+    public boolean isApproved() {
+        return approvedAt != null;
+    }
+
+    /**
+     * 시드·정합용. 게이지(currentQuantity)를 실제 참여 합과 맞출 때 사용한다.
+     */
+    public void syncCurrentQuantity(int quantity) {
+        this.currentQuantity = Math.max(0, quantity);
     }
 
     public boolean isWithinPeriod(LocalDateTime now) {
@@ -206,6 +247,53 @@ public class FundingCampaign {
             throw new IllegalArgumentException("참여 수량은 1 이상이어야 합니다.");
         }
         this.currentQuantity += quantity;
+    }
+
+    public void closeAsSuccess() {
+        if (status != FundingCampaignStatus.OPEN) {
+            throw new IllegalStateException("진행 중인 펀딩만 마감할 수 있습니다.");
+        }
+        this.status = FundingCampaignStatus.SUCCESS;
+        this.approvedAt = null;
+        this.closedAt = FundingGuide.nowKorea();
+    }
+
+    public void closeAsFailed() {
+        if (status != FundingCampaignStatus.OPEN) {
+            throw new IllegalStateException("진행 중인 펀딩만 마감할 수 있습니다.");
+        }
+        this.status = FundingCampaignStatus.FAILED;
+        this.approvedAt = null;
+        this.closedAt = FundingGuide.nowKorea();
+    }
+
+    public void markApproved(LocalDateTime approvedAt) {
+        if (status != FundingCampaignStatus.SUCCESS && status != FundingCampaignStatus.FAILED) {
+            throw new IllegalStateException("성공 또는 실패로 마감된 펀딩만 승인할 수 있습니다.");
+        }
+        if (this.approvedAt != null) {
+            throw new IllegalStateException("이미 승인된 펀딩입니다.");
+        }
+        this.approvedAt = approvedAt != null ? approvedAt : FundingGuide.nowKorea();
+    }
+
+    /** 운영자 거절 시 진행 중으로 되돌린다. */
+    public void reopenAfterReject() {
+        if (status != FundingCampaignStatus.SUCCESS && status != FundingCampaignStatus.FAILED) {
+            throw new IllegalStateException("마감된 펀딩만 거절할 수 있습니다.");
+        }
+        if (this.approvedAt != null) {
+            throw new IllegalStateException("이미 승인된 펀딩은 거절할 수 없습니다.");
+        }
+        this.status = FundingCampaignStatus.OPEN;
+        this.closedAt = null;
+        this.approvedAt = null;
+    }
+
+    public boolean isSuccessReady() {
+        return storyPart != null
+                && storyPart.getStatus() == StoryPartStatus.COMPLETED
+                && currentQuantity >= targetQuantity;
     }
 
     public Long getId() {
@@ -246,5 +334,13 @@ public class FundingCampaign {
 
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
+    }
+
+    public LocalDateTime getApprovedAt() {
+        return approvedAt;
+    }
+
+    public LocalDateTime getClosedAt() {
+        return closedAt;
     }
 }

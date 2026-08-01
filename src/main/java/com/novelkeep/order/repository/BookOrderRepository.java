@@ -1,6 +1,7 @@
 package com.novelkeep.order.repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,6 +32,40 @@ public interface BookOrderRepository extends JpaRepository<BookOrder, Long> {
             @Param("status") BookOrderStatus status,
             @Param("fromAt") LocalDateTime fromAt,
             @Param("toAt") LocalDateTime toAt
+    );
+
+    @Query("""
+            select o
+              from BookOrder o
+              join fetch o.participation p
+              join fetch p.campaign
+             where p.campaign.id in :campaignIds
+            """)
+    List<BookOrder> findByCampaignIdIn(@Param("campaignIds") Collection<Long> campaignIds);
+
+    @Query("""
+            select o
+              from BookOrder o
+              join fetch o.participation p
+              join fetch p.campaign
+             where p.campaign.id = :campaignId
+               and p.member.id = :memberId
+            """)
+    Optional<BookOrder> findByCampaignIdAndMemberId(
+            @Param("campaignId") Long campaignId,
+            @Param("memberId") Long memberId
+    );
+
+    @Query("""
+            select distinct p.campaign.id
+              from BookOrder o
+              join o.participation p
+             where o.status = :status
+               and p.campaign.id in :campaignIds
+            """)
+    List<Long> findCampaignIdsByStatusAndCampaignIdIn(
+            @Param("status") BookOrderStatus status,
+            @Param("campaignIds") Collection<Long> campaignIds
     );
 
     @Query("""

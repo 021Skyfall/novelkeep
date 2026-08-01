@@ -32,7 +32,7 @@ public final class FundingGuide {
                 "참여(수요)가 0이면 직접 취소할 수 있습니다. 1부 이상이면 담당자에게 문의해 주세요.",
                 "진행 중에는 같은 부로 다시 시작할 수 없습니다. 종료된 뒤에는 다시 시작할 수 있습니다.",
                 "종료일은 시작일 이후여야 하고, 시작일로부터 최소 " + MIN_DURATION_DAYS
-                        + "일 이상이며, 현재 시간보다 이후여야 합니다."
+                        + "일 이상이며, 오늘(현재 시각) 이후여야 합니다."
         );
     }
 
@@ -42,7 +42,7 @@ public final class FundingGuide {
             throw new IllegalArgumentException("시작일과 종료일을 입력해 주세요.");
         }
         if (startAt.isBefore(now.minusMinutes(1))) {
-            throw new IllegalArgumentException("시작일은 현재 시간 이전일 수 없습니다.");
+            throw new IllegalArgumentException("시작일은 오늘(현재 시각) 이후여야 합니다.");
         }
         validateEndSchedule(startAt, endAt, now);
     }
@@ -60,7 +60,7 @@ public final class FundingGuide {
             );
         }
         if (endAt.isBefore(now)) {
-            throw new IllegalArgumentException("종료일은 현재 시간 이전일 수 없습니다.");
+            throw new IllegalArgumentException("종료일은 오늘(현재 시각) 이후여야 합니다.");
         }
     }
 

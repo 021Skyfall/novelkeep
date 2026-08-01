@@ -30,6 +30,15 @@
         window.alert(message);
     }
 
+    function formatRecommendLabel(count) {
+        var n = Number(count);
+        if (!Number.isFinite(n) || n < 0) {
+            n = 0;
+        }
+        var display = n > 9999 ? '9999+' : String(Math.floor(n));
+        return '추천 ' + display;
+    }
+
     function updateRecommendUi(scope, active, count) {
         var button = scope.querySelector('[data-action-button]');
         if (button) {
@@ -54,7 +63,7 @@
         }
 
         if (typeof count === 'number' && !Number.isNaN(count)) {
-            var label = '추천 ' + count;
+            var label = formatRecommendLabel(count);
             roots.forEach(function (root) {
                 root.querySelectorAll('[data-recommend-count]').forEach(function (node) {
                     node.textContent = label;

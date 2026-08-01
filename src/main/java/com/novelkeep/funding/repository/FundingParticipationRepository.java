@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.List;
 
 import com.novelkeep.funding.domain.FundingParticipation;
+import com.novelkeep.funding.domain.FundingPaymentStatus;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -14,6 +15,13 @@ public interface FundingParticipationRepository extends JpaRepository<FundingPar
     boolean existsByCampaignId(Long campaignId);
 
     boolean existsByCampaignIdAndMemberId(Long campaignId, Long memberId);
+
+    List<FundingParticipation> findByCampaignId(Long campaignId);
+
+    List<FundingParticipation> findByCampaignIdAndPaymentStatus(
+            Long campaignId,
+            FundingPaymentStatus paymentStatus
+    );
 
     @Query("""
             select p.campaign.id from FundingParticipation p

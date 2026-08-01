@@ -5,6 +5,8 @@ import com.novelkeep.order.domain.BookOrderStatus;
 import com.novelkeep.order.dto.BookOrderSearchCriteria;
 import com.novelkeep.order.service.BookOrderService;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -50,15 +52,33 @@ public class AdminOrderController {
             @ModelAttribute("criteria") BookOrderSearchCriteria criteria,
             @SessionAttribute(name = SESSION_ROLE, required = false) ExperienceRole role,
             @SessionAttribute(name = SESSION_MEMBER_ID, required = false) Long memberId,
+            HttpServletRequest request,
             Model model
     ) {
         if (!isOperator(role, memberId)) {
             return "redirect:/?roleRequired=true";
         }
+        applyEntrySortDefaults(criteria, request);
         model.addAttribute("orders", bookOrderService.search(criteria));
         model.addAttribute("statuses", BookOrderStatus.values());
+        model.addAttribute("sortFields", BookOrderSearchCriteria.SortField.values());
         model.addAttribute("navActive", "admin-orders");
+        if (wantsFragment(request)) {
+            return "admin/orders :: orderList";
+        }
         return "admin/orders";
+    }
+
+    private void applyEntrySortDefaults(BookOrderSearchCriteria criteria, HttpServletRequest request) {
+        if ("true".equalsIgnoreCase(request.getParameter("unsorted"))) {
+            criteria.setSortField(null);
+            criteria.setSortDir(null);
+            return;
+        }
+        if (!request.getParameterMap().containsKey("sortField")) {
+            criteria.setSortField(BookOrderSearchCriteria.SortField.ID);
+            criteria.setSortDir(BookOrderSearchCriteria.SortDir.DESC);
+        }
     }
 
     @PostMapping("/orders/{orderId}/status")
@@ -88,11 +108,13 @@ public class AdminOrderController {
     public Object exportCsv(
             @ModelAttribute BookOrderSearchCriteria criteria,
             @SessionAttribute(name = SESSION_ROLE, required = false) ExperienceRole role,
-            @SessionAttribute(name = SESSION_MEMBER_ID, required = false) Long memberId
+            @SessionAttribute(name = SESSION_MEMBER_ID, required = false) Long memberId,
+            HttpServletRequest request
     ) {
         if (!isOperator(role, memberId)) {
             return "redirect:/?roleRequired=true";
         }
+        applyEntrySortDefaults(criteria, request);
         byte[] body = bookOrderService.exportCsv(criteria);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, attachment("novelkeep-orders.csv"))
@@ -104,11 +126,13 @@ public class AdminOrderController {
     public Object exportJson(
             @ModelAttribute BookOrderSearchCriteria criteria,
             @SessionAttribute(name = SESSION_ROLE, required = false) ExperienceRole role,
-            @SessionAttribute(name = SESSION_MEMBER_ID, required = false) Long memberId
+            @SessionAttribute(name = SESSION_MEMBER_ID, required = false) Long memberId,
+            HttpServletRequest request
     ) {
         if (!isOperator(role, memberId)) {
             return "redirect:/?roleRequired=true";
         }
+        applyEntrySortDefaults(criteria, request);
         byte[] body = bookOrderService.exportJson(criteria);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, attachment("novelkeep-orders.json"))
@@ -130,6 +154,12 @@ public class AdminOrderController {
         if (criteria.getOrderedTo() != null) {
             builder.queryParam("orderedTo", criteria.getOrderedTo());
         }
+        if (criteria.getSortField() != null) {
+            builder.queryParam("sortField", criteria.getSortField().name());
+        }
+        if (criteria.getSortDir() != null) {
+            builder.queryParam("sortDir", criteria.getSortDir().name());
+        }
         return "redirect:" + builder.build().encode().toUriString();
     }
 
@@ -138,6 +168,11 @@ public class AdminOrderController {
                 .filename(filename, java.nio.charset.StandardCharsets.UTF_8)
                 .build()
                 .toString();
+    }
+
+    private boolean wantsFragment(HttpServletRequest request) {
+        return "1".equals(request.getHeader("X-Partial"))
+                || "1".equals(request.getParameter("partial"));
     }
 
     private boolean isOperator(ExperienceRole role, Long memberId) {

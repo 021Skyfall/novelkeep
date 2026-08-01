@@ -18,7 +18,10 @@ public class NovelSearchCriteria {
     private String progress;
     private NovelVisibility visibility;
     private Boolean favorite;
-    private String sort = "latest";
+    /** 내 작품: 진행 중 펀딩 여부 (true=있음, false=없음, null=전체) */
+    private Boolean fundingOpen;
+    private String sort;
+    private String sortDir;
     private int page = 0;
 
     public String getKeyword() {
@@ -73,12 +76,36 @@ public class NovelSearchCriteria {
         this.favorite = favorite;
     }
 
+    public Boolean getFundingOpen() {
+        return fundingOpen;
+    }
+
+    public void setFundingOpen(Boolean fundingOpen) {
+        this.fundingOpen = fundingOpen;
+    }
+
     public String getSort() {
-        return sort;
+        return sort == null ? "" : sort;
     }
 
     public void setSort(String sort) {
         this.sort = sort;
+    }
+
+    public String getSortDir() {
+        return sortDir == null ? "" : sortDir;
+    }
+
+    public void setSortDir(String sortDir) {
+        this.sortDir = sortDir;
+    }
+
+    public boolean hasSortSelection() {
+        return sort != null && !sort.isBlank() && sortDir != null && !sortDir.isBlank();
+    }
+
+    public boolean isSortAscending() {
+        return "ASC".equalsIgnoreCase(getSortDir());
     }
 
     public int getPage() {
@@ -90,15 +117,23 @@ public class NovelSearchCriteria {
     }
 
     public boolean isTitleSort() {
-        return "title".equalsIgnoreCase(sort);
+        return "title".equalsIgnoreCase(getSort());
     }
 
     public boolean isRecommendSort() {
-        return "recommend".equalsIgnoreCase(sort);
+        return "recommend".equalsIgnoreCase(getSort());
     }
 
     public boolean isFavoriteOnly() {
         return Boolean.TRUE.equals(favorite);
+    }
+
+    public boolean hasFundingOpenFilter() {
+        return fundingOpen != null;
+    }
+
+    public boolean isFundingOpenOnly() {
+        return Boolean.TRUE.equals(fundingOpen);
     }
 
     public boolean isSerializingProgress() {
