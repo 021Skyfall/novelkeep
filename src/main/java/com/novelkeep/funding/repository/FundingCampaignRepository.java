@@ -37,6 +37,7 @@ public interface FundingCampaignRepository extends JpaRepository<FundingCampaign
             select c from FundingCampaign c
             join fetch c.storyPart p
             join fetch p.novel n
+            join fetch n.author
             where c.id = :id
             """)
     Optional<FundingCampaign> findDetailById(@Param("id") Long id);

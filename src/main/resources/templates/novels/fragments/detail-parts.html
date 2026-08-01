@@ -140,6 +140,19 @@
                                     출판 펀딩 시작
                                 </button>
                             </th:block>
+                            <th:block th:if="${!canManageContent and openCampaign != null}"
+                                      th:with="joined=${participatedCampaignIds != null and participatedCampaignIds.contains(openCampaign.id)}">
+                                <a th:if="${!joined}"
+                                   class="btn btn-sm btn-dark flex-shrink-0"
+                                   th:href="@{/fundings/{id}(id=${openCampaign.id})}">
+                                    펀딩 참여하기
+                                </a>
+                                <a th:if="${joined}"
+                                   class="btn btn-sm btn-outline-dark flex-shrink-0"
+                                   th:href="@{/fundings/{id}(id=${openCampaign.id})}">
+                                    참여 완료 · 현황
+                                </a>
+                            </th:block>
                         </div>
                     </div>
                     <span class="text-secondary small text-nowrap"

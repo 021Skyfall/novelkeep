@@ -29,57 +29,66 @@
                         <a class="btn btn-outline-dark px-4" href="#funding">펀딩 둘러보기</a>
                     </div>
                 </div>
-                <div class="col-lg-5" th:with="featured=${!#lists.isEmpty(openFundings) ? openFundings[0] : null}">
-                    <a th:if="${featured != null}"
-                       class="nk-marquee-link nk-marquee-funding funding-card d-flex text-decoration-none"
-                       th:href="@{/fundings/{id}(id=${featured.id})}">
-                        <div class="novel-cover funding-card-cover"
-                             th:with="nid=${featured.storyPart.novel.id}"
-                             th:classappend="${nid % 6 == 1} ? ' cover-one' : (${nid % 6 == 2} ? ' cover-two' : (${nid % 6 == 3} ? ' cover-three' : (${nid % 6 == 4} ? ' cover-four' : (${nid % 6 == 5} ? ' cover-five' : ' cover-six'))))"
-                             aria-hidden="true"></div>
-                        <div class="funding-card-main">
-                            <div class="d-flex flex-column flex-sm-row justify-content-between gap-2">
-                                <div class="min-w-0">
-                                    <span class="badge status-completed mb-2"
-                                          th:text="${featured.partCompletionLabel()}">1부 완결</span>
-                                    <h2 class="h5 fw-bold mb-1 title-clamp-2"
-                                        th:text="${featured.displayTitle()}"
-                                        th:title="${featured.displayTitle()}">작품 1부</h2>
-                                    <p class="text-secondary mb-0 small text-clamp-1"
-                                       th:text="|필명 ${featured.storyPart.novel.penName}|">필명</p>
-                                </div>
-                                <strong class="funding-price flex-shrink-0"
-                                        th:text="${#numbers.formatInteger(featured.priceAmount, 1, 'COMMA') + '원'}">18,000원</strong>
-                            </div>
-                            <div class="funding-card-foot">
-                                <div class="funding-condition">
-                                    <div>
-                                        <span>연재 상태</span>
-                                        <strong th:text="${featured.storyPart.status.displayName}">완결</strong>
-                                    </div>
-                                    <div>
-                                        <span>펀딩 부수</span>
-                                        <strong th:text="|${featured.currentQuantity}/${featured.targetQuantity}부|">0/50부</strong>
-                                    </div>
-                                </div>
-                                <div class="funding-meter-row mt-3">
-                                    <span class="funding-meter-pct"
-                                          th:text="|${featured.achievementPercent()}%|">0%</span>
-                                    <div class="progress flex-grow-1" role="progressbar"
-                                         th:attr="aria-valuenow=${featured.achievementPercent()}"
-                                         aria-valuemin="0" aria-valuemax="100">
-                                        <div class="progress-bar"
-                                             th:style="|width: ${featured.achievementPercent()}%|"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </a>
-                    <article th:if="${featured == null}" class="featured-card">
+                <div class="col-lg-5">
+                    <div th:if="${#lists.isEmpty(openFundings)}" class="featured-card">
                         <span class="featured-genre">소장본 펀딩</span>
                         <h2 class="h5 fw-bold">진행 중인 펀딩이 없습니다</h2>
                         <p class="mb-0 text-secondary">공개 작품의 펀딩이 열리면 이곳에 소개됩니다.</p>
-                    </article>
+                    </div>
+                    <div th:unless="${#lists.isEmpty(openFundings)}"
+                         class="nk-marquee main-hero-funding-marquee"
+                         data-marquee data-marquee-mode="page" data-marquee-interval="5000"
+                         aria-label="진행 중 소장본 펀딩">
+                        <div class="nk-marquee-viewport" data-marquee-viewport>
+                            <div class="nk-marquee-track" data-marquee-track>
+                                <a class="nk-marquee-link nk-marquee-funding funding-card"
+                                   th:each="featured : ${openFundings}"
+                                   th:href="@{/fundings/{id}(id=${featured.id})}">
+                                    <div class="novel-cover funding-card-cover"
+                                         th:with="nid=${featured.storyPart.novel.id}"
+                                         th:classappend="${nid % 6 == 1} ? ' cover-one' : (${nid % 6 == 2} ? ' cover-two' : (${nid % 6 == 3} ? ' cover-three' : (${nid % 6 == 4} ? ' cover-four' : (${nid % 6 == 5} ? ' cover-five' : ' cover-six'))))"
+                                         aria-hidden="true"></div>
+                                    <div class="funding-card-main">
+                                        <div class="d-flex flex-column flex-sm-row justify-content-between gap-2">
+                                            <div class="min-w-0">
+                                                <span class="badge status-completed mb-2"
+                                                      th:text="${featured.partCompletionLabel()}">1부 완결</span>
+                                                <h2 class="h5 fw-bold mb-1 title-clamp-2"
+                                                    th:text="${featured.displayTitle()}"
+                                                    th:title="${featured.displayTitle()}">작품 1부</h2>
+                                                <p class="text-secondary mb-0 small text-clamp-1"
+                                                   th:text="|필명 ${featured.storyPart.novel.penName}|">필명</p>
+                                            </div>
+                                            <strong class="funding-price flex-shrink-0"
+                                                    th:text="${#numbers.formatInteger(featured.priceAmount, 1, 'COMMA') + '원'}">18,000원</strong>
+                                        </div>
+                                        <div class="funding-card-foot">
+                                            <div class="funding-condition">
+                                                <div>
+                                                    <span>연재 상태</span>
+                                                    <strong th:text="${featured.storyPart.status.displayName}">완결</strong>
+                                                </div>
+                                                <div>
+                                                    <span>펀딩 부수</span>
+                                                    <strong th:text="|${featured.currentQuantity}/${featured.targetQuantity}부|">0/50부</strong>
+                                                </div>
+                                            </div>
+                                            <div class="funding-meter-row mt-3">
+                                                <span class="funding-meter-pct"
+                                                      th:text="|${featured.achievementPercent()}%|">0%</span>
+                                                <div class="progress flex-grow-1" role="progressbar"
+                                                     th:attr="aria-valuenow=${featured.achievementPercent()}"
+                                                     aria-valuemin="0" aria-valuemax="100">
+                                                    <div class="progress-bar"
+                                                         th:style="|width: ${featured.achievementPercent()}%|"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -154,7 +163,7 @@
                             </div>
                         </div>
                         <div class="novel-card-body">
-                            <div class="novel-tag-row mb-2" data-tag-row>
+                            <div class="novel-tag-row" data-tag-row>
                                 <div class="novel-tag-list" data-tag-list>
                                     <span th:each="genreItem : ${novel.genres}"
                                           class="badge text-bg-light border"
@@ -165,8 +174,10 @@
                             </div>
                             <h3 class="h5 fw-bold title-clamp-2 novel-card-title" th:text="${novel.title}"
                                 th:title="${novel.title}">작품명</h3>
-                            <p th:text="${#strings.abbreviate(novel.synopsis, 60)}">소개</p>
-                            <span class="novel-meta" th:text="|필명 ${novel.penName}|">필명</span>
+                            <p class="novel-card-synopsis" th:text="${novel.synopsis}"
+                               th:title="${novel.synopsis}">소개</p>
+                            <span class="novel-meta novel-card-pen" th:text="|필명 ${novel.penName}|"
+                                  th:title="|필명 ${novel.penName}|">필명</span>
                         </div>
                     </article>
                 </div>
@@ -259,7 +270,7 @@
                 <span class="eyebrow">BOOK FUNDING</span>
                 <h2 id="funding-title" class="h3 fw-bold mt-2">진행 중인 소장본 펀딩</h2>
             </div>
-            <span class="text-secondary small">진행 중 최대 5건 · 드래그로 이동</span>
+            <span class="text-secondary small">진행 중 최대 5건 · 자동 슬라이드 · 드래그로 이동</span>
         </div>
         <div th:if="${#lists.isEmpty(openFundings)}" class="empty-state">
             <strong>진행 중인 펀딩이 없습니다.</strong>

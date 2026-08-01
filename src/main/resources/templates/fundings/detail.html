@@ -19,7 +19,13 @@
         <button class="btn btn-outline-secondary" type="button" data-back-link>← 이전 화면</button>
     </div>
 
-    <article class="funding-card">
+    <div th:if="${fundingMessage}" class="alert alert-success" role="status" th:text="${fundingMessage}">완료</div>
+    <div th:if="${fundingError}" class="alert alert-danger" role="alert" th:text="${fundingError}">오류</div>
+
+    <article class="funding-card"
+             th:attr="data-campaign-id=${campaign.id},
+                      data-participate-url=@{/fundings/{id}/participate(id=${campaign.id})},
+                      data-price-label=${#numbers.formatInteger(campaign.priceAmount, 1, 'COMMA') + '원'}">
         <div class="d-flex flex-column flex-sm-row justify-content-between gap-3">
             <div class="flex-grow-1">
                 <div class="d-flex flex-column flex-sm-row justify-content-between gap-2">
@@ -43,7 +49,8 @@
                     </div>
                     <div>
                         <span>펀딩 부수</span>
-                        <strong th:text="|${campaign.currentQuantity} / ${campaign.targetQuantity}부|">0 / 50부</strong>
+                        <strong data-funding-quantity
+                                th:text="|${campaign.currentQuantity} / ${campaign.targetQuantity}부|">0 / 50부</strong>
                     </div>
                     <div>
                         <span>남은 기간</span>
@@ -53,19 +60,40 @@
 
                 <div class="funding-meter-row mt-3">
                     <span class="funding-meter-pct"
+                          data-funding-percent
                           th:text="|${campaign.achievementPercent()}%|">0%</span>
                     <div class="progress flex-grow-1" role="progressbar"
+                         data-funding-progress
                          th:attr="aria-valuenow=${campaign.achievementPercent()}"
                          aria-valuemin="0" aria-valuemax="100"
                          th:aria-label="|펀딩 달성률 ${campaign.achievementPercent()}%|">
                         <div class="progress-bar"
+                             data-funding-bar
                              th:style="|width: ${campaign.achievementPercent()}%|"></div>
                     </div>
                 </div>
 
-                <div class="mt-4">
-                    <button class="btn btn-dark" type="button" disabled>모의 결제하고 참여하기 (준비 중)</button>
-                    <p class="small text-secondary mt-2 mb-0">펀딩 참여·주문 전환은 다음 단계에서 연결됩니다. 지금은 현황만 확인할 수 있습니다.</p>
+                <div class="mt-4" data-funding-actions>
+                    <form th:if="${canParticipate}"
+                          th:action="@{/fundings/{id}/participate(id=${campaign.id})}"
+                          method="post"
+                          data-funding-participate-form>
+                        <button class="btn btn-dark" type="submit" data-funding-participate-btn>
+                            모의 결제하고 1부 참여하기
+                        </button>
+                    </form>
+                    <button th:unless="${canParticipate}"
+                            class="btn btn-dark"
+                            type="button"
+                            disabled
+                            th:text="${alreadyParticipated} ? '이미 참여했습니다'
+                                    : (${ownCampaign} ? '본인 작품 · 참여 불가'
+                                    : (${openForJoin} ? '참여할 수 없습니다' : '지금은 참여할 수 없습니다'))">
+                        참여 불가
+                    </button>
+                    <p class="small text-secondary mt-2 mb-0"
+                       data-funding-hint
+                       th:text="${participateHint}">안내</p>
                 </div>
             </div>
             <div class="novel-cover funding-card-cover"
@@ -76,6 +104,7 @@
 </main>
 
 <script th:src="@{/vendor/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/js/funding-participate.js}"></script>
 <script>
 (() => {
     const back = document.querySelector('[data-back-link]');

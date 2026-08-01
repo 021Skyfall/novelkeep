@@ -187,6 +187,27 @@ public class FundingCampaign {
         return status == FundingCampaignStatus.OPEN && currentQuantity <= 0;
     }
 
+    public boolean isWithinPeriod(LocalDateTime now) {
+        if (now == null || startAt == null || endAt == null) {
+            return false;
+        }
+        return !now.isBefore(startAt) && !now.isAfter(endAt);
+    }
+
+    public boolean isOpenForJoin(LocalDateTime now) {
+        return status == FundingCampaignStatus.OPEN && isWithinPeriod(now);
+    }
+
+    public void recordParticipation(int quantity) {
+        if (status != FundingCampaignStatus.OPEN) {
+            throw new IllegalStateException("진행 중인 펀딩에만 참여할 수 있습니다.");
+        }
+        if (quantity < 1) {
+            throw new IllegalArgumentException("참여 수량은 1 이상이어야 합니다.");
+        }
+        this.currentQuantity += quantity;
+    }
+
     public Long getId() {
         return id;
     }

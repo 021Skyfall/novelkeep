@@ -56,16 +56,6 @@
             return;
         }
         row.dataset.boundTagRow = '1';
-        var more = row.querySelector('[data-tag-more]');
-        if (more) {
-            more.addEventListener('click', function (event) {
-                event.preventDefault();
-                event.stopPropagation();
-                var expanded = row.classList.toggle('is-expanded');
-                more.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-                more.textContent = expanded ? '접기' : '...';
-            });
-        }
         measureTagRow(row);
     }
 
@@ -73,6 +63,25 @@
         document.querySelectorAll('[data-novel-href]').forEach(bindCardClick);
         document.querySelectorAll('[data-tag-row]').forEach(bindTagRow);
     }
+
+    document.addEventListener('click', function (event) {
+        var more = event.target.closest('[data-tag-more]');
+        if (!more) {
+            return;
+        }
+        var row = more.closest('[data-tag-row]');
+        if (!row) {
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        var expanded = row.classList.toggle('is-expanded');
+        more.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        more.textContent = expanded ? '접기' : '...';
+        if (!expanded) {
+            measureTagRow(row);
+        }
+    });
 
     window.novelkeepBindNovelCards = bindAll;
 

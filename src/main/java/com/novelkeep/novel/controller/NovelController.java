@@ -137,10 +137,15 @@ public class NovelController {
         model.addAttribute("continueBookmark", continueBookmark);
         model.addAttribute("commentCounts", commentCountsFor(novel));
         model.addAttribute("fromWriter", "writer".equalsIgnoreCase(from));
+        var openFundingByPartId = fundingCampaignService.findOpenCampaignsByPartIds(
+                novel.getParts().stream().map(part -> part.getId()).toList()
+        );
+        model.addAttribute("openFundingByPartId", openFundingByPartId);
         model.addAttribute(
-                "openFundingByPartId",
-                fundingCampaignService.findOpenCampaignsByPartIds(
-                        novel.getParts().stream().map(part -> part.getId()).toList()
+                "participatedCampaignIds",
+                fundingCampaignService.findParticipatedCampaignIds(
+                        memberId,
+                        openFundingByPartId.values().stream().map(c -> c.getId()).toList()
                 )
         );
         if (canManageContent) {

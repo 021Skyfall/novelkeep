@@ -112,10 +112,24 @@ a.role-link:focus {
 }
 
 .main-hero .nk-marquee-funding.funding-card {
-    flex: none;
+    flex: 0 0 100%;
     width: 100%;
+    max-width: 100%;
     min-height: 13.5rem;
     height: auto;
+    box-sizing: border-box;
+}
+
+.main-hero-funding-marquee {
+    width: 100%;
+}
+
+.main-hero-funding-marquee .nk-marquee-viewport {
+    border-radius: 1rem;
+}
+
+.main-hero-funding-marquee .nk-marquee-track {
+    gap: 0;
 }
 
 .featured-card,
@@ -399,12 +413,31 @@ a.role-link:focus {
 .nk-marquee-link:hover.episode-marquee-card,
 .nk-marquee-link:focus.episode-marquee-card,
 .nk-marquee-link:hover.compact-card,
-.nk-marquee-link:focus.compact-card {
+.nk-marquee-link:focus.compact-card,
+.nk-marquee-link:hover.funding-card,
+.nk-marquee-link:focus.funding-card {
     border-color: var(--main-accent);
 }
 
-[data-marquee-clone] {
-    pointer-events: none;
+.nk-marquee.is-dragging .nk-marquee-link,
+.nk-marquee.is-dragging .nk-marquee-link:hover,
+.nk-marquee.is-dragging .nk-marquee-link:focus,
+.nk-marquee.is-dragging .nk-marquee-link:hover .novel-card,
+.nk-marquee.is-dragging .nk-marquee-link:focus .novel-card,
+.nk-marquee.is-dragging .nk-marquee-link:is(:hover, :focus).novel-card,
+.nk-marquee.is-dragging .nk-marquee-link:is(:hover, :focus).episode-marquee-card,
+.nk-marquee.is-dragging .nk-marquee-link:is(:hover, :focus).compact-card,
+.nk-marquee.is-dragging .nk-marquee-link:is(:hover, :focus).funding-card,
+.nk-marquee.is-drag-settling .nk-marquee-link,
+.nk-marquee.is-drag-settling .nk-marquee-link:hover,
+.nk-marquee.is-drag-settling .nk-marquee-link:focus,
+.nk-marquee.is-drag-settling .nk-marquee-link:hover .novel-card,
+.nk-marquee.is-drag-settling .nk-marquee-link:focus .novel-card,
+.nk-marquee.is-drag-settling .nk-marquee-link:is(:hover, :focus).novel-card,
+.nk-marquee.is-drag-settling .nk-marquee-link:is(:hover, :focus).episode-marquee-card,
+.nk-marquee.is-drag-settling .nk-marquee-link:is(:hover, :focus).compact-card,
+.nk-marquee.is-drag-settling .nk-marquee-link:is(:hover, :focus).funding-card {
+    border-color: var(--main-border);
 }
 
 .novel-tag-row {
@@ -417,7 +450,10 @@ a.role-link:focus {
 .novel-tag-list {
     display: flex;
     flex-wrap: wrap;
+    align-items: flex-start;
+    align-content: flex-start;
     gap: 0.5rem;
+    min-height: 3.6rem;
     max-height: 3.6rem;
     overflow: hidden;
     min-width: 0;
@@ -444,8 +480,69 @@ a.role-link:focus {
     border: 1px solid #d9d0ef;
 }
 
+.nk-marquee-card.novel-card {
+    display: flex;
+    flex-direction: column;
+}
+
+.nk-marquee-card .novel-card-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    padding: 1.25rem 1.35rem 1.35rem;
+}
+
+.nk-marquee-card .novel-tag-row {
+    flex: 0 0 auto;
+    align-items: start;
+    min-height: 3.6rem;
+    margin: 0 0 0.65rem;
+}
+
+.nk-marquee-card .novel-tag-list {
+    min-height: 3.6rem;
+    max-height: 3.6rem;
+    align-items: flex-start;
+    align-content: flex-start;
+}
+
+.nk-marquee-card .novel-card-title {
+    flex: 0 0 auto;
+    margin: 0 0 0.5rem;
+    min-height: calc(1.25rem * 1.35 * 2);
+    font-size: 1.25rem;
+    line-height: 1.35;
+}
+
+.nk-marquee-card .novel-card-synopsis {
+    flex: 0 0 auto;
+    margin: 0 0 0.65rem;
+    min-height: calc(1rem * 1.5 * 3);
+    color: #6c757d;
+    font-size: 1rem;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+    word-break: keep-all;
+}
+
+.nk-marquee-card .novel-card-pen {
+    flex: 0 0 auto;
+    margin: 0;
+    min-height: calc(0.8rem * 1.35 * 2);
+    font-size: 0.8rem;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    word-break: keep-all;
+}
+
 .nk-marquee-card .novel-card-body p {
-    min-height: 3rem;
+    min-height: calc(1rem * 1.5 * 3);
 }
 
 .episode-marquee-card {
@@ -588,11 +685,6 @@ a.role-link:focus {
 
 .novel-card-body {
     padding: 1.5rem;
-}
-
-.novel-card-body p {
-    min-height: 3rem;
-    color: #6c757d;
 }
 
 .novel-meta {
@@ -928,7 +1020,7 @@ a.role-link:focus {
         font-size: 2rem;
     }
 
-    .novel-card-body p {
+    .novel-card-body p:not(.novel-card-synopsis) {
         min-height: auto;
     }
 

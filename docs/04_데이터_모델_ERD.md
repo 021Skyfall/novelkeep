@@ -253,10 +253,12 @@ erDiagram
 
 ### FUNDING_CAMPAIGN — 소장본 펀딩
 
-- 특정 부(1권)의 목표 수량, 모의 판매가와 펀딩 기간을 관리한다. 현재 구현은 `StoryPart`에 직접 연결한다(1부=1권).
-- 상태: `DRAFT`, `OPEN`, `SUCCESS`, `FAILED`
+- 특정 부(1권=1부 출판 단위)의 목표 **부수**, 모의 판매가와 펀딩 기간을 관리한다. `StoryPart`에 직접 연결한다.
+- 상태: `OPEN`, `SUCCESS`, `FAILED` (UI는 OPEN 직행. DRAFT 초안 경로는 쓰지 않음)
+- `target_quantity`: 목표 부수(최소 10). `current_quantity`는 참여 합으로 갱신·표시한다.
 - 홈에는 `OPEN`이면서 기간 내·공개 작품인 캠페인을 최신순 최대 5건 노출한다.
-- 성공 조건·참여·주문 전환은 Lv2에서 구현한다.
+- 작가 OPEN 시작·수정·취소와 독자 모의 결제 참여는 구현 완료. 마감·주문 전환은 Lv2 잔여.
+- 한 부에 OPEN은 동시에 1개. 종료 후 재개설 가능. 작품당 동시 OPEN 상한은 보류.
 
 ### FUNDING_PARTICIPATION — 펀딩 참여
 
@@ -391,10 +393,11 @@ UNPUBLISHED ↔ PUBLISHED
 ### 펀딩
 
 ```text
-DRAFT → OPEN → SUCCESS
-             └→ FAILED
+OPEN → SUCCESS
+     └→ FAILED
 ```
 
+- UI는 OPEN 직행(DRAFT 초안 경로 없음). 취소 시 OPEN 종료 후 같은 부 재개설 가능.
 ### 모의 결제
 
 ```text
@@ -412,6 +415,7 @@ PENDING → PROCESSING → COMPLETED
 ## 8. 삭제 정책
 
 - 펀딩 연결 전에는 소유 작가가 작품·부·회차를 삭제할 수 있다. 펀딩이 연결되면 이력 보존을 위해 삭제를 제한한다.
+- **OPEN 중**에는 해당 부·회차의 수정·삭제·비공개·회차 생성도 막는다(댓글 제외).
 - 펀딩 참여나 주문이 존재하면 이력 보존을 위해 삭제하지 않고 상태로 관리한다.
 - FK에는 무조건적인 연쇄 삭제를 설정하지 않는다.
 - 회원은 실제 탈퇴 기능이 없으므로 삭제하지 않는다.
@@ -466,4 +470,5 @@ PENDING → PROCESSING → COMPLETED
 - 공통 플랫폼 메인과 누적 권한 메뉴
 - 번호가 포함된 부 완결 표시 (`1부 완결`, `2부 완결`)
 - 운영자 주문 상태 관리와 CSV·JSON 내보내기 (A-02 1차 구현, 시드 주문). 운영 통계(A-01)·실펀딩 전환 연동은 Lv2 보강
-- 작품·부·회차 엔티티와 CRUD·열람, 회차 댓글, 홈용 `funding_campaign`, `funding_participation`·`book_order` 시드 구현 완료. **독자·작가 Lv1 완료.** 다음은 Lv2 펀딩 참여·주문 전환
+- 작품·부·회차 엔티티와 CRUD·열람, 회차 댓글, 홈용 `funding_campaign`, `funding_participation`·`book_order` 시드 구현 완료. **독자·작가 Lv1 완료.** **작가 OPEN 펀딩 관리·독자 모의 결제 참여 완료.** 다음은 Lv2 마감·주문 전환
+- 진행률(2026-08-01): Phase1 100% · Lv1 100% · Lv2 ~50% · Lv3 UX ~75% → **전체 약 72%**
