@@ -42,6 +42,28 @@
                         th:classappend="${criteria.tab == tabOption} ? ' is-active'">전체</button>
             </div>
         </div>
+        <div class="mb-3" data-activity-status-panel>
+            <span class="form-label fw-semibold d-block mb-2">상태</span>
+            <div class="publishing-chip-row" role="group" aria-label="상태" data-activity-status-chips>
+                <button type="button" class="btn btn-sm publishing-chip"
+                        data-activity-status=""
+                        th:classappend="${criteria.activityStatus == null and criteria.orderStatus == null} ? ' is-active'">전체</button>
+                <button type="button" class="btn btn-sm publishing-chip"
+                        data-activity-status="PARTICIPATING"
+                        data-status-for="ACTIVE"
+                        th:classappend="${criteria.activityStatus != null and criteria.activityStatus.name() == 'PARTICIPATING'} ? ' is-active'">참여</button>
+                <button type="button" class="btn btn-sm publishing-chip"
+                        th:each="orderOption : ${orderStatusOptions}"
+                        th:attr="data-order-status=${orderOption.name()}"
+                        data-status-for="ORDER"
+                        th:text="${orderOption.displayName}"
+                        th:classappend="${criteria.orderStatus == orderOption} ? ' is-active'">접수</button>
+                <button type="button" class="btn btn-sm publishing-chip"
+                        data-activity-status="REFUNDED"
+                        data-status-for="REFUND"
+                        th:classappend="${criteria.activityStatus != null and criteria.activityStatus.name() == 'REFUNDED'} ? ' is-active'">환불 완료</button>
+            </div>
+        </div>
         <div class="row g-3 align-items-end">
             <div class="col-md-6">
                 <label class="form-label fw-semibold" for="novelTitle">작품명</label>
@@ -56,20 +78,6 @@
                 </div>
             </div>
         </div>
-        <div class="mt-3" th:classappend="${criteria.tab.name() != 'ORDER'} ? ' d-none'"
-             data-order-status-panel>
-            <span class="form-label fw-semibold d-block mb-2">제품 상태</span>
-            <div class="publishing-chip-row" role="group" aria-label="제품 상태">
-                <button type="button" class="btn btn-sm publishing-chip"
-                        data-order-status=""
-                        th:classappend="${criteria.orderStatus == null} ? ' is-active'">전체</button>
-                <button type="button" class="btn btn-sm publishing-chip"
-                        th:each="orderOption : ${orderStatusOptions}"
-                        th:attr="data-order-status=${orderOption.name()}"
-                        th:text="${orderOption.displayName}"
-                        th:classappend="${criteria.orderStatus == orderOption} ? ' is-active'">접수</button>
-            </div>
-        </div>
         <div class="mt-3">
             <span class="form-label fw-semibold d-block mb-2">정렬</span>
             <div class="publishing-chip-row" role="group" aria-label="정렬">
@@ -80,7 +88,7 @@
             </div>
         </div>
         <div class="d-flex justify-content-end mt-3">
-            <button type="button" class="btn btn-outline-secondary" data-search-reset>초기화</button>
+            <button type="button" class="btn btn-outline-dark" data-search-reset>초기화</button>
         </div>
     </div>
 
@@ -93,7 +101,7 @@
 
             <div th:if="${#lists.isEmpty(activities)}" class="empty-state border rounded-3 p-5 text-center">
                 <strong th:if="${criteria.tab.name() == 'ALL'}">펀딩·주문 내역이 없습니다.</strong>
-                <strong th:if="${criteria.tab.name() == 'ACTIVE'}">참여 중인 펀딩이 없습니다.</strong>
+                <strong th:if="${criteria.tab.name() == 'ACTIVE'}">펀딩 중 내역이 없습니다.</strong>
                 <strong th:if="${criteria.tab.name() == 'REFUND'}">환불 내역이 없습니다.</strong>
                 <strong th:if="${criteria.tab.name() == 'ORDER'}">주문 내역이 없습니다.</strong>
                 <p class="mb-3 text-secondary">작품을 둘러보고 소장본 펀딩에 참여해 보세요.</p>
@@ -138,13 +146,8 @@
                                   th:text="${row.orderStatusLabel()}">접수</span>
                             <span th:if="${row.tab().name() == 'REFUND'}"
                                   class="badge text-bg-secondary">환불 완료</span>
-                            <span th:if="${row.tab().name() == 'ACTIVE'}" class="d-inline-flex flex-wrap gap-1">
-                                <span class="badge"
-                                      th:classappend="${row.campaignStatus().name() == 'OPEN'} ? ' text-bg-dark' : (${row.campaignStatus().name() == 'SUCCESS'} ? ' text-bg-success' : ' text-bg-danger')"
-                                      th:text="${row.campaignStatusLabel()}">펀딩 중</span>
-                                <span th:if="${row.awaitingApproval()}"
-                                      class="badge text-bg-warning text-dark">승인 대기</span>
-                            </span>
+                            <span th:if="${row.tab().name() == 'ACTIVE'}"
+                                  class="badge text-bg-dark">참여</span>
                         </td>
                         <td class="small text-secondary"
                             th:text="${row.tab().name() == 'ORDER' && row.orderedAt() != null
@@ -154,14 +157,14 @@
                                     : #temporals.format(row.paidAt(), 'yyyy-MM-dd HH:mm'))}">-</td>
                         <td>
                             <button type="button"
-                                    class="btn btn-sm btn-outline-secondary"
+                                    class="btn btn-sm btn-outline-dark"
                                     data-receipt-mock
                                     th:attr="data-receipt-title=${row.novelTitle()},
                                              data-receipt-part=${row.partLabel()},
                                              data-receipt-kind=${row.tab().displayName},
                                              data-receipt-qty=${row.quantity()},
                                              data-receipt-amount=${#numbers.formatInteger(row.paidAmount(), 1, 'COMMA') + '원'},
-                                             data-receipt-status=${row.tab().name() == 'ORDER' ? row.orderStatusLabel() : (row.tab().name() == 'REFUND' ? '환불 완료' : row.campaignStatusLabel())},
+                                             data-receipt-status=${row.tab().name() == 'ORDER' ? row.orderStatusLabel() : (row.tab().name() == 'REFUND' ? '환불 완료' : '참여')},
                                              data-receipt-paid-at=${#temporals.format(row.paidAt(), 'yyyy-MM-dd HH:mm')},
                                              data-receipt-order-id=${row.orderId()}">상세 내역</button>
                         </td>
@@ -169,7 +172,7 @@
                             <form th:if="${row.canRefund()}"
                                   th:action="@{/fundings/{id}/refund(id=${row.campaignId()})}"
                                   method="post"
-                                  th:attr="data-confirm-message='진행 중인 펀딩 참여를 환불할까요?',
+                          th:attr="data-confirm-message=|참여 수량 ${row.quantity()}부 결제를 환불할까요?|,
                                            data-confirm-title='환불 확인',
                                            data-confirm-text='예, 환불',
                                            data-cancel-text='아니오',
@@ -179,7 +182,7 @@
                             <span th:unless="${row.canRefund()}" class="small text-secondary">-</span>
                         </td>
                         <td>
-                            <a class="btn btn-sm btn-outline-secondary"
+                            <a class="btn btn-sm btn-outline-dark"
                                th:href="@{/fundings/{id}(id=${row.campaignId()})}">상세</a>
                         </td>
                     </tr>

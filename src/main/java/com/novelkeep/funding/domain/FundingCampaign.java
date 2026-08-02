@@ -204,10 +204,6 @@ public class FundingCampaign {
         return storyPart.getPartNumber() + "부 · " + storyPart.getStatus().getDisplayName();
     }
 
-    public boolean canCancel() {
-        return status == FundingCampaignStatus.OPEN && currentQuantity <= 0;
-    }
-
     public boolean canClose() {
         return status == FundingCampaignStatus.OPEN && currentQuantity > 0;
     }
@@ -277,6 +273,16 @@ public class FundingCampaign {
         this.closedAt = FundingGuide.nowKorea();
     }
 
+    /** 수요 0 취소. 참여·환불 기록은 유지한다. */
+    public void markCancelled() {
+        if (status != FundingCampaignStatus.OPEN) {
+            throw new IllegalStateException("진행 중인 펀딩만 취소할 수 있습니다.");
+        }
+        this.status = FundingCampaignStatus.CANCELLED;
+        this.approvedAt = null;
+        this.closedAt = FundingGuide.nowKorea();
+    }
+
     public void markApproved(LocalDateTime approvedAt) {
         if (status != FundingCampaignStatus.SUCCESS && status != FundingCampaignStatus.FAILED) {
             throw new IllegalStateException("성공 또는 실패로 마감된 펀딩만 승인할 수 있습니다.");
@@ -300,10 +306,14 @@ public class FundingCampaign {
         this.approvedAt = null;
     }
 
+    public boolean isGoalMet() {
+        return currentQuantity >= targetQuantity;
+    }
+
     public boolean isSuccessReady() {
         return storyPart != null
                 && storyPart.getStatus() == StoryPartStatus.COMPLETED
-                && currentQuantity >= targetQuantity;
+                && isGoalMet();
     }
 
     public Long getId() {

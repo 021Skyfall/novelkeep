@@ -2,7 +2,7 @@ package com.novelkeep.novel.domain;
 
 public enum EpisodeStatus {
 
-    UNPUBLISHED("미공개"),
+    UNPUBLISHED("비공개"),
     PUBLISHED("공개");
 
     private final String displayName;

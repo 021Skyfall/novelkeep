@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.novelkeep.admin.dto.AdminDashboardStats;
+import com.novelkeep.common.ExportText;
 import com.novelkeep.funding.domain.FundingCampaignStatus;
 import com.novelkeep.funding.domain.FundingPaymentStatus;
 import com.novelkeep.funding.repository.FundingCampaignRepository;
@@ -139,22 +140,10 @@ public class AdminDashboardService {
             if (i++ > 0) {
                 sb.append(",\n");
             }
-            sb.append("    ").append(jsonString(entry.getKey())).append(": ").append(entry.getValue());
+            sb.append("    ").append(ExportText.jsonString(entry.getKey())).append(": ").append(entry.getValue());
         }
         sb.append("\n  }\n");
         sb.append("}\n");
         return sb.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
-    }
-
-    private static String jsonString(String value) {
-        if (value == null) {
-            return "null";
-        }
-        return "\"" + value
-                .replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                + "\"";
     }
 }

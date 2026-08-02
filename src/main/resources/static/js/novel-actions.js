@@ -64,10 +64,24 @@
 
         if (typeof count === 'number' && !Number.isNaN(count)) {
             var label = formatRecommendLabel(count);
+            var nodes = new Set();
             roots.forEach(function (root) {
                 root.querySelectorAll('[data-recommend-count]').forEach(function (node) {
-                    node.textContent = label;
+                    nodes.add(node);
                 });
+            });
+            document.querySelectorAll('[data-recommend-count]').forEach(function (node) {
+                var formNovel = scope.getAttribute('data-novel-id');
+                var nodeForm = node.closest('[data-novel-action="recommend"]');
+                if (formNovel && nodeForm && nodeForm.getAttribute('data-novel-id') === formNovel) {
+                    nodes.add(node);
+                }
+                if (!nodeForm && scope.closest('.detail-panel') && node.closest('.detail-panel')) {
+                    nodes.add(node);
+                }
+            });
+            nodes.forEach(function (node) {
+                node.textContent = label;
             });
         }
     }

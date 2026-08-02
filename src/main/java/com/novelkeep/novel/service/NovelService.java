@@ -94,11 +94,6 @@ public class NovelService {
     }
 
     @Transactional(readOnly = true)
-    public List<NovelGenre> findAdminGenres() {
-        return novelRepository.findDistinctGenres();
-    }
-
-    @Transactional(readOnly = true)
     public Novel findReadableNovel(Long novelId, Long memberId, ExperienceRole role) {
         Novel novel = findNovel(novelId);
         boolean admin = role == ExperienceRole.ADMIN;

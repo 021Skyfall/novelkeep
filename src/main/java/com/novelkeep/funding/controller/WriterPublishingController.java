@@ -41,7 +41,7 @@ public class WriterPublishingController {
     }
 
     @GetMapping({"/writer/publishing", "/writer/novels/{novelId}/publishing"})
-    public String publishing(
+    public Object publishing(
             @PathVariable(required = false) Long novelId,
             @ModelAttribute("criteria") WriterFundingSearchCriteria criteria,
             @SessionAttribute(name = SESSION_ROLE, required = false) ExperienceRole role,
@@ -50,6 +50,9 @@ public class WriterPublishingController {
             Model model
     ) {
         if (!canWrite(role) || memberId == null) {
+            if (wantsFragment(request)) {
+                return ResponseEntity.status(401).build();
+            }
             return "redirect:/?roleRequired=true";
         }
 
@@ -79,11 +82,12 @@ public class WriterPublishingController {
         model.addAttribute("orderStatusByCampaignId",
                 fundingCampaignService.resolveLeastOrderStatusByCampaignId(campaigns));
         model.addAttribute("criteria", criteria);
-        model.addAttribute("statusOptions", List.of(
-                FundingCampaignStatus.OPEN,
-                FundingCampaignStatus.SUCCESS,
-                FundingCampaignStatus.FAILED
-        ));
+            model.addAttribute("statusOptions", List.of(
+                    FundingCampaignStatus.OPEN,
+                    FundingCampaignStatus.SUCCESS,
+                    FundingCampaignStatus.FAILED,
+                    FundingCampaignStatus.CANCELLED
+            ));
         model.addAttribute("orderStatusOptions", BookOrderStatus.values());
         model.addAttribute("sortFields", WriterFundingSearchCriteria.SortField.values());
         model.addAttribute("minTargetQuantity", FundingGuide.MIN_TARGET_QUANTITY);
@@ -165,25 +169,6 @@ public class WriterPublishingController {
         return "redirect:/writer/publishing";
     }
 
-    @PostMapping("/writer/publishing/campaigns/{campaignId}/open")
-    public String openDraft(
-            @PathVariable Long campaignId,
-            @SessionAttribute(name = SESSION_ROLE, required = false) ExperienceRole role,
-            @SessionAttribute(name = SESSION_MEMBER_ID, required = false) Long memberId,
-            RedirectAttributes redirectAttributes
-    ) {
-        if (!canWrite(role) || memberId == null) {
-            return "redirect:/?roleRequired=true";
-        }
-        try {
-            fundingCampaignService.openDraft(campaignId, memberId);
-            redirectAttributes.addFlashAttribute("publishingMessage", "펀딩을 시작했습니다.");
-        } catch (ResponseStatusException ex) {
-            redirectAttributes.addFlashAttribute("publishingError", resolveMessage(ex));
-        }
-        return "redirect:/writer/publishing";
-    }
-
     @PostMapping("/writer/publishing/campaigns/{campaignId}/cancel")
     public Object cancel(
             @PathVariable Long campaignId,
@@ -228,7 +213,7 @@ public class WriterPublishingController {
             String message = result.success()
                     ? "성공으로 판정되었습니다. 운영자 승인 후 주문이 접수됩니다. 참여 수요 "
                     + result.paidCount() + "부."
-                    : "실패로 판정되었습니다. 운영자 승인 후 환불이 진행됩니다. 참여 수요 "
+                    : "실패로 판정되었습니다. (성공 조건: 목표 달성 + 전체 회차 공개 + 부 완결) 참여 수요 "
                     + result.paidCount() + "부. 목록에 남겨 두었습니다.";
             if (wantsJson(request)) {
                 return ResponseEntity.ok(FundingActionResult.closeOk(

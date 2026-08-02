@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="노벨킵 내 댓글">
+    <title>내 댓글 | 노벨킵</title>
+    <script th:src="@{/js/theme.js}"></script>
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/navigation.css}">
+    <link rel="stylesheet" th:href="@{/css/novel.css}">
+</head>
+<body th:classappend="${roleKey != null} ? | role-${#strings.toLowerCase(roleKey)}|">
+<div th:replace="~{fragments/navigation :: siteNav(${navActive})}"></div>
+
+<main class="container py-5">
+    <header class="page-heading mb-4">
+        <span class="eyebrow">MY COMMENTS</span>
+        <h1 class="display-6 fw-bold mt-2">내 댓글</h1>
+        <p class="text-secondary mb-0">내가 작성한 댓글·답글을 최근순으로 확인합니다.</p>
+    </header>
+
+    <div th:if="${#lists.isEmpty(comments)}" class="empty-state border rounded-3 p-5 text-center">
+        <strong>작성한 댓글이 없습니다.</strong>
+        <p class="mb-3 text-secondary">회차를 읽고 의견을 남겨 보세요.</p>
+        <a class="btn btn-dark" th:href="@{/novels}">작품 둘러보기</a>
+    </div>
+
+    <div th:unless="${#lists.isEmpty(comments)}" class="table-responsive border rounded-3">
+        <table class="table align-middle mb-0">
+            <thead class="table-light">
+            <tr>
+                <th scope="col">작품</th>
+                <th scope="col">회차</th>
+                <th scope="col">내용</th>
+                <th scope="col">작성일</th>
+                <th scope="col">바로가기</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="comment : ${comments}">
+                <td th:text="${comment.episode.storyPart.novel.title}">작품</td>
+                <td th:text="|${comment.episode.episodeNumber}화|">1화</td>
+                <td class="text-break" th:text="${comment.content}">내용</td>
+                <td class="small text-secondary"
+                    th:text="${#temporals.format(comment.createdAt, 'yyyy-MM-dd HH:mm')}">-</td>
+                <td>
+                    <a class="btn btn-sm btn-outline-secondary"
+                       th:href="@{/episodes/{id}(id=${comment.episode.id})}">회차</a>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<footer class="border-top py-4">
+    <div class="container small text-secondary">NovelKeep · 내 댓글</div>
+</footer>
+<script th:src="@{/vendor/bootstrap/js/bootstrap.bundle.min.js}"></script>
+</body>
+</html>

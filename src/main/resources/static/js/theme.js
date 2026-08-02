@@ -35,7 +35,8 @@
         });
     }
 
-    const initialTheme = getSavedTheme() === darkTheme ? darkTheme : lightTheme;
+    const savedTheme = getSavedTheme();
+    const initialTheme = savedTheme === lightTheme ? lightTheme : darkTheme;
     applyTheme(initialTheme);
 
     window.addEventListener("DOMContentLoaded", () => {

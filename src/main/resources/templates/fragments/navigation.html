@@ -60,6 +60,8 @@
                            th:href="@{/novels(favorite=true)}">내 즐겨찾기</a>
                         <a class="role-link" th:classappend="${active == 'bookmarks'} ? ' is-active'"
                            th:href="@{/bookmarks}">내 책갈피</a>
+                        <a class="role-link" th:classappend="${active == 'my-comments'} ? ' is-active'"
+                           th:href="@{/reader/comments}">내 댓글</a>
                         <a class="role-link" th:classappend="${active == 'activities'} ? ' is-active'"
                            th:href="@{/reader/activities}">내 펀딩·주문</a>
                     </div>

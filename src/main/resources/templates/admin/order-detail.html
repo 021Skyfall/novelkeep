@@ -17,7 +17,7 @@
 
 <main class="container py-5">
     <div class="mb-4">
-        <a class="btn btn-outline-secondary" th:href="@{/admin/orders}">← 주문 관리</a>
+        <a th:replace="~{fragments/back-link :: backLink(@{/admin/orders}, '← 주문 관리')}">← 주문 관리</a>
     </div>
 
     <header class="page-heading mb-4">
@@ -40,7 +40,7 @@
             <div class="text-sm-end">
                 <div class="small text-secondary mb-1">제작 수량</div>
                 <strong class="fs-4" th:text="|${batch.totalQuantity()}부|">12부</strong>
-                <div class="small text-secondary" th:text="|참여 ${batch.orderCount()}건 · 묶음 #${batch.campaignId()}|">참여 2건</div>
+                <div class="small text-secondary" th:text="|참여 ${batch.orderCount()}건 · 주문 #${batch.minOrderId()}|">참여 2건</div>
             </div>
         </div>
         <div class="d-flex flex-wrap gap-3 mt-3 small">
@@ -93,7 +93,7 @@
                 </td>
                 <td>
                     <button type="button"
-                            class="btn btn-sm btn-outline-secondary"
+                            class="btn btn-sm btn-outline-dark"
                             data-receipt-mock
                             th:attr="data-receipt-title=${batch.novelTitle()},
                                      data-receipt-part=${batch.partLabel()},

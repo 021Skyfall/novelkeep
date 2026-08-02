@@ -2,7 +2,7 @@ package com.novelkeep.novel.domain;
 
 public enum StoryPartStatus {
 
-    UNPUBLISHED("미공개"),
+    UNPUBLISHED("비공개"),
     SERIALIZING("연재 중"),
     COMPLETED("완결");
 

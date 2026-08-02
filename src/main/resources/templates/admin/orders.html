@@ -10,6 +10,7 @@
     <link rel="stylesheet" th:href="@{/css/navigation.css}">
     <link rel="stylesheet" th:href="@{/css/novel.css}">
     <link rel="stylesheet" th:href="@{/css/confirm-dialog.css}">
+    <link rel="stylesheet" th:href="@{/vendor/flatpickr/flatpickr.min.css}">
 </head>
 <body th:classappend="${roleKey != null} ? | role-${#strings.toLowerCase(roleKey)}|">
 <div th:replace="~{fragments/navigation :: siteNav(${navActive})}"></div>
@@ -47,14 +48,12 @@
                 </div>
             </div>
             <div class="col-md-4">
-                <label class="form-label fw-semibold" for="orderedFrom">주문 시작일</label>
-                <input id="orderedFrom" class="form-control" type="date"
-                       th:value="${criteria.orderedFrom}" data-orders-from>
-            </div>
-            <div class="col-md-4">
-                <label class="form-label fw-semibold" for="orderedTo">주문 종료일</label>
-                <input id="orderedTo" class="form-control" type="date"
-                       th:value="${criteria.orderedTo}" data-orders-to>
+                <label class="form-label fw-semibold" for="orderedRange">주문일</label>
+                <input id="orderedRange" class="form-control date-range-input" type="text"
+                       placeholder="시작일 ~ 종료일" autocomplete="off" data-date-range-input
+                       readonly>
+                <input type="hidden" th:value="${criteria.orderedFrom}" data-orders-from>
+                <input type="hidden" th:value="${criteria.orderedTo}" data-orders-to>
             </div>
         </div>
         <div class="mt-3">
@@ -86,7 +85,7 @@
                 <a class="btn btn-sm btn-outline-dark" data-orders-export-json
                    th:href="@{/admin/orders/export.json}">JSON 다운로드</a>
             </div>
-            <button type="button" class="btn btn-outline-secondary" data-search-reset>초기화</button>
+            <button type="button" class="btn btn-outline-dark" data-search-reset>초기화</button>
         </div>
     </div>
 
@@ -106,7 +105,7 @@
                 <table class="table align-middle mb-0">
                     <thead class="table-light">
                     <tr>
-                        <th scope="col">묶음번호</th>
+                        <th scope="col">주문번호</th>
                         <th scope="col">작품</th>
                         <th scope="col">권</th>
                         <th scope="col" class="text-end">수량</th>
@@ -120,7 +119,7 @@
                     </thead>
                     <tbody>
                     <tr th:each="order : ${orders}">
-                        <td th:text="${order.campaignId()}">1</td>
+                        <td th:text="${order.minOrderId()}">1</td>
                         <td>
                             <a class="fw-semibold link-body-emphasis text-decoration-underline"
                                th:href="@{/novels/{id}(id=${order.novelId()})}"
@@ -134,7 +133,7 @@
                             <span class="badge text-bg-light border" th:text="${order.statusLabel()}">접수</span>
                         </td>
                         <td>
-                            <a class="btn btn-sm btn-outline-secondary"
+                            <a class="btn btn-sm btn-outline-dark"
                                th:href="@{/fundings/{id}(id=${order.campaignId()})}">상세</a>
                         </td>
                         <td>
@@ -171,6 +170,9 @@
     <div class="container small text-secondary">NovelKeep · 운영자 주문 관리</div>
 </footer>
 <script th:src="@{/vendor/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/vendor/flatpickr/flatpickr.min.js}"></script>
+<script th:src="@{/vendor/flatpickr/ko.js}"></script>
+<script th:src="@{/js/date-range.js}"></script>
 <script th:src="@{/js/sort-cycle.js}"></script>
 <script th:src="@{/js/admin-orders.js}"></script>
 </body>

@@ -44,6 +44,8 @@ public class ReaderActivityService {
                 ? criteria.getNovelTitle().trim().toLowerCase(Locale.ROOT)
                 : "";
         BookOrderStatus orderStatusFilter = criteria != null ? criteria.getOrderStatus() : null;
+        ReaderActivitySearchCriteria.ActivityStatus activityStatusFilter =
+                criteria != null ? criteria.getActivityStatus() : null;
         ReaderActivitySearchCriteria.SortField sortField = criteria != null ? criteria.getSortField() : null;
         ReaderActivitySearchCriteria.SortDir sortDir = criteria != null ? criteria.getSortDir() : null;
 
@@ -71,9 +73,18 @@ public class ReaderActivityService {
                     continue;
                 }
             }
-            if (tab == ReaderActivitySearchCriteria.Tab.ORDER
-                    && orderStatusFilter != null
-                    && row.orderStatus() != orderStatusFilter) {
+            if (orderStatusFilter != null) {
+                if (row.tab() != ReaderActivitySearchCriteria.Tab.ORDER
+                        || row.orderStatus() != orderStatusFilter) {
+                    continue;
+                }
+            }
+            if (activityStatusFilter == ReaderActivitySearchCriteria.ActivityStatus.PARTICIPATING
+                    && row.tab() != ReaderActivitySearchCriteria.Tab.ACTIVE) {
+                continue;
+            }
+            if (activityStatusFilter == ReaderActivitySearchCriteria.ActivityStatus.REFUNDED
+                    && row.tab() != ReaderActivitySearchCriteria.Tab.REFUND) {
                 continue;
             }
             rows.add(row);

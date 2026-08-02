@@ -96,14 +96,14 @@ public class StoryContentController {
     }
 
     @GetMapping("/writer/novels/{novelId}/detail-parts/partial")
-    public String detailPartsPartial(
+    public Object detailPartsPartial(
             @PathVariable Long novelId,
             @SessionAttribute(name = SESSION_ROLE, required = false) ExperienceRole role,
             @SessionAttribute(name = SESSION_MEMBER_ID, required = false) Long memberId,
             Model model
     ) {
         if (!canWrite(role) || memberId == null) {
-            return "redirect:/?roleRequired=true";
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         Novel novel = storyContentService.findOwnedNovelWithContents(novelId, memberId);
         model.addAttribute("novel", novel);
@@ -265,17 +265,6 @@ public class StoryContentController {
             return "redirect:/?roleRequired=true";
         }
         StoryPart part = storyContentService.findOwnedPart(partId, memberId);
-        if (storyContentService.hasOpenFunding(partId)) {
-            redirectAttributes.addFlashAttribute("contentErrorLabel", "회차 등록 불가");
-            redirectAttributes.addFlashAttribute(
-                    "contentError",
-                    "펀딩 진행 중인 부에는 회차를 추가할 수 없습니다."
-            );
-            if (isFromDetail(from)) {
-                return "redirect:/novels/" + part.getNovel().getId() + "?from=writer";
-            }
-            return "redirect:/writer/novels/" + part.getNovel().getId() + "/contents";
-        }
         model.addAttribute("episodeForm", new EpisodeForm());
         addEpisodeFormOptions(model, part, null, false, false, isFromDetail(from));
         return "writer/episodes/form";
@@ -349,20 +338,6 @@ public class StoryContentController {
             return "redirect:/?roleRequired=true";
         }
         Episode episode = storyContentService.findOwnedEpisode(episodeId, memberId);
-        if (storyContentService.hasOpenFunding(episode.getStoryPart().getId())) {
-            redirectAttributes.addFlashAttribute("contentErrorLabel", "회차 수정 불가");
-            redirectAttributes.addFlashAttribute(
-                    "contentError",
-                    "펀딩 진행 중인 부의 회차는 수정할 수 없습니다."
-            );
-            if (isFromRead(from)) {
-                return "redirect:/episodes/" + episodeId;
-            }
-            if (isFromDetail(from)) {
-                return "redirect:/novels/" + episode.getStoryPart().getNovel().getId() + "?from=writer";
-            }
-            return "redirect:/writer/novels/" + episode.getStoryPart().getNovel().getId() + "/contents";
-        }
         model.addAttribute("episodeForm", EpisodeForm.from(episode));
         addEpisodeFormOptions(
                 model,
@@ -452,7 +427,7 @@ public class StoryContentController {
                     storyContentService.bulkChangeEpisodeStatus(
                             novelId, memberId, episodeIds, EpisodeStatus.UNPUBLISHED
                     );
-                    message = "선택한 회차를 미공개로 변경했습니다.";
+                    message = "선택한 회차를 비공개로 변경했습니다.";
                 }
                 case "DELETE" -> {
                     storyContentService.bulkDeleteEpisodes(novelId, memberId, episodeIds);

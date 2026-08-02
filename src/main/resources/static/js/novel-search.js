@@ -59,19 +59,27 @@
             credentials: 'same-origin',
             signal: currentController.signal
         }).then(function (response) {
+            if (response.status === 401) {
+                window.location.href = '/?roleRequired=true';
+                throw new Error('auth');
+            }
             if (!response.ok) {
                 throw new Error('partial failed');
             }
             return response.text();
         }).then(function (html) {
             if (!replaceAsyncContent(html)) {
+                if (/<!doctype html|<html[\s>]/i.test(String(html || '').trim())) {
+                    window.location.href = '/?roleRequired=true';
+                    return;
+                }
                 throw new Error('replace failed');
             }
             if (pushHistory) {
                 window.history.pushState({ novelkeepAsync: true }, '', url);
             }
         }).catch(function (error) {
-            if (error && error.name === 'AbortError') {
+            if (error && (error.name === 'AbortError' || error.message === 'auth')) {
                 return;
             }
             window.location.href = url;

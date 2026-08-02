@@ -8,15 +8,14 @@
     <script th:src="@{/js/theme.js}"></script>
     <link rel="stylesheet" th:href="@{/vendor/bootstrap/css/bootstrap.min.css}">
     <link rel="stylesheet" th:href="@{/css/navigation.css}">
-    <link rel="stylesheet" th:href="@{/css/main.css}">
     <link rel="stylesheet" th:href="@{/css/novel.css}">
 </head>
 <body th:classappend="${roleKey != null} ? | role-${#strings.toLowerCase(roleKey)}|">
-<div th:replace="~{fragments/navigation :: siteNav('funding')}"></div>
+<div th:replace="~{fragments/navigation :: siteNav(${navActive})}"></div>
 
 <main class="container py-4 py-md-5">
     <div class="mb-4">
-        <button class="btn btn-outline-secondary" type="button" data-back-link>← 이전 화면</button>
+        <a th:replace="~{fragments/back-link :: backLink(${backUrl}, ${backLabel})}">← 이전 화면</a>
     </div>
 
     <div th:if="${fundingMessage}" class="alert alert-success" role="status" th:text="${fundingMessage}">완료</div>
@@ -26,7 +25,8 @@
              th:attr="data-campaign-id=${campaign.id},
                       data-participate-url=@{/fundings/{id}/participate(id=${campaign.id})},
                       data-refund-url=@{/fundings/{id}/refund(id=${campaign.id})},
-                      data-price-label=${#numbers.formatInteger(campaign.priceAmount, 1, 'COMMA') + '원'}">
+                      data-price-label=${#numbers.formatInteger(campaign.priceAmount, 1, 'COMMA') + '원'},
+                      data-my-quantity=${myQuantity}">
         <div class="d-flex flex-column flex-sm-row justify-content-between gap-3">
             <div class="flex-grow-1">
                 <div class="d-flex flex-column flex-sm-row justify-content-between gap-2">
@@ -92,7 +92,7 @@
                           method="post"
                           class="d-inline"
                           data-funding-refund-form
-                          th:attr="data-confirm-message='진행 중인 펀딩 참여를 환불할까요?',
+                          th:attr="data-confirm-message=|참여 수량 ${myQuantity}부 결제를 환불할까요?|,
                                    data-confirm-title='환불 확인',
                                    data-confirm-text='예, 환불',
                                    data-cancel-text='아니오',
@@ -126,15 +126,14 @@
 <script th:src="@{/js/funding-participate.js}"></script>
 <script>
 (() => {
-    const back = document.querySelector('[data-back-link]');
-    if (!back) return;
-    back.addEventListener('click', () => {
-        if (window.history.length > 1) {
-            window.history.back();
-            return;
-        }
-        window.location.href = '/main#funding';
-    });
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('refunded') === '1') {
+        try {
+            params.delete('refunded');
+            const qs = params.toString();
+            window.history.replaceState({}, '', window.location.pathname + (qs ? '?' + qs : ''));
+        } catch (e) { /* ignore */ }
+    }
 })();
 </script>
 </body>

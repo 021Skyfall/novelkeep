@@ -44,9 +44,28 @@
         if (!root || !url) {
             return Promise.resolve();
         }
-        return fetch(url, { headers: { 'Accept': 'text/html' }, credentials: 'same-origin' })
-            .then(function (res) { return res.text(); })
+        return fetch(url, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'text/html'
+            },
+            credentials: 'same-origin'
+        })
+            .then(function (res) {
+                if (res.status === 401) {
+                    window.location.href = '/?roleRequired=true';
+                    throw new Error('auth');
+                }
+                if (!res.ok) {
+                    throw new Error('reload failed');
+                }
+                return res.text();
+            })
             .then(function (html) {
+                if (/<!doctype html|<html[\s>]/i.test(String(html || '').trim())) {
+                    window.location.href = '/?roleRequired=true';
+                    return;
+                }
                 root.innerHTML = html;
                 if (window.NovelKeepDetailWriter && typeof window.NovelKeepDetailWriter.bind === 'function') {
                     window.NovelKeepDetailWriter.bind(root);

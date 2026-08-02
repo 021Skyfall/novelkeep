@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="utf-8">
@@ -15,13 +15,13 @@
 
 <main class="container form-container py-5">
     <div class="mb-4">
-        <a class="btn btn-back-list"
-           th:href="${fromRead}
-               ? @{/episodes/{id}(id=${episodeId})}
-               : (${fromDetail}
-                   ? @{/novels/{id}(id=${novel.id}, from='writer')}
-                   : @{/writer/novels/{id}/contents(id=${novel.id})})"
-           th:text="${fromRead} ? '← 회차 읽기' : (${fromDetail} ? '← 작품 상세' : '← 부·회차 관리')">← 이전</a>
+        <a th:replace="~{fragments/back-link :: backLink(
+            ${fromRead}
+                ? @{/episodes/{id}(id=${episodeId})}
+                : (${fromDetail}
+                    ? @{/novels/{id}(id=${novel.id}, from='writer')}
+                    : @{/writer/novels/{id}/contents(id=${novel.id})}),
+            ${fromRead} ? '← 회차 읽기' : (${fromDetail} ? '← 작품 상세' : '← 부·회차 관리'))}">← 이전</a>
     </div>
 
     <header class="mb-4">
@@ -63,9 +63,9 @@
             <label class="form-label fw-semibold" for="status">공개 상태</label>
             <select id="status" class="form-select" th:field="*{status}">
                 <option th:each="statusOption : ${episodeStatuses}"
-                        th:value="${statusOption}" th:text="${statusOption.displayName}">미공개</option>
+                        th:value="${statusOption}" th:text="${statusOption.displayName}">비공개</option>
             </select>
-            <div class="form-text">미공개는 소유자와 운영자만 볼 수 있고, 공개 회차만 독자에게 노출됩니다.</div>
+            <div class="form-text">비공개는 소유자와 운영자만 볼 수 있고, 공개 회차만 독자에게 노출됩니다.</div>
         </div>
 
         <div class="d-flex flex-wrap gap-2">

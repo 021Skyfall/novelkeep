@@ -1,5 +1,7 @@
 package com.novelkeep.admin.controller;
 
+import com.novelkeep.admin.support.AdminAccess;
+import com.novelkeep.admin.support.AdminExports;
 import com.novelkeep.home.domain.ExperienceRole;
 import com.novelkeep.order.domain.BookOrderStatus;
 import com.novelkeep.order.dto.BookOrderSearchCriteria;
@@ -7,9 +9,6 @@ import com.novelkeep.order.service.BookOrderService;
 
 import jakarta.servlet.http.HttpServletRequest;
 
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -27,9 +26,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 @RequestMapping("/admin")
 public class AdminOrderController {
 
-    private static final String SESSION_ROLE = "experienceRole";
-    private static final String SESSION_MEMBER_ID = "memberId";
-
     private final BookOrderService bookOrderService;
 
     public AdminOrderController(BookOrderService bookOrderService) {
@@ -37,14 +33,17 @@ public class AdminOrderController {
     }
 
     @GetMapping("/orders")
-    public String orders(
+    public Object orders(
             @ModelAttribute("criteria") BookOrderSearchCriteria criteria,
-            @SessionAttribute(name = SESSION_ROLE, required = false) ExperienceRole role,
-            @SessionAttribute(name = SESSION_MEMBER_ID, required = false) Long memberId,
+            @SessionAttribute(name = AdminAccess.SESSION_ROLE, required = false) ExperienceRole role,
+            @SessionAttribute(name = AdminAccess.SESSION_MEMBER_ID, required = false) Long memberId,
             HttpServletRequest request,
             Model model
     ) {
-        if (!isOperator(role, memberId)) {
+        if (!AdminAccess.isOperator(role, memberId)) {
+            if (wantsFragment(request)) {
+                return ResponseEntity.status(401).build();
+            }
             return "redirect:/?roleRequired=true";
         }
         applyEntrySortDefaults(criteria, request);
@@ -61,11 +60,11 @@ public class AdminOrderController {
     @GetMapping("/orders/campaigns/{campaignId}")
     public String orderDetail(
             @PathVariable Long campaignId,
-            @SessionAttribute(name = SESSION_ROLE, required = false) ExperienceRole role,
-            @SessionAttribute(name = SESSION_MEMBER_ID, required = false) Long memberId,
+            @SessionAttribute(name = AdminAccess.SESSION_ROLE, required = false) ExperienceRole role,
+            @SessionAttribute(name = AdminAccess.SESSION_MEMBER_ID, required = false) Long memberId,
             Model model
     ) {
-        if (!isOperator(role, memberId)) {
+        if (!AdminAccess.isOperator(role, memberId)) {
             return "redirect:/?roleRequired=true";
         }
         try {
@@ -95,11 +94,11 @@ public class AdminOrderController {
     public String advanceCampaignStatus(
             @PathVariable Long campaignId,
             @ModelAttribute BookOrderSearchCriteria criteria,
-            @SessionAttribute(name = SESSION_ROLE, required = false) ExperienceRole role,
-            @SessionAttribute(name = SESSION_MEMBER_ID, required = false) Long memberId,
+            @SessionAttribute(name = AdminAccess.SESSION_ROLE, required = false) ExperienceRole role,
+            @SessionAttribute(name = AdminAccess.SESSION_MEMBER_ID, required = false) Long memberId,
             RedirectAttributes redirectAttributes
     ) {
-        if (!isOperator(role, memberId)) {
+        if (!AdminAccess.isOperator(role, memberId)) {
             return "redirect:/?roleRequired=true";
         }
         try {
@@ -117,37 +116,29 @@ public class AdminOrderController {
     @GetMapping("/orders/export.csv")
     public Object exportCsv(
             @ModelAttribute BookOrderSearchCriteria criteria,
-            @SessionAttribute(name = SESSION_ROLE, required = false) ExperienceRole role,
-            @SessionAttribute(name = SESSION_MEMBER_ID, required = false) Long memberId,
+            @SessionAttribute(name = AdminAccess.SESSION_ROLE, required = false) ExperienceRole role,
+            @SessionAttribute(name = AdminAccess.SESSION_MEMBER_ID, required = false) Long memberId,
             HttpServletRequest request
     ) {
-        if (!isOperator(role, memberId)) {
+        if (!AdminAccess.isOperator(role, memberId)) {
             return "redirect:/?roleRequired=true";
         }
         applyEntrySortDefaults(criteria, request);
-        byte[] body = bookOrderService.exportCsv(criteria);
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, attachment("novelkeep-orders.csv"))
-                .contentType(new MediaType("text", "csv", java.nio.charset.StandardCharsets.UTF_8))
-                .body(body);
+        return AdminExports.csv("novelkeep-orders.csv", bookOrderService.exportCsv(criteria));
     }
 
     @GetMapping("/orders/export.json")
     public Object exportJson(
             @ModelAttribute BookOrderSearchCriteria criteria,
-            @SessionAttribute(name = SESSION_ROLE, required = false) ExperienceRole role,
-            @SessionAttribute(name = SESSION_MEMBER_ID, required = false) Long memberId,
+            @SessionAttribute(name = AdminAccess.SESSION_ROLE, required = false) ExperienceRole role,
+            @SessionAttribute(name = AdminAccess.SESSION_MEMBER_ID, required = false) Long memberId,
             HttpServletRequest request
     ) {
-        if (!isOperator(role, memberId)) {
+        if (!AdminAccess.isOperator(role, memberId)) {
             return "redirect:/?roleRequired=true";
         }
         applyEntrySortDefaults(criteria, request);
-        byte[] body = bookOrderService.exportJson(criteria);
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, attachment("novelkeep-orders.json"))
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(body);
+        return AdminExports.json("novelkeep-orders.json", bookOrderService.exportJson(criteria));
     }
 
     private String redirectWithCriteria(BookOrderSearchCriteria criteria) {
@@ -173,19 +164,8 @@ public class AdminOrderController {
         return "redirect:" + builder.build().encode().toUriString();
     }
 
-    private String attachment(String filename) {
-        return ContentDisposition.attachment()
-                .filename(filename, java.nio.charset.StandardCharsets.UTF_8)
-                .build()
-                .toString();
-    }
-
     private boolean wantsFragment(HttpServletRequest request) {
         return "1".equals(request.getHeader("X-Partial"))
                 || "1".equals(request.getParameter("partial"));
-    }
-
-    private boolean isOperator(ExperienceRole role, Long memberId) {
-        return role == ExperienceRole.ADMIN && memberId != null;
     }
 }

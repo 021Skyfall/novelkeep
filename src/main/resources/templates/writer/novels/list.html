@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="utf-8">
@@ -18,7 +18,7 @@
     <header class="page-heading mb-3">
         <span class="eyebrow">WRITER WORKS</span>
         <h1 class="display-6 fw-bold mt-2">내 작품</h1>
-        <p class="text-secondary mb-0">내가 소유한 작품만 관리합니다. 공개·미공개와 연재 상태를 바로 확인하세요.</p>
+        <p class="text-secondary mb-0">내가 소유한 작품만 관리합니다. 공개·비공개와 연재 상태를 바로 확인하세요.</p>
     </header>
 
     <div th:if="${param.deleted}" class="alert alert-success"
@@ -95,27 +95,12 @@
                     </div>
                     <div class="genre-badge-list">
                         <button th:each="genreOption : ${allGenres}"
-                                th:if="${genreOption.primary}"
                                 type="button"
                                 class="genre-badge"
                                 th:classappend="${#lists.contains(criteria.genres, genreOption)} ? ' is-active'"
                                 th:attr="data-genre-value=${genreOption}"
                                 data-genre-badge
                                 th:text="${genreOption.displayName}">장르</button>
-                    </div>
-                    <div class="genre-badge-list mt-2 d-none" data-genre-extra>
-                        <button th:each="genreOption : ${allGenres}"
-                                th:unless="${genreOption.primary}"
-                                type="button"
-                                class="genre-badge"
-                                th:classappend="${#lists.contains(criteria.genres, genreOption)} ? ' is-active'"
-                                th:attr="data-genre-value=${genreOption}"
-                                data-genre-badge
-                                th:text="${genreOption.displayName}">장르</button>
-                    </div>
-                    <div class="genre-filter-actions">
-                        <button type="button" class="btn btn-sm btn-outline-secondary" data-genre-expand
-                                aria-expanded="false">전체 장르</button>
                     </div>
                 </div>
 
@@ -131,7 +116,7 @@
                     </div>
                 </div>
                 <div class="d-flex justify-content-end mt-3">
-                    <a class="btn btn-outline-secondary" data-async-reset th:href="@{/writer/novels}">초기화</a>
+                    <a class="btn btn-outline-dark" data-async-reset th:href="@{/writer/novels}">초기화</a>
                 </div>
                 <input type="hidden" name="sort" th:value="${criteria.sort}">
                 <input type="hidden" name="sortDir" th:value="${criteria.sortDir}">

@@ -252,6 +252,27 @@ body {
     position: relative;
 }
 
+.date-range-field {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.date-range-field .form-control {
+    min-width: 0;
+    flex: 1 1 0;
+}
+
+.date-range-input {
+    max-width: 16.5rem;
+}
+
+.date-range-sep {
+    flex: 0 0 auto;
+    color: #8a8179;
+    font-weight: 600;
+}
+
 .keyword-search-field .form-control {
     padding-right: 3.15rem;
 }
@@ -910,6 +931,88 @@ body {
     line-height: 1;
 }
 
+/* 펀딩 상세 카드 (main.css 의존 제거용) */
+.funding-card {
+    padding: 2rem;
+    background: #fff;
+    border: 1px solid #e7e0d7;
+    border-radius: 1rem;
+    box-shadow: 0 1rem 2.5rem rgba(52, 43, 37, 0.08);
+}
+
+.funding-price {
+    font-size: 1.25rem;
+}
+
+.funding-condition {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr));
+    overflow: hidden;
+    border: 1px solid #e7e0d7;
+    border-radius: 0.7rem;
+}
+
+.funding-condition div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 1rem;
+}
+
+.funding-condition div + div {
+    border-left: 1px solid #e7e0d7;
+}
+
+.funding-condition span {
+    color: #6c757d;
+    font-size: 0.75rem;
+}
+
+.funding-condition strong {
+    font-size: 0.95rem;
+}
+
+.funding-card-cover.novel-cover {
+    flex: 0 0 6rem;
+    width: 6rem;
+    height: 9rem;
+    min-height: 9rem;
+    max-height: 9rem;
+    padding: 0;
+    border-radius: 0.55rem;
+    align-self: center;
+    order: -1;
+}
+
+.funding-card-cover::after {
+    display: none;
+}
+
+@media (max-width: 575.98px) {
+    .funding-condition {
+        grid-template-columns: 1fr;
+    }
+
+    .funding-condition div + div {
+        border-top: 1px solid #e7e0d7;
+        border-left: 0;
+    }
+}
+
+[data-bs-theme="dark"] .funding-card {
+    background: #201c1a;
+    border-color: #413a35;
+    box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.2);
+}
+
+[data-bs-theme="dark"] .funding-condition div + div {
+    border-color: #413a35;
+}
+
+[data-bs-theme="dark"] .funding-condition span {
+    color: #b9b0a8;
+}
+
 .publishing-campaign-row {
     display: flex;
     gap: 1rem;
@@ -1249,31 +1352,76 @@ body {
     color: #c9bfb4;
 }
 
-.search-input-wrap {
-    position: relative;
-}
-
-.search-input-icon {
-    position: absolute;
-    left: 0.75rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #8a8179;
-    pointer-events: none;
-    display: inline-flex;
-}
-
-.search-input-with-icon {
-    padding-left: 2.35rem;
-}
-
-[data-bs-theme="dark"] .search-input-icon {
-    color: #b9b0a8;
-}
-
 [data-admin-funding-list].is-loading,
-[data-admin-orders-list].is-loading {
+[data-admin-orders-list].is-loading,
+[data-reader-activities-list].is-loading {
     opacity: 0.55;
     pointer-events: none;
+}
+
+/* 성공 마감 조건 미충족 확인 팝업 */
+.publishing-close-blocked-hint {
+    margin: 1rem 0 0;
+    padding: 0.7rem 0.85rem;
+    color: #8a4b08;
+    background: #fff6e8;
+    border: 1px solid #efd2a3;
+    border-radius: 0.55rem;
+    font-size: 0.9rem;
+    font-weight: 650;
+    line-height: 1.45;
+}
+
+.nk-confirm-dialog.is-close-blocked .nk-confirm-button.is-close-blocked:disabled {
+    opacity: 0.34;
+    color: #6b635c;
+    background: #d9d3cc;
+    border-color: #cfc8c0;
+    box-shadow: none;
+    cursor: not-allowed;
+    filter: grayscale(0.35);
+}
+
+.nk-confirm-dialog.is-close-blocked .nk-confirm-button.is-close-dismiss {
+    min-height: 2.65rem;
+    min-width: 6.5rem;
+    padding: 0.55rem 1.25rem;
+    color: #fff;
+    background: #5f5750;
+    border: 1px solid #5f5750;
+    font-weight: 700;
+    box-shadow: 0 0.35rem 0.9rem rgba(48, 42, 37, 0.18);
+}
+
+.nk-confirm-dialog.is-close-blocked .nk-confirm-button.is-close-dismiss:hover,
+.nk-confirm-dialog.is-close-blocked .nk-confirm-button.is-close-dismiss:focus {
+    color: #fff;
+    background: #4a433c;
+    border-color: #4a433c;
+}
+
+[data-bs-theme="dark"] .publishing-close-blocked-hint {
+    color: #f0d2a0;
+    background: #3a3018;
+    border-color: #8a7340;
+}
+
+[data-bs-theme="dark"] .nk-confirm-dialog.is-close-blocked .nk-confirm-button.is-close-blocked:disabled {
+    color: #8a837c;
+    background: #3a342f;
+    border-color: #4a433c;
+}
+
+[data-bs-theme="dark"] .nk-confirm-dialog.is-close-blocked .nk-confirm-button.is-close-dismiss {
+    color: #1b1715;
+    background: #d7cfc6;
+    border-color: #d7cfc6;
+}
+
+[data-bs-theme="dark"] .nk-confirm-dialog.is-close-blocked .nk-confirm-button.is-close-dismiss:hover,
+[data-bs-theme="dark"] .nk-confirm-dialog.is-close-blocked .nk-confirm-button.is-close-dismiss:focus {
+    color: #1b1715;
+    background: #ebe4dc;
+    border-color: #ebe4dc;
 }
 

@@ -78,22 +78,31 @@
 
     function refreshBulkState(root) {
         var toolbar = root.querySelector('[data-bulk-toolbar]');
-        if (!toolbar) {
-            return;
-        }
         var checks = root.querySelectorAll('[data-episode-check]');
         var selected = root.querySelectorAll('[data-episode-check]:checked');
-        var countEl = toolbar.querySelector('[data-bulk-count]');
-        var selectAll = toolbar.querySelector('[data-select-all-episodes]');
-        if (countEl) {
-            countEl.textContent = selected.length + '개 선택';
+        var fundingLockedSelected = false;
+        selected.forEach(function (input) {
+            if (input.getAttribute('data-funding-locked') === 'true') {
+                fundingLockedSelected = true;
+            }
+        });
+        if (toolbar) {
+            var countEl = toolbar.querySelector('[data-bulk-count]');
+            var selectAll = toolbar.querySelector('[data-select-all-episodes]');
+            if (countEl) {
+                countEl.textContent = selected.length + '개 선택';
+            }
+            if (selectAll) {
+                selectAll.checked = checks.length > 0 && selected.length === checks.length;
+                selectAll.indeterminate = selected.length > 0 && selected.length < checks.length;
+            }
         }
-        if (selectAll) {
-            selectAll.checked = checks.length > 0 && selected.length === checks.length;
-            selectAll.indeterminate = selected.length > 0 && selected.length < checks.length;
-        }
-        toolbar.querySelectorAll('[data-bulk-action]').forEach(function (button) {
-            button.disabled = selected.length === 0;
+        root.querySelectorAll('[data-bulk-action]').forEach(function (button) {
+            var disabled = selected.length === 0;
+            if (button.getAttribute('data-bulk-action') === 'DELETE' && fundingLockedSelected) {
+                disabled = true;
+            }
+            button.disabled = disabled;
         });
     }
 
@@ -110,11 +119,19 @@
             },
             credentials: 'same-origin'
         }).then(function (response) {
+            if (response.status === 401) {
+                window.location.href = '/?roleRequired=true';
+                throw new Error('auth');
+            }
             if (!response.ok) {
                 throw new Error('목록을 다시 불러오지 못했습니다.');
             }
             return response.text();
         }).then(function (html) {
+            if (/<!doctype html|<html[\s>]/i.test(String(html || '').trim())) {
+                window.location.href = '/?roleRequired=true';
+                return;
+            }
             root.innerHTML = html;
             bindPanels(root);
             window.scrollTo(0, scrollY);
@@ -263,6 +280,20 @@
                 root.querySelectorAll('[data-episode-check]').forEach(function (input) {
                     input.checked = target.checked;
                 });
+                root.querySelectorAll('[data-select-part-episodes]').forEach(function (input) {
+                    input.checked = target.checked;
+                });
+                refreshBulkState(root);
+                return;
+            }
+            if (target.hasAttribute('data-select-part-episodes')) {
+                var partId = target.getAttribute('data-part-id');
+                var list = root.querySelector('[data-part-episodes="' + partId + '"]');
+                if (list) {
+                    list.querySelectorAll('[data-episode-check]').forEach(function (input) {
+                        input.checked = target.checked;
+                    });
+                }
                 refreshBulkState(root);
                 return;
             }

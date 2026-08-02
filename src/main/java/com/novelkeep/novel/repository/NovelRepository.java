@@ -54,9 +54,6 @@ public interface NovelRepository extends JpaRepository<Novel, Long>, JpaSpecific
             """)
     List<NovelGenre> findDistinctGenresByAuthorId(@Param("authorId") Long authorId);
 
-    @Query("select distinct g from Novel n join n.genres g order by g asc")
-    List<NovelGenre> findDistinctGenres();
-
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
             update Novel n

@@ -1,6 +1,7 @@
 package com.novelkeep.novel.domain;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,6 +24,8 @@ import jakarta.persistence.Table;
 @Entity
 @Table(name = "episode_comment")
 public class EpisodeComment {
+
+    private static final ZoneId KOREA_ZONE = ZoneId.of("Asia/Seoul");
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -88,7 +91,7 @@ public class EpisodeComment {
         if (isDeleted()) {
             return;
         }
-        this.deletedAt = LocalDateTime.now();
+        this.deletedAt = LocalDateTime.now(KOREA_ZONE);
     }
 
     public boolean isDeleted() {
@@ -112,14 +115,14 @@ public class EpisodeComment {
 
     @PrePersist
     void onCreate() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(KOREA_ZONE);
         createdAt = now;
         updatedAt = now;
     }
 
     @PreUpdate
     void onUpdate() {
-        updatedAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now(KOREA_ZONE);
     }
 
     public Long getId() {

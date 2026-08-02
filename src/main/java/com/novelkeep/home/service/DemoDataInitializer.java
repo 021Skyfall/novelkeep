@@ -136,8 +136,8 @@ public class DemoDataInitializer implements ApplicationRunner {
     }
 
     /**
-     * 작품 탐색(수정일 DESC) 1·2위에 목표 달성 OPEN 펀딩 작품을 올린다.
-     * 체험 독자가 참여만 하면 마감→승인→주문 흐름을 이어서 볼 수 있다.
+     * 작품 탐색(수정일 DESC) 상단에 노출되도록, 게이지가 거의 찬 OPEN 펀딩 2작품을 올려 둔다.
+     * (추천 순위가 아니라 목록에서 먼저 보이는 항목 기준)
      */
     private void pinBrowseShowcaseNovels(
             List<FundingCampaign> campaigns,
@@ -204,11 +204,12 @@ public class DemoDataInitializer implements ApplicationRunner {
             return;
         }
 
+        // 수정일만 올려 탐색 목록 앞쪽에 보이게 한다. 추천수는 그대로 둔다.
         Novel first = picked.get(0).getStoryPart().getNovel();
-        novelRepository.seedDemoStats(first.getId(), 99_999L, now);
+        novelRepository.seedDemoStats(first.getId(), first.getRecommendationCount(), now);
         if (picked.size() > 1) {
             Novel second = picked.get(1).getStoryPart().getNovel();
-            novelRepository.seedDemoStats(second.getId(), 99_998L, now.minusMinutes(1));
+            novelRepository.seedDemoStats(second.getId(), second.getRecommendationCount(), now.minusMinutes(1));
         }
         fundingCampaignRepository.saveAll(picked);
     }
@@ -614,7 +615,7 @@ public class DemoDataInitializer implements ApplicationRunner {
                 continue;
             }
 
-            // 주문 3건: 빈 OPEN(완결부)을 성공·승인으로 전환
+            // 주문 3건: 빈 OPEN(완결부)을 성공·승인으로 전환 (캠페인 내 상태는 동일하게 맞춤)
             if (orderSeed < readerOrderStatuses.length
                     && campaign.getStoryPart().getStatus() == StoryPartStatus.COMPLETED
                     && campaign.getCurrentQuantity() == 0
@@ -642,6 +643,7 @@ public class DemoDataInitializer implements ApplicationRunner {
                 }
                 campaign.closeAsSuccess();
                 campaign.markApproved(now.minusDays(3).minusHours(orderSeed));
+                BookOrderStatus batchStatus = readerOrderStatuses[orderSeed];
                 for (FundingParticipation participation : participations) {
                     if (participation.getCampaign() != campaign) {
                         continue;
@@ -649,12 +651,9 @@ public class DemoDataInitializer implements ApplicationRunner {
                     if (participation.getPaymentStatus() != com.novelkeep.funding.domain.FundingPaymentStatus.PAID_MOCK) {
                         continue;
                     }
-                    BookOrderStatus status = participation.getMember().getId().equals(experienceReader.getId())
-                            ? readerOrderStatuses[orderSeed]
-                            : BookOrderStatus.PENDING;
                     orders.add(BookOrder.fromParticipation(
                             participation,
-                            status,
+                            batchStatus,
                             now.minusDays(3).minusHours(orderSeed)
                     ));
                 }
@@ -739,10 +738,10 @@ public class DemoDataInitializer implements ApplicationRunner {
 
     /**
      * 시나리오 분포 (50작품 기준 대략치)
-     * - PRIVATE: 미공개 작품(펀딩 OPEN 없음)
+     * - PRIVATE: 비공개 작품(펀딩 OPEN 없음)
      * - COMPLETED 다부: 완결·전 회차 공개 → 펀딩 후보
-     * - SERIALIZING 다부: 1부 완결(펀딩 가능) + 연재부(미공개 회차 섞임, 펀딩 불가) + 미공개부
-     * - SERIALIZING 단권: 일부는 전 회차 공개(펀딩 가능), 일부는 미공개 회차 있음(펀딩 불가)
+     * - SERIALIZING 다부: 1부 완결(펀딩 가능) + 연재부(비공개 회차 섞임, 펀딩 불가) + 비공개부
+     * - SERIALIZING 단권: 일부는 전 회차 공개(펀딩 가능), 일부는 비공개 회차 있음(펀딩 불가)
      */
     private NovelProfile resolveProfile(int number) {
         if (number % 8 == 0) {
@@ -838,7 +837,7 @@ public class DemoDataInitializer implements ApplicationRunner {
         if (partStatus == StoryPartStatus.COMPLETED) {
             return true;
         }
-        // SERIALIZING: 일부만 전 회차 공개(펀딩 가능), 나머지는 미공개 회차 포함
+        // SERIALIZING: 일부만 전 회차 공개(펀딩 가능), 나머지는 비공개 회차 포함
         if (profile.status() == NovelStatus.COMPLETED) {
             return true;
         }

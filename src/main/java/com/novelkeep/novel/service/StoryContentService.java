@@ -186,7 +186,6 @@ public class StoryContentService {
     @Transactional
     public void updatePart(Long partId, Long memberId, StoryPartForm form) {
         StoryPart part = findOwnedPart(partId, memberId);
-        assertPartContentMutable(part.getId());
         Novel novel = part.getNovel();
         if (!novel.isMultiPart()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "마지막 권(부)은 제목과 상태를 별도로 수정할 수 없습니다.");
@@ -201,6 +200,9 @@ public class StoryContentService {
         }
 
         StoryPartStatus previous = part.getStatus();
+        if (previous == StoryPartStatus.COMPLETED && status == StoryPartStatus.UNPUBLISHED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "완결된 부는 비공개로 바꿀 수 없습니다.");
+        }
         part.update(normalize(form.getTitle()), status);
         if (previous == StoryPartStatus.COMPLETED && status != StoryPartStatus.COMPLETED
                 && novel.getStatus() == NovelStatus.COMPLETED) {
@@ -211,7 +213,7 @@ public class StoryContentService {
     @Transactional
     public Long deletePart(Long partId, Long memberId) {
         StoryPart part = findOwnedPart(partId, memberId);
-        assertPartContentMutable(part.getId());
+        assertOpenFundingPartNotDeletable(part.getId());
         Novel novel = part.getNovel();
         if (fundingCampaignRepository.existsByStoryPartId(partId)) {
             throw new ResponseStatusException(
@@ -246,7 +248,6 @@ public class StoryContentService {
     @Transactional
     public Long createEpisode(Long partId, Long memberId, EpisodeForm form) {
         StoryPart part = findOwnedPart(partId, memberId);
-        assertPartContentMutable(part.getId());
         int nextNumber = episodeRepository.findMaxEpisodeNumberByStoryPartId(partId) + 1;
         Episode episode = Episode.create(
                 nextNumber,
@@ -262,7 +263,10 @@ public class StoryContentService {
     @Transactional
     public void updateEpisode(Long episodeId, Long memberId, EpisodeForm form) {
         Episode episode = findOwnedEpisode(episodeId, memberId);
-        assertPartContentMutable(episode.getStoryPart().getId());
+        if (episode.getStoryPart().getStatus() == StoryPartStatus.COMPLETED
+                && form.getStatus() == EpisodeStatus.UNPUBLISHED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "완결된 부의 회차는 비공개로 바꿀 수 없습니다.");
+        }
         episode.update(
                 normalize(form.getTitle()),
                 form.getContent() == null ? "" : form.getContent(),
@@ -273,8 +277,8 @@ public class StoryContentService {
     @Transactional
     public Long deleteEpisode(Long episodeId, Long memberId) {
         Episode episode = findOwnedEpisode(episodeId, memberId);
-        assertPartContentMutable(episode.getStoryPart().getId());
         StoryPart part = episode.getStoryPart();
+        assertOpenFundingContentNotDeletable(part.getId());
         Long novelId = part.getNovel().getId();
         bookmarkRepository.deleteByEpisodeId(episodeId);
         part.removeEpisode(episode);
@@ -297,7 +301,10 @@ public class StoryContentService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "선택한 회차 중 처리할 수 없는 항목이 있습니다.");
         }
         for (Episode episode : targets) {
-            assertPartContentMutable(episode.getStoryPart().getId());
+            if (status == EpisodeStatus.UNPUBLISHED
+                    && episode.getStoryPart().getStatus() == StoryPartStatus.COMPLETED) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "완결된 부의 회차는 비공개로 바꿀 수 없습니다.");
+            }
             episode.changeStatus(status);
         }
     }
@@ -316,11 +323,11 @@ public class StoryContentService {
 
         Map<StoryPart, List<Episode>> byPart = new LinkedHashMap<>();
         for (Episode episode : targets) {
-            assertPartContentMutable(episode.getStoryPart().getId());
             byPart.computeIfAbsent(episode.getStoryPart(), key -> new ArrayList<>()).add(episode);
         }
         for (Map.Entry<StoryPart, List<Episode>> entry : byPart.entrySet()) {
             StoryPart part = entry.getKey();
+            assertOpenFundingContentNotDeletable(part.getId());
             for (Episode episode : entry.getValue()) {
                 bookmarkRepository.deleteByEpisodeId(episode.getId());
                 part.removeEpisode(episode);
@@ -334,11 +341,20 @@ public class StoryContentService {
         return fundingCampaignRepository.existsByStoryPartIdAndStatus(partId, FundingCampaignStatus.OPEN);
     }
 
-    private void assertPartContentMutable(Long partId) {
+    private void assertOpenFundingPartNotDeletable(Long partId) {
         if (hasOpenFunding(partId)) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "펀딩 진행 중인 부는 회차·부 내용을 수정·삭제하거나 비공개로 변경할 수 없습니다."
+                    "펀딩 진행 중인 부는 삭제할 수 없습니다."
+            );
+        }
+    }
+
+    private void assertOpenFundingContentNotDeletable(Long partId) {
+        if (hasOpenFunding(partId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "펀딩 진행 중인 부의 회차는 삭제할 수 없습니다."
             );
         }
     }
@@ -353,13 +369,6 @@ public class StoryContentService {
             }
         }
         return found;
-    }
-
-    @Transactional(readOnly = true)
-    public List<Episode> visibleEpisodes(StoryPart part, Long memberId, ExperienceRole role) {
-        Novel novel = part.getNovel();
-        boolean privileged = novel.isOwnedBy(memberId) || role == ExperienceRole.ADMIN;
-        return readableEpisodes(part, privileged);
     }
 
     public List<StoryPart> latestParts(Novel novel) {

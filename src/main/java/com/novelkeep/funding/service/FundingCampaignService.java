@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Set;
 import java.time.LocalDateTime;
 
+import com.novelkeep.common.ExportText;
 import com.novelkeep.funding.domain.FundingCampaign;
 import com.novelkeep.funding.domain.FundingCampaignStatus;
 import com.novelkeep.funding.domain.FundingGuide;
@@ -46,7 +47,7 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class FundingCampaignService {
 
-    private static final int PARTICIPATION_QUANTITY = 1;
+    private static final int MAX_PARTICIPATION_QUANTITY = 99;
 
     private final FundingCampaignRepository fundingCampaignRepository;
     private final FundingParticipationRepository fundingParticipationRepository;
@@ -91,19 +92,13 @@ public class FundingCampaignService {
     }
 
     @Transactional(readOnly = true)
-    public List<FundingCampaign> findOpenOwnedCampaigns(Long memberId) {
-        WriterFundingSearchCriteria criteria = new WriterFundingSearchCriteria();
-        criteria.setStatus(FundingCampaignStatus.OPEN);
-        return findOwnedCampaigns(memberId, criteria);
-    }
-
-    @Transactional(readOnly = true)
     public List<FundingCampaign> findOwnedCampaigns(Long memberId, WriterFundingSearchCriteria criteria) {
         List<FundingCampaign> campaigns = fundingCampaignRepository.findByAuthorId(memberId);
         EnumSet<FundingCampaignStatus> managed = EnumSet.of(
                 FundingCampaignStatus.OPEN,
                 FundingCampaignStatus.SUCCESS,
-                FundingCampaignStatus.FAILED
+                FundingCampaignStatus.FAILED,
+                FundingCampaignStatus.CANCELLED
         );
         String titleKeyword = criteria != null && criteria.getNovelTitle() != null
                 ? criteria.getNovelTitle().trim().toLowerCase(Locale.ROOT)
@@ -174,13 +169,6 @@ public class FundingCampaignService {
     }
 
     @Transactional(readOnly = true)
-    public List<FundingCampaign> findAwaitingApprovalCampaigns() {
-        AdminFundingSearchCriteria criteria = new AdminFundingSearchCriteria();
-        criteria.setApproval(AdminFundingSearchCriteria.ApprovalFilter.AWAITING);
-        return findAdminCampaigns(criteria);
-    }
-
-    @Transactional(readOnly = true)
     public List<FundingCampaign> findAdminCampaigns(AdminFundingSearchCriteria criteria) {
         List<FundingCampaign> campaigns = fundingCampaignRepository.findByStatusIn(
                 EnumSet.of(FundingCampaignStatus.SUCCESS, FundingCampaignStatus.FAILED)
@@ -247,14 +235,14 @@ public class FundingCampaignService {
                     ? part.getPartNumber() + "부 · " + part.getTitle()
                     : "본편";
             sb.append(campaign.getId()).append(',')
-                    .append(csv(novel.getTitle())).append(',')
-                    .append(csv(partLabel)).append(',')
-                    .append(csv(campaign.getStatus().getDisplayName())).append(',')
+                    .append(ExportText.csv(novel.getTitle())).append(',')
+                    .append(ExportText.csv(partLabel)).append(',')
+                    .append(ExportText.csv(campaign.getStatus().getDisplayName())).append(',')
                     .append(campaign.isApproved() ? "승인" : "대기").append(',')
                     .append(campaign.getCurrentQuantity()).append(',')
                     .append(campaign.getTargetQuantity()).append(',')
                     .append(campaign.getPriceAmount()).append(',')
-                    .append(csv(formatter.format(campaign.getEndAt())))
+                    .append(ExportText.csv(formatter.format(campaign.getEndAt())))
                     .append('\n');
         }
         return sb.toString().getBytes(StandardCharsets.UTF_8);
@@ -278,42 +266,19 @@ public class FundingCampaignService {
             }
             sb.append("  {\n")
                     .append("    \"campaignId\": ").append(campaign.getId()).append(",\n")
-                    .append("    \"novelTitle\": ").append(jsonString(novel.getTitle())).append(",\n")
-                    .append("    \"partLabel\": ").append(jsonString(partLabel)).append(",\n")
-                    .append("    \"status\": ").append(jsonString(campaign.getStatus().name())).append(",\n")
-                    .append("    \"statusLabel\": ").append(jsonString(campaign.getStatus().getDisplayName())).append(",\n")
+                    .append("    \"novelTitle\": ").append(ExportText.jsonString(novel.getTitle())).append(",\n")
+                    .append("    \"partLabel\": ").append(ExportText.jsonString(partLabel)).append(",\n")
+                    .append("    \"status\": ").append(ExportText.jsonString(campaign.getStatus().name())).append(",\n")
+                    .append("    \"statusLabel\": ").append(ExportText.jsonString(campaign.getStatus().getDisplayName())).append(",\n")
                     .append("    \"approved\": ").append(campaign.isApproved()).append(",\n")
                     .append("    \"currentQuantity\": ").append(campaign.getCurrentQuantity()).append(",\n")
                     .append("    \"targetQuantity\": ").append(campaign.getTargetQuantity()).append(",\n")
                     .append("    \"priceAmount\": ").append(campaign.getPriceAmount()).append(",\n")
-                    .append("    \"endAt\": ").append(jsonString(iso.format(campaign.getEndAt()))).append("\n")
+                    .append("    \"endAt\": ").append(ExportText.jsonString(iso.format(campaign.getEndAt()))).append("\n")
                     .append("  }");
         }
         sb.append("\n]\n");
         return sb.toString().getBytes(StandardCharsets.UTF_8);
-    }
-
-    private static String csv(String value) {
-        if (value == null) {
-            return "";
-        }
-        String escaped = value.replace("\"", "\"\"");
-        if (escaped.contains(",") || escaped.contains("\"") || escaped.contains("\n")) {
-            return "\"" + escaped + "\"";
-        }
-        return escaped;
-    }
-
-    private static String jsonString(String value) {
-        if (value == null) {
-            return "null";
-        }
-        return "\"" + value
-                .replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                + "\"";
     }
 
     @Transactional(readOnly = true)
@@ -382,11 +347,6 @@ public class FundingCampaignService {
     }
 
     @Transactional
-    public Long createDraft(Long memberId, WriterFundingForm form) {
-        return startCampaign(memberId, form).getId();
-    }
-
-    @Transactional
     public FundingCampaign updateOpenCampaign(Long campaignId, Long memberId, WriterFundingForm form) {
         FundingCampaign campaign = requireOwnedCampaign(campaignId, memberId);
         if (campaign.getStatus() != FundingCampaignStatus.OPEN) {
@@ -401,29 +361,25 @@ public class FundingCampaignService {
     }
 
     @Transactional
-    public void updateCampaign(Long campaignId, Long memberId, WriterFundingForm form) {
-        updateOpenCampaign(campaignId, memberId, form);
-    }
-
-    @Transactional
-    public void openDraft(Long campaignId, Long memberId) {
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "펀딩은 내 작품의 각 부에서 바로 시작합니다.");
-    }
-
-    @Transactional
     public void cancel(Long campaignId, Long memberId) {
         FundingCampaign campaign = requireOwnedCampaign(campaignId, memberId);
         if (campaign.getStatus() != FundingCampaignStatus.OPEN) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "진행 중인 펀딩만 취소할 수 있습니다.");
         }
-        if (campaign.getCurrentQuantity() > 0
-                || fundingParticipationRepository.existsByCampaignId(campaignId)) {
+        List<FundingParticipation> participations = fundingParticipationRepository.findByCampaignId(campaignId);
+        boolean hasPaid = participations.stream()
+                .anyMatch(p -> p.getPaymentStatus() == FundingPaymentStatus.PAID_MOCK);
+        if (campaign.getCurrentQuantity() > 0 || hasPaid) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "참여(수요)가 1부 이상인 펀딩은 직접 취소할 수 없습니다. 담당자에게 문의해 주세요."
             );
         }
-        fundingCampaignRepository.delete(campaign);
+        try {
+            campaign.markCancelled();
+        } catch (IllegalStateException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
+        }
     }
 
     @Transactional(readOnly = true)
@@ -445,6 +401,17 @@ public class FundingCampaignService {
     }
 
     @Transactional(readOnly = true)
+    public int findPaidQuantity(Long campaignId, Long memberId) {
+        if (campaignId == null || memberId == null) {
+            return 0;
+        }
+        return fundingParticipationRepository.findByCampaignIdAndMemberId(campaignId, memberId)
+                .filter(p -> p.getPaymentStatus() == FundingPaymentStatus.PAID_MOCK)
+                .map(FundingParticipation::getQuantity)
+                .orElse(0);
+    }
+
+    @Transactional(readOnly = true)
     public Set<Long> findParticipatedCampaignIds(Long memberId, Collection<Long> campaignIds) {
         if (memberId == null || campaignIds == null || campaignIds.isEmpty()) {
             return Set.of();
@@ -456,8 +423,19 @@ public class FundingCampaignService {
 
     @Transactional
     public FundingCampaign participate(Long campaignId, Long memberId) {
+        return participate(campaignId, memberId, 1);
+    }
+
+    @Transactional
+    public FundingCampaign participate(Long campaignId, Long memberId, int quantity) {
         if (memberId == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "체험 역할을 선택해 주세요.");
+        }
+        if (quantity < 1 || quantity > MAX_PARTICIPATION_QUANTITY) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "참여 수량은 1~" + MAX_PARTICIPATION_QUANTITY + "부만 가능합니다."
+            );
         }
         FundingCampaign campaign = fundingCampaignRepository.findDetailById(campaignId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
@@ -486,11 +464,11 @@ public class FundingCampaignService {
             FundingParticipation participation = FundingParticipation.paid(
                     campaign,
                     member,
-                    PARTICIPATION_QUANTITY,
+                    quantity,
                     now
             );
             fundingParticipationRepository.save(participation);
-            campaign.recordParticipation(PARTICIPATION_QUANTITY);
+            campaign.recordParticipation(quantity);
             return campaign;
         } catch (IllegalStateException | IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
@@ -515,9 +493,19 @@ public class FundingCampaignService {
                 FundingPaymentStatus.PAID_MOCK
         );
         int paidCount = paid.stream().mapToInt(FundingParticipation::getQuantity).sum();
+        StoryPart part = campaign.getStoryPart();
+        boolean goalMet = campaign.isGoalMet();
+        boolean contentReady = part.allEpisodesPublished()
+                && part.getStatus() == StoryPartStatus.COMPLETED;
 
         try {
-            if (campaign.isSuccessReady()) {
+            if (goalMet) {
+                if (!contentReady) {
+                    throw new ResponseStatusException(
+                            HttpStatus.BAD_REQUEST,
+                            "성공 마감하려면 해당 부의 전체 회차 공개와 부 완결이 필요합니다."
+                    );
+                }
                 campaign.closeAsSuccess();
                 return new FundingCloseResult(true, paidCount, campaign);
             }
@@ -668,13 +656,6 @@ public class FundingCampaignService {
         return value.withSecond(0).withNano(0);
     }
 
-    public boolean isPartFundable(StoryPart part) {
-        if (part == null || part.getStatus() == StoryPartStatus.UNPUBLISHED) {
-            return false;
-        }
-        return part.allEpisodesPublished();
-    }
-
     private StoryPart requireFundablePart(Long novelId, Long partId, Long memberId) {
         if (novelId == null || partId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "작품과 대상 부를 선택해 주세요.");
@@ -690,15 +671,15 @@ public class FundingCampaignService {
 
     private void assertPartFundable(StoryPart part) {
         if (part.getStatus() == StoryPartStatus.UNPUBLISHED) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "미공개 부에는 펀딩을 시작할 수 없습니다.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "비공개 부에는 펀딩을 시작할 수 없습니다.");
         }
         if (!part.hasEpisodes()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "회차가 없는 부에는 펀딩을 시작할 수 없습니다.");
         }
-        if (!part.allEpisodesPublished()) {
+        if (!part.hasPublishedEpisode()) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "미공개 회차가 있으면 펀딩을 시작할 수 없습니다. 모든 회차를 공개해 주세요."
+                    "공개 회차가 하나 이상 있어야 펀딩을 시작할 수 있습니다."
             );
         }
     }

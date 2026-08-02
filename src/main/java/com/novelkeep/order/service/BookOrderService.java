@@ -9,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.novelkeep.common.ExportText;
 import com.novelkeep.novel.domain.Novel;
 import com.novelkeep.novel.domain.StoryPart;
 import com.novelkeep.order.domain.BookOrder;
@@ -87,15 +88,15 @@ public class BookOrderService {
     public byte[] exportCsv(BookOrderSearchCriteria criteria) {
         StringBuilder sb = new StringBuilder();
         sb.append('\ufeff');
-        sb.append("묶음번호,작품명,권,총수량,참여건수,제품상태,주문일시\n");
+        sb.append("주문번호,작품명,권,총수량,참여건수,제품상태,주문일시\n");
         for (BookOrderBatchRow row : searchBatches(criteria)) {
-            sb.append(row.campaignId()).append(',')
-                    .append(csv(row.novelTitle())).append(',')
-                    .append(csv(row.partLabel())).append(',')
+            sb.append(row.minOrderId()).append(',')
+                    .append(ExportText.csv(row.novelTitle())).append(',')
+                    .append(ExportText.csv(row.partLabel())).append(',')
                     .append(row.totalQuantity()).append(',')
                     .append(row.orderCount()).append(',')
-                    .append(csv(row.statusLabel())).append(',')
-                    .append(csv(DATE_TIME.format(row.orderedAt())))
+                    .append(ExportText.csv(row.statusLabel())).append(',')
+                    .append(ExportText.csv(DATE_TIME.format(row.orderedAt())))
                     .append('\n');
         }
         return sb.toString().getBytes(StandardCharsets.UTF_8);
@@ -112,14 +113,15 @@ public class BookOrderService {
                 sb.append(",\n");
             }
             sb.append("  {\n")
+                    .append("    \"orderId\": ").append(row.minOrderId()).append(",\n")
                     .append("    \"campaignId\": ").append(row.campaignId()).append(",\n")
-                    .append("    \"novelTitle\": ").append(jsonString(row.novelTitle())).append(",\n")
-                    .append("    \"partLabel\": ").append(jsonString(row.partLabel())).append(",\n")
+                    .append("    \"novelTitle\": ").append(ExportText.jsonString(row.novelTitle())).append(",\n")
+                    .append("    \"partLabel\": ").append(ExportText.jsonString(row.partLabel())).append(",\n")
                     .append("    \"totalQuantity\": ").append(row.totalQuantity()).append(",\n")
                     .append("    \"orderCount\": ").append(row.orderCount()).append(",\n")
-                    .append("    \"status\": ").append(jsonString(row.status().name())).append(",\n")
-                    .append("    \"statusLabel\": ").append(jsonString(row.statusLabel())).append(",\n")
-                    .append("    \"orderedAt\": ").append(jsonString(ISO.format(row.orderedAt()))).append("\n")
+                    .append("    \"status\": ").append(ExportText.jsonString(row.status().name())).append(",\n")
+                    .append("    \"statusLabel\": ").append(ExportText.jsonString(row.statusLabel())).append(",\n")
+                    .append("    \"orderedAt\": ").append(ExportText.jsonString(ISO.format(row.orderedAt()))).append("\n")
                     .append("  }");
         }
         sb.append("\n]\n");
@@ -251,27 +253,4 @@ public class BookOrderService {
         return 99;
     }
 
-    private String csv(String value) {
-        if (value == null) {
-            return "";
-        }
-        String escaped = value.replace("\"", "\"\"");
-        if (escaped.contains(",") || escaped.contains("\"") || escaped.contains("\n")) {
-            return "\"" + escaped + "\"";
-        }
-        return escaped;
-    }
-
-    private String jsonString(String value) {
-        if (value == null) {
-            return "null";
-        }
-        return "\"" + value
-                .replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t")
-                + "\"";
-    }
 }

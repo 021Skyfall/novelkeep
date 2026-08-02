@@ -99,6 +99,14 @@ public class EpisodeCommentService {
         return comment;
     }
 
+    @Transactional(readOnly = true)
+    public List<EpisodeComment> listMyComments(Long memberId) {
+        if (memberId == null) {
+            return List.of();
+        }
+        return commentRepository.findActiveByMemberId(memberId);
+    }
+
     @Transactional
     public Long delete(Long commentId, Long memberId, ExperienceRole role) {
         EpisodeComment comment = findOwnedActive(commentId, memberId);

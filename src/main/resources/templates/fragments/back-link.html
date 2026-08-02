@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- 페이지 상단 되돌아가기 버튼 공통 (btn-back-list) -->
+<a th:fragment="backLink(href, label)"
+   class="btn btn-back-list"
+   th:href="${href}"
+   th:text="${label}">← 목록</a>
+</body>
+</html>

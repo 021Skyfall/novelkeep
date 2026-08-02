@@ -28,12 +28,12 @@
         <span class="eyebrow">FUNDING OVERVIEW</span>
         <h1 class="display-6 fw-bold mt-2">내 펀딩 관리</h1>
         <div class="text-secondary publishing-guide">
-            <p class="mb-2">진행·성공·실패 펀딩을 한곳에서 관리합니다.</p>
+            <p class="mb-2">진행·성공·실패·취소 펀딩을 한곳에서 관리합니다.</p>
             <ul class="mb-0 ps-3">
                 <li>새 펀딩: <a th:href="@{/writer/novels}">내 작품</a> → 작품 상세 → <strong>각 부</strong>의 출판 펀딩 시작</li>
-                <li>수요 0부: <strong>취소</strong>만 · 수요 1부 이상: <strong>마감</strong>만</li>
-                <li>마감: 성공/실패 판정만 · 주문·환불은 운영자 승인 후</li>
-                <li>성공 조건: 해당 부 완결 + 목표 부수 달성</li>
+                <li>펀딩 중에도 회차 작성·수정·상태 변경은 가능 · 삭제는 불가</li>
+                <li>수요 0부: <strong>취소</strong>(기록 유지) · 수요 1부 이상: <strong>마감</strong></li>
+                <li>성공 마감: 목표 달성 + 전체 회차 공개 + 부 완결 · 목표 미달 시 실패 마감</li>
             </ul>
         </div>
     </header>
@@ -96,7 +96,7 @@
             </div>
         </div>
         <div class="d-flex justify-content-end mt-3">
-            <button type="button" class="btn btn-outline-secondary" data-search-reset>초기화</button>
+            <button type="button" class="btn btn-outline-dark" data-search-reset>초기화</button>
         </div>
     </div>
 
@@ -117,10 +117,11 @@
                  th:id="|campaign-${campaign.id}|"
                  data-campaign-card>
                 <div class="publishing-campaign-row">
-                    <div class="novel-cover publishing-campaign-cover"
+                    <a class="novel-cover publishing-campaign-cover"
+                         th:href="@{/novels/{id}(id=${campaign.storyPart.novel.id})}"
                          th:with="nid=${campaign.storyPart.novel.id}"
                          th:classappend="${nid % 6 == 1} ? ' cover-one' : (${nid % 6 == 2} ? ' cover-two' : (${nid % 6 == 3} ? ' cover-three' : (${nid % 6 == 4} ? ' cover-four' : (${nid % 6 == 5} ? ' cover-five' : ' cover-six'))))"
-                         aria-hidden="true"></div>
+                         th:attr="aria-label=|${campaign.storyPart.novel.title} 작품 상세|"></a>
                     <div class="publishing-campaign-body">
                         <div class="d-flex flex-wrap justify-content-between gap-2 mb-3">
                             <div class="publishing-title-row">
@@ -138,9 +139,10 @@
                                 <span th:if="${campaign.storyPart.novel.multiPart}"
                                       class="publishing-part-badge"
                                       th:text="|${campaign.storyPart.partNumber}부|">1부</span>
-                                <strong class="publishing-novel-title title-clamp-2"
-                                        th:text="${campaign.storyPart.novel.title}"
-                                        th:title="${campaign.storyPart.novel.title}">작품명</strong>
+                                <a class="publishing-novel-title title-clamp-2 novel-title-link"
+                                   th:href="@{/novels/{id}(id=${campaign.storyPart.novel.id})}"
+                                   th:text="${campaign.storyPart.novel.title}"
+                                   th:title="${campaign.storyPart.novel.title}">작품명</a>
                                 <span class="badge text-bg-light border"
                                       th:text="${campaign.storyPart.status.displayName}">연재 중</span>
                             </div>
@@ -199,8 +201,8 @@
                             <div class="publishing-status-actions publishing-status-actions-spread">
                                 <span class="small text-secondary"
                                       th:text="|최근 수정 ${#temporals.format(campaign.updatedAt, 'yyyy-MM-dd HH:mm')}|">최근 수정</span>
-                                <a class="btn btn-sm btn-outline-secondary"
-                                   th:href="@{/fundings/{id}(id=${campaign.id})}">공개 상세</a>
+                                <a class="btn btn-sm btn-outline-dark"
+                                   th:href="@{/fundings/{id}(id=${campaign.id})}">펀딩 상세</a>
                             </div>
                         </div>
 
@@ -273,15 +275,17 @@
                                     <span class="small text-secondary"
                                           th:text="|최근 수정 ${#temporals.format(campaign.updatedAt, 'yyyy-MM-dd HH:mm')}|">최근 수정</span>
                                     <div class="d-flex flex-wrap align-items-center gap-2">
-                                        <a class="btn btn-sm btn-outline-secondary"
-                                           th:href="@{/fundings/{id}(id=${campaign.id})}">공개 상세</a>
+                                        <a class="btn btn-sm btn-outline-dark"
+                                           th:href="@{/fundings/{id}(id=${campaign.id})}">펀딩 상세</a>
                                         <button class="btn btn-sm btn-outline-dark" type="button"
                                                 data-funding-edit-toggle>수정</button>
                                         <button th:if="${campaign.currentQuantity > 0}"
                                                 class="btn btn-sm btn-dark" type="button"
                                                 data-funding-close
                                                 th:attr="data-close-url=@{/writer/publishing/campaigns/{cid}/close(cid=${campaign.id})},
-                                                         data-close-ready=${campaign.successReady},
+                                                         data-close-goal-met=${campaign.goalMet},
+                                                         data-close-all-published=${campaign.storyPart.allEpisodesPublished()},
+                                                         data-close-part-completed=${campaign.storyPart.status.name() == 'COMPLETED'},
                                                          data-volume-over=${campaign.storyPart.publishedCharacterCount() > guideVolumeChars},
                                                          data-volume-chars=${#numbers.formatInteger(campaign.storyPart.publishedCharacterCount(), 1, 'COMMA')}"
                                                 data-confirm-title="펀딩 마감"

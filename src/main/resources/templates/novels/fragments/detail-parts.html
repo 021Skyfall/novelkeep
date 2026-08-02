@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <body>
 <th:block th:fragment="partsPanel">
@@ -43,7 +43,7 @@
          th:attr="data-bulk-url=@{/writer/novels/{id}/episodes/bulk(id=${novel.id})}">
         <label class="episode-bulk-select-all mb-0">
             <input type="checkbox" data-select-all-episodes>
-            <span>전체 선택</span>
+            <span>전체 작품 선택</span>
         </label>
         <span class="text-secondary small" data-bulk-count>0개 선택</span>
         <div class="d-flex flex-wrap gap-2 ms-auto">
@@ -55,12 +55,13 @@
                     data-confirm-tone="warning">공개</button>
             <button class="btn btn-sm btn-outline-dark" type="button" data-bulk-action="UNPUBLISH"
                     disabled
-                    data-confirm-message="선택한 회차를 미공개로 변경할까요?"
-                    data-confirm-title="회차 미공개"
-                    data-confirm-text="예, 미공개"
-                    data-confirm-tone="warning">미공개</button>
+                    data-confirm-message="선택한 회차를 비공개로 변경할까요?"
+                    data-confirm-title="회차 비공개"
+                    data-confirm-text="예, 비공개"
+                    data-confirm-tone="warning">비공개</button>
             <button class="btn btn-sm btn-outline-danger" type="button" data-bulk-action="DELETE"
                     disabled
+                    data-funding-delete
                     data-confirm-delete="선택한 회차를 삭제합니다. 삭제 후에는 되돌릴 수 없습니다."
                     data-confirm-title="회차 일괄 삭제"
                     data-confirm-text="예, 삭제">삭제</button>
@@ -90,24 +91,22 @@
                     <div class="part-funding-actions"
                          th:if="${canManageContent or (openFundingByPartId != null and openFundingByPartId.containsKey(part.id))}"
                          th:with="openCampaign=${openFundingByPartId != null ? openFundingByPartId.get(part.id) : null},
-                                  fundable=${part.status.name() != 'UNPUBLISHED' and part.allEpisodesPublished()},
+                                  fundable=${part.status.name() != 'UNPUBLISHED' and part.hasPublishedEpisode()},
                                   novelPublic=${novel.visibility.name() == 'PUBLIC'}">
                         <th:block th:if="${canManageContent and novel.multiPart}">
-                            <th:block th:if="${!fundingLocked}">
-                                <button class="btn btn-sm btn-outline-dark" type="button"
-                                        th:attr="data-toggle-panel=${'part-edit-' + part.id}"
-                                        aria-expanded="false">수정</button>
-                                <form class="d-inline"
-                                      th:action="@{/writer/parts/{id}/delete(id=${part.id})}" method="post"
-                                      data-ajax-content="partDelete"
-                                      data-confirm-delete="이 권(부)과 포함된 모든 회차를 삭제합니다. 삭제 후에는 되돌릴 수 없습니다."
-                                      data-confirm-title="권(부) 삭제"
-                                      data-confirm-text="예, 권(부) 삭제">
-                                    <button class="btn btn-sm btn-outline-danger" type="submit">삭제</button>
-                                </form>
-                            </th:block>
+                            <button class="btn btn-sm btn-outline-dark" type="button"
+                                    th:attr="data-toggle-panel=${'part-edit-' + part.id}"
+                                    aria-expanded="false">수정</button>
+                            <form th:if="${!fundingLocked}" class="d-inline"
+                                  th:action="@{/writer/parts/{id}/delete(id=${part.id})}" method="post"
+                                  data-ajax-content="partDelete"
+                                  data-confirm-delete="이 권(부)과 포함된 모든 회차를 삭제합니다. 삭제 후에는 되돌릴 수 없습니다."
+                                  data-confirm-title="권(부) 삭제"
+                                  data-confirm-text="예, 권(부) 삭제">
+                                <button class="btn btn-sm btn-outline-danger" type="submit">삭제</button>
+                            </form>
                             <span th:if="${fundingLocked}" class="small text-secondary">
-                                펀딩 중 · 부 수정·삭제 불가
+                                펀딩 중 · 삭제 불가
                             </span>
                         </th:block>
                         <div th:if="${openCampaign != null}"
@@ -128,7 +127,7 @@
                                 펀딩 수정
                             </button>
                             <a th:if="${openCampaign != null}"
-                               class="btn btn-sm btn-outline-secondary flex-shrink-0"
+                               class="btn btn-sm btn-outline-dark flex-shrink-0"
                                th:href="@{/writer/publishing(novelTitle=${novel.title})}">
                                 펀딩 관리
                             </a>
@@ -145,15 +144,17 @@
                                   class="d-inline-block"
                                   tabindex="0"
                                   th:title="${!novelPublic ? '공개 작품에서만 펀딩을 시작할 수 있습니다.'
-                                      : (part.status.name() == 'UNPUBLISHED' ? '미공개 부는 펀딩할 수 없습니다.'
+                                      : (part.status.name() == 'UNPUBLISHED' ? '비공개 부는 펀딩할 수 없습니다.'
                                       : (!part.hasEpisodes() ? '회차가 있어야 펀딩할 수 있습니다.'
-                                      : '미공개 회차가 있으면 펀딩할 수 없습니다.'))}">
+                                      : (!part.hasPublishedEpisode() ? '공개 회차가 하나 이상 있어야 펀딩할 수 있습니다.'
+                                      : '펀딩을 시작할 수 없습니다.')))}">
                                 <button class="btn btn-sm btn-outline-secondary" type="button" disabled
                                         style="pointer-events: none;"
                                         th:aria-label="${!novelPublic ? '공개 작품에서만 펀딩을 시작할 수 있습니다.'
-                                            : (part.status.name() == 'UNPUBLISHED' ? '미공개 부는 펀딩할 수 없습니다.'
+                                            : (part.status.name() == 'UNPUBLISHED' ? '비공개 부는 펀딩할 수 없습니다.'
                                             : (!part.hasEpisodes() ? '회차가 있어야 펀딩할 수 있습니다.'
-                                            : '미공개 회차가 있으면 펀딩할 수 없습니다.'))}">
+                                            : (!part.hasPublishedEpisode() ? '공개 회차가 하나 이상 있어야 펀딩할 수 있습니다.'
+                                            : '펀딩을 시작할 수 없습니다.')))}">
                                     출판 펀딩 시작
                                 </button>
                             </span>
@@ -174,7 +175,7 @@
                     </div>
                 </div>
 
-                <div th:if="${canManageContent and novel.multiPart and !fundingLocked}" th:id="|part-edit-${part.id}|"
+                <div th:if="${canManageContent and novel.multiPart}" th:id="|part-edit-${part.id}|"
                      class="detail-inline-panel d-none mb-3">
                     <form th:action="@{/writer/parts/{id}/edit(id=${part.id})}" method="post"
                           data-ajax-content="partUpdate">
@@ -190,7 +191,8 @@
                                     <option th:each="statusOption : ${partStatuses}"
                                             th:value="${statusOption}"
                                             th:text="${statusOption.displayName}"
-                                            th:selected="${part.status == statusOption}">연재 중</option>
+                                            th:selected="${part.status == statusOption}"
+                                            th:disabled="${part.status.name() == 'COMPLETED' and statusOption.name() == 'UNPUBLISHED'}">연재 중</option>
                                 </select>
                             </div>
                             <div class="col-md-3 d-flex gap-2">
@@ -205,9 +207,38 @@
                 <p th:if="${!canManageContent and #lists.isEmpty(visibleEpisodes)}" class="text-secondary mb-0">
                     작가가 첫 회차를 준비 중입니다.
                 </p>
+                <div th:if="${canManageContent}"
+                     class="d-flex flex-wrap align-items-center gap-2 mb-2"
+                     th:attr="data-part-bulk=${part.id}">
+                    <label class="episode-bulk-select-all mb-0">
+                        <input type="checkbox" data-select-part-episodes th:attr="data-part-id=${part.id}">
+                        <span th:text="${novel.multiPart} ? |${part.partNumber}부 전체 선택| : '이 부 전체 선택'">부 전체 선택</span>
+                    </label>
+                    <div class="d-flex flex-wrap gap-2 ms-auto">
+                        <button class="btn btn-sm btn-outline-dark" type="button" data-bulk-action="PUBLISH"
+                                disabled
+                                data-confirm-message="선택한 회차를 공개로 변경할까요?"
+                                data-confirm-title="회차 공개"
+                                data-confirm-text="예, 공개"
+                                data-confirm-tone="warning">공개</button>
+                        <button class="btn btn-sm btn-outline-dark" type="button" data-bulk-action="UNPUBLISH"
+                                disabled
+                                data-confirm-message="선택한 회차를 비공개로 변경할까요?"
+                                data-confirm-title="회차 비공개"
+                                data-confirm-text="예, 비공개"
+                                data-confirm-tone="warning">비공개</button>
+                        <button th:unless="${fundingLocked}"
+                                class="btn btn-sm btn-outline-danger" type="button" data-bulk-action="DELETE"
+                                disabled
+                                data-confirm-delete="선택한 회차를 삭제합니다. 삭제 후에는 되돌릴 수 없습니다."
+                                data-confirm-title="회차 일괄 삭제"
+                                data-confirm-text="예, 삭제">삭제</button>
+                    </div>
+                </div>
                 <ul th:if="${canManageContent or !#lists.isEmpty(visibleEpisodes)}"
-                    class="list-group list-group-flush border rounded-3">
-                    <li th:if="${canManageContent and !fundingLocked}" class="list-group-item p-0">
+                    class="list-group list-group-flush border rounded-3"
+                    th:attr="data-part-episodes=${part.id}">
+                    <li th:if="${canManageContent}" class="list-group-item p-0">
                         <a class="episode-add-row"
                            th:href="@{/writer/parts/{id}/episodes/new(id=${part.id}, from='detail')}"
                            aria-label="회차 작성">
@@ -215,16 +246,14 @@
                             <span>작성</span>
                         </a>
                     </li>
-                    <li th:if="${canManageContent and fundingLocked}" class="list-group-item small text-secondary">
-                        펀딩 진행 중에는 회차 작성·수정·삭제·비공개 변경이 불가합니다. 댓글은 가능합니다.
-                    </li>
                     <li th:each="episode : ${visibleEpisodes}"
                         class="list-group-item d-flex justify-content-between align-items-center gap-3">
                         <div class="d-flex align-items-start gap-2 flex-grow-1 min-w-0">
-                            <input th:if="${canManageContent and !fundingLocked}"
+                            <input th:if="${canManageContent}"
                                    class="form-check-input mt-1 flex-shrink-0"
                                    type="checkbox" data-episode-check
                                    th:value="${episode.id}"
+                                   th:attr="data-funding-locked=${fundingLocked}"
                                    th:aria-label="|${episode.episodeNumber}화 선택|">
                             <div class="min-w-0">
                                 <a class="novel-title-link fw-semibold"
@@ -241,10 +270,11 @@
                                 </div>
                             </div>
                         </div>
-                        <div th:if="${canManageContent and !fundingLocked}" class="d-flex flex-wrap gap-2 flex-shrink-0">
+                        <div th:if="${canManageContent}" class="d-flex flex-wrap gap-2 flex-shrink-0">
                             <a class="btn btn-sm btn-outline-dark"
                                th:href="@{/writer/episodes/{id}/edit(id=${episode.id}, from='detail')}">수정</a>
-                            <form th:action="@{/writer/episodes/{id}/delete(id=${episode.id})}" method="post"
+                            <form th:unless="${fundingLocked}"
+                                  th:action="@{/writer/episodes/{id}/delete(id=${episode.id})}" method="post"
                                   data-ajax-content="episodeDelete"
                                   data-confirm-delete="이 회차의 제목과 본문을 삭제합니다. 삭제 후에는 되돌릴 수 없습니다."
                                   data-confirm-title="회차 삭제"

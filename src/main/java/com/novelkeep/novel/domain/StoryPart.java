@@ -98,6 +98,11 @@ public class StoryPart {
         return !episodes.isEmpty();
     }
 
+    public boolean hasPublishedEpisode() {
+        return episodes.stream()
+                .anyMatch(episode -> episode.getStatus() == EpisodeStatus.PUBLISHED);
+    }
+
     public boolean allEpisodesPublished() {
         return hasEpisodes() && episodes.stream()
                 .allMatch(episode -> episode.getStatus() == EpisodeStatus.PUBLISHED);

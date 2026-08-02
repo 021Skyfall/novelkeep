@@ -6,13 +6,28 @@ public class ReaderActivitySearchCriteria {
 
     public enum Tab {
         ALL("전체"),
-        ACTIVE("참여 중"),
+        ACTIVE("펀딩 중"),
         ORDER("주문"),
         REFUND("환불");
 
         private final String displayName;
 
         Tab(String displayName) {
+            this.displayName = displayName;
+        }
+
+        public String getDisplayName() {
+            return displayName;
+        }
+    }
+
+    public enum ActivityStatus {
+        PARTICIPATING("참여"),
+        REFUNDED("환불 완료");
+
+        private final String displayName;
+
+        ActivityStatus(String displayName) {
             this.displayName = displayName;
         }
 
@@ -45,6 +60,7 @@ public class ReaderActivitySearchCriteria {
     private Tab tab = Tab.ALL;
     private String novelTitle;
     private BookOrderStatus orderStatus;
+    private ActivityStatus activityStatus;
     private SortField sortField;
     private SortDir sortDir;
 
@@ -70,6 +86,14 @@ public class ReaderActivitySearchCriteria {
 
     public void setOrderStatus(BookOrderStatus orderStatus) {
         this.orderStatus = orderStatus;
+    }
+
+    public ActivityStatus getActivityStatus() {
+        return activityStatus;
+    }
+
+    public void setActivityStatus(ActivityStatus activityStatus) {
+        this.activityStatus = activityStatus;
     }
 
     public SortField getSortField() {

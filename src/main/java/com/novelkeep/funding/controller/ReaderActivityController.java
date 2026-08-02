@@ -7,6 +7,7 @@ import com.novelkeep.order.domain.BookOrderStatus;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,7 +27,7 @@ public class ReaderActivityController {
     }
 
     @GetMapping("/reader/activities")
-    public String activities(
+    public Object activities(
             @ModelAttribute("criteria") ReaderActivitySearchCriteria criteria,
             @SessionAttribute(name = SESSION_ROLE, required = false) ExperienceRole role,
             @SessionAttribute(name = SESSION_MEMBER_ID, required = false) Long memberId,
@@ -34,6 +35,9 @@ public class ReaderActivityController {
             Model model
     ) {
         if (role == null || memberId == null || role == ExperienceRole.ADMIN) {
+            if (wantsFragment(request)) {
+                return ResponseEntity.status(401).build();
+            }
             return "redirect:/?roleRequired=true";
         }
         applyEntrySortDefaults(criteria, request);

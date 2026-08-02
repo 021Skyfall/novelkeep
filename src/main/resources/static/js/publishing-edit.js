@@ -1,17 +1,20 @@
 (function () {
     var CLOSE_READY_MESSAGE =
         '마감하면 성공으로 판정됩니다.\n\n'
-        + '· 부 완결 + 목표 부수 달성 상태입니다.\n'
+        + '· 목표 부수 달성 + 전체 회차 공개 + 부 완결 상태입니다.\n'
         + '· 바로 주문이 생기지 않습니다.\n'
         + '· 운영자가 승인한 뒤 주문이 접수됩니다.\n'
         + '· 승인 전까지 목록에 「성공 · 승인 대기」로 남습니다.';
 
     var CLOSE_FAIL_MESSAGE =
         '마감하면 실패로 판정됩니다.\n\n'
-        + '· 부 미완결이거나 목표 부수 미달입니다.\n'
+        + '· 목표 부수 미달입니다.\n'
         + '· 바로 환불되지 않습니다.\n'
         + '· 운영자가 승인한 뒤 환불이 진행됩니다.\n'
         + '· 승인 전까지 목록에 「실패 · 승인 대기」로 남습니다.';
+
+    var CLOSE_BLOCKED_HINT =
+        '성공 마감하려면 해당 부의 전체 회차가 공개되어 있고, 부가 완결 처리되어야 합니다.';
 
     function notify(message, type) {
         if (window.NovelKeepNotification) {
@@ -55,6 +58,88 @@
             dialog.querySelectorAll('button')[1].addEventListener('click', function () { close(false); });
             backdrop.appendChild(dialog);
             document.body.appendChild(backdrop);
+        });
+    }
+
+    function openCloseConfirm(message, title, options) {
+        var settings = options || {};
+        var confirmDisabled = !!settings.confirmDisabled;
+        var hint = settings.hint || '';
+        if (!confirmDisabled && !hint) {
+            return openPopup(message, title, settings);
+        }
+        return new Promise(function (resolve) {
+            var backdrop = document.createElement('div');
+            backdrop.className = 'nk-confirm-backdrop';
+            var dialog = document.createElement('section');
+            dialog.className = 'nk-confirm-dialog is-warning'
+                + (confirmDisabled ? ' is-close-blocked' : '');
+            dialog.setAttribute('role', 'alertdialog');
+            dialog.setAttribute('aria-modal', 'true');
+
+            var titleEl = document.createElement('h2');
+            titleEl.className = 'nk-confirm-title';
+            titleEl.textContent = title || '펀딩 마감';
+
+            var messageEl = document.createElement('p');
+            messageEl.className = 'nk-confirm-message';
+            messageEl.style.whiteSpace = 'pre-line';
+            messageEl.textContent = String(message || '');
+
+            var actions = document.createElement('div');
+            actions.className = 'nk-confirm-actions';
+
+            var confirmButton = document.createElement('button');
+            confirmButton.type = 'button';
+            confirmButton.className = 'btn nk-confirm-button btn-warning'
+                + (confirmDisabled ? ' is-close-blocked' : '');
+            confirmButton.textContent = settings.confirmText || '예, 마감';
+            confirmButton.disabled = confirmDisabled;
+            if (confirmDisabled) {
+                confirmButton.setAttribute('aria-disabled', 'true');
+                confirmButton.title = '전체 회차 공개와 부 완결 후 마감할 수 있습니다.';
+            }
+
+            var cancelButton = document.createElement('button');
+            cancelButton.type = 'button';
+            cancelButton.className = confirmDisabled
+                ? 'btn nk-confirm-button is-close-dismiss'
+                : 'btn nk-confirm-button btn-outline-secondary';
+            cancelButton.textContent = settings.cancelText || '아니오';
+
+            function close(confirmed) {
+                document.documentElement.classList.remove('nk-confirm-scroll-lock');
+                backdrop.remove();
+                resolve(confirmed);
+            }
+
+            cancelButton.addEventListener('click', function () { close(false); });
+            confirmButton.addEventListener('click', function () {
+                if (!confirmButton.disabled) {
+                    close(true);
+                }
+            });
+            backdrop.addEventListener('click', function (event) {
+                if (event.target === backdrop) {
+                    close(false);
+                }
+            });
+
+            dialog.appendChild(titleEl);
+            dialog.appendChild(messageEl);
+            if (hint) {
+                var hintEl = document.createElement('p');
+                hintEl.className = 'publishing-close-blocked-hint';
+                hintEl.textContent = hint;
+                dialog.appendChild(hintEl);
+            }
+            actions.appendChild(confirmButton);
+            actions.appendChild(cancelButton);
+            dialog.appendChild(actions);
+            backdrop.appendChild(dialog);
+            document.body.appendChild(backdrop);
+            document.documentElement.classList.add('nk-confirm-scroll-lock');
+            (confirmDisabled ? cancelButton : confirmButton).focus();
         });
     }
 
@@ -262,8 +347,11 @@
                     return;
                 }
 
-                var ready = closeBtn.getAttribute('data-close-ready') === 'true';
-                var confirmMessage = ready ? CLOSE_READY_MESSAGE : CLOSE_FAIL_MESSAGE;
+                var goalMet = closeBtn.getAttribute('data-close-goal-met') === 'true';
+                var allPublished = closeBtn.getAttribute('data-close-all-published') === 'true';
+                var partCompleted = closeBtn.getAttribute('data-close-part-completed') === 'true';
+                var contentReady = allPublished && partCompleted;
+                var confirmMessage = goalMet ? CLOSE_READY_MESSAGE : CLOSE_FAIL_MESSAGE;
                 if (closeBtn.getAttribute('data-volume-over') === 'true') {
                     var volumeChars = closeBtn.getAttribute('data-volume-chars') || '';
                     confirmMessage += '\n\n[분량 안내]\n'
@@ -316,10 +404,12 @@
                         });
                 }
 
-                openPopup(confirmMessage, closeBtn.getAttribute('data-confirm-title') || '펀딩 마감', {
+                openCloseConfirm(confirmMessage, closeBtn.getAttribute('data-confirm-title') || '펀딩 마감', {
                     confirmText: closeBtn.getAttribute('data-confirm-text') || '예, 마감',
                     cancelText: '아니오',
-                    tone: 'warning'
+                    tone: 'warning',
+                    confirmDisabled: goalMet && !contentReady,
+                    hint: goalMet && !contentReady ? CLOSE_BLOCKED_HINT : ''
                 }).then(function (confirmed) {
                     if (confirmed) {
                         sendClose();
@@ -383,17 +473,25 @@
                 signal: abortController.signal
             })
                 .then(function (res) {
+                    if (res.status === 401) {
+                        window.location.href = '/?roleRequired=true';
+                        throw new Error('auth');
+                    }
                     if (!res.ok) {
                         throw new Error('search failed');
                     }
                     return res.text();
                 })
                 .then(function (html) {
+                    if (/<!doctype html|<html[\s>]/i.test(String(html || '').trim())) {
+                        window.location.href = '/?roleRequired=true';
+                        return;
+                    }
                     listHost.innerHTML = html;
                     bindCampaignForms(listHost);
                 })
                 .catch(function (err) {
-                    if (err && err.name === 'AbortError') {
+                    if (err && (err.name === 'AbortError' || err.message === 'auth')) {
                         return;
                     }
                     notify('검색에 실패했습니다.', 'error');

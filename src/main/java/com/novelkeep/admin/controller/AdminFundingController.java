@@ -2,15 +2,16 @@ package com.novelkeep.admin.controller;
 
 import java.util.List;
 
+import com.novelkeep.admin.support.AdminAccess;
+import com.novelkeep.admin.support.AdminExports;
 import com.novelkeep.funding.domain.FundingCampaignStatus;
 import com.novelkeep.funding.dto.AdminFundingSearchCriteria;
 import com.novelkeep.funding.dto.FundingApproveResult;
 import com.novelkeep.funding.service.FundingCampaignService;
 import com.novelkeep.home.domain.ExperienceRole;
 
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -28,9 +29,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 @RequestMapping("/admin")
 public class AdminFundingController {
 
-    private static final String SESSION_ROLE = "experienceRole";
-    private static final String SESSION_MEMBER_ID = "memberId";
-
     private final FundingCampaignService fundingCampaignService;
 
     public AdminFundingController(FundingCampaignService fundingCampaignService) {
@@ -38,14 +36,17 @@ public class AdminFundingController {
     }
 
     @GetMapping("/fundings")
-    public String fundings(
+    public Object fundings(
             @ModelAttribute("criteria") AdminFundingSearchCriteria criteria,
-            @SessionAttribute(name = SESSION_ROLE, required = false) ExperienceRole role,
-            @SessionAttribute(name = SESSION_MEMBER_ID, required = false) Long memberId,
-            jakarta.servlet.http.HttpServletRequest request,
+            @SessionAttribute(name = AdminAccess.SESSION_ROLE, required = false) ExperienceRole role,
+            @SessionAttribute(name = AdminAccess.SESSION_MEMBER_ID, required = false) Long memberId,
+            HttpServletRequest request,
             Model model
     ) {
-        if (!isOperator(role, memberId)) {
+        if (!AdminAccess.isOperator(role, memberId)) {
+            if (wantsFragment(request)) {
+                return ResponseEntity.status(401).build();
+            }
             return "redirect:/?roleRequired=true";
         }
         applyEntrySortDefaults(criteria, request);
@@ -67,46 +68,32 @@ public class AdminFundingController {
     @GetMapping("/fundings/export.csv")
     public ResponseEntity<byte[]> exportCsv(
             @ModelAttribute AdminFundingSearchCriteria criteria,
-            @SessionAttribute(name = SESSION_ROLE, required = false) ExperienceRole role,
-            @SessionAttribute(name = SESSION_MEMBER_ID, required = false) Long memberId,
-            jakarta.servlet.http.HttpServletRequest request
+            @SessionAttribute(name = AdminAccess.SESSION_ROLE, required = false) ExperienceRole role,
+            @SessionAttribute(name = AdminAccess.SESSION_MEMBER_ID, required = false) Long memberId,
+            HttpServletRequest request
     ) {
-        if (!isOperator(role, memberId)) {
+        if (!AdminAccess.isOperator(role, memberId)) {
             return ResponseEntity.status(401).build();
         }
         applyEntrySortDefaults(criteria, request);
-        byte[] body = fundingCampaignService.exportAdminCsv(criteria);
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
-                        .filename("novelkeep-fundings.csv")
-                        .build()
-                        .toString())
-                .contentType(new MediaType("text", "csv"))
-                .body(body);
+        return AdminExports.csv("novelkeep-fundings.csv", fundingCampaignService.exportAdminCsv(criteria));
     }
 
     @GetMapping("/fundings/export.json")
     public ResponseEntity<byte[]> exportJson(
             @ModelAttribute AdminFundingSearchCriteria criteria,
-            @SessionAttribute(name = SESSION_ROLE, required = false) ExperienceRole role,
-            @SessionAttribute(name = SESSION_MEMBER_ID, required = false) Long memberId,
-            jakarta.servlet.http.HttpServletRequest request
+            @SessionAttribute(name = AdminAccess.SESSION_ROLE, required = false) ExperienceRole role,
+            @SessionAttribute(name = AdminAccess.SESSION_MEMBER_ID, required = false) Long memberId,
+            HttpServletRequest request
     ) {
-        if (!isOperator(role, memberId)) {
+        if (!AdminAccess.isOperator(role, memberId)) {
             return ResponseEntity.status(401).build();
         }
         applyEntrySortDefaults(criteria, request);
-        byte[] body = fundingCampaignService.exportAdminJson(criteria);
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
-                        .filename("novelkeep-fundings.json")
-                        .build()
-                        .toString())
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(body);
+        return AdminExports.json("novelkeep-fundings.json", fundingCampaignService.exportAdminJson(criteria));
     }
 
-    private void applyEntrySortDefaults(AdminFundingSearchCriteria criteria, jakarta.servlet.http.HttpServletRequest request) {
+    private void applyEntrySortDefaults(AdminFundingSearchCriteria criteria, HttpServletRequest request) {
         if ("true".equalsIgnoreCase(request.getParameter("unsorted"))) {
             criteria.setSortField(null);
             criteria.setSortDir(null);
@@ -122,11 +109,11 @@ public class AdminFundingController {
     public String approve(
             @PathVariable Long campaignId,
             @ModelAttribute AdminFundingSearchCriteria criteria,
-            @SessionAttribute(name = SESSION_ROLE, required = false) ExperienceRole role,
-            @SessionAttribute(name = SESSION_MEMBER_ID, required = false) Long memberId,
+            @SessionAttribute(name = AdminAccess.SESSION_ROLE, required = false) ExperienceRole role,
+            @SessionAttribute(name = AdminAccess.SESSION_MEMBER_ID, required = false) Long memberId,
             RedirectAttributes redirectAttributes
     ) {
-        if (!isOperator(role, memberId)) {
+        if (!AdminAccess.isOperator(role, memberId)) {
             return "redirect:/?roleRequired=true";
         }
         try {
@@ -148,11 +135,11 @@ public class AdminFundingController {
     public String reject(
             @PathVariable Long campaignId,
             @ModelAttribute AdminFundingSearchCriteria criteria,
-            @SessionAttribute(name = SESSION_ROLE, required = false) ExperienceRole role,
-            @SessionAttribute(name = SESSION_MEMBER_ID, required = false) Long memberId,
+            @SessionAttribute(name = AdminAccess.SESSION_ROLE, required = false) ExperienceRole role,
+            @SessionAttribute(name = AdminAccess.SESSION_MEMBER_ID, required = false) Long memberId,
             RedirectAttributes redirectAttributes
     ) {
-        if (!isOperator(role, memberId)) {
+        if (!AdminAccess.isOperator(role, memberId)) {
             return "redirect:/?roleRequired=true";
         }
         try {
@@ -193,12 +180,8 @@ public class AdminFundingController {
         return "redirect:" + builder.build().encode().toUriString();
     }
 
-    private boolean wantsFragment(jakarta.servlet.http.HttpServletRequest request) {
+    private boolean wantsFragment(HttpServletRequest request) {
         return "1".equals(request.getHeader("X-Partial"))
                 || "1".equals(request.getParameter("partial"));
-    }
-
-    private boolean isOperator(ExperienceRole role, Long memberId) {
-        return role == ExperienceRole.ADMIN && memberId != null;
     }
 }

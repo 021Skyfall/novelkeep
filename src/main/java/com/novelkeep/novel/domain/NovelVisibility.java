@@ -3,7 +3,7 @@ package com.novelkeep.novel.domain;
 public enum NovelVisibility {
 
     PUBLIC("공개"),
-    PRIVATE("미공개");
+    PRIVATE("비공개");
 
     private final String displayName;
 

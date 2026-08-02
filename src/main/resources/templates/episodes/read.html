@@ -16,18 +16,8 @@
 
 <main class="container py-4 py-md-5 episode-read-main"
       th:attr="data-comments-partial=@{/episodes/{id}/comments/partial(id=${episode.id})}">
-    <div th:if="${canManageContent and !fundingLocked}" class="mb-3 d-flex flex-wrap gap-2">
-        <a class="btn btn-content-action btn-outline-dark btn-sm"
-           th:href="@{/writer/episodes/{id}/edit(id=${episode.id}, from='read')}">수정</a>
-        <form th:action="@{/writer/episodes/{id}/delete(id=${episode.id}, from='read')}" method="post"
-              data-confirm-delete="이 회차의 제목과 본문을 삭제합니다. 삭제 후에는 되돌릴 수 없습니다."
-              data-confirm-title="회차 삭제"
-              data-confirm-text="예, 회차 삭제">
-            <button class="btn btn-content-action btn-outline-danger btn-sm" type="submit">삭제</button>
-        </form>
-    </div>
     <div th:if="${canManageContent and fundingLocked}" class="alert alert-light border mb-3 small">
-        펀딩 진행 중인 부의 회차는 수정·삭제할 수 없습니다. 댓글은 가능합니다.
+        펀딩 진행 중인 부입니다. 회차 수정·상태 변경은 가능하며, 삭제는 불가합니다.
     </div>
 
     <div th:if="${param.updated}" class="alert alert-success"
@@ -81,7 +71,21 @@
                               th:text="|${episode.episodeNumber}화|">1화</span>
                     </div>
                     <p class="text-secondary small mb-2" th:text="${novel.title}">작품명</p>
-                    <h1 class="h2 fw-bold" th:text="${episode.title}">회차 제목</h1>
+                    <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-2">
+                        <h1 class="h2 fw-bold mb-0 flex-grow-1 min-w-0" th:text="${episode.title}">회차 제목</h1>
+                        <div th:if="${canManageContent}"
+                             class="d-flex flex-wrap gap-2 flex-shrink-0">
+                            <a class="btn btn-content-action btn-outline-dark btn-sm"
+                               th:href="@{/writer/episodes/{id}/edit(id=${episode.id}, from='read')}">수정</a>
+                            <form th:unless="${fundingLocked}"
+                                  th:action="@{/writer/episodes/{id}/delete(id=${episode.id}, from='read')}" method="post"
+                                  data-confirm-delete="이 회차의 제목과 본문을 삭제합니다. 삭제 후에는 되돌릴 수 없습니다."
+                                  data-confirm-title="회차 삭제"
+                                  data-confirm-text="예, 회차 삭제">
+                                <button class="btn btn-content-action btn-outline-danger btn-sm" type="submit">삭제</button>
+                            </form>
+                        </div>
+                    </div>
                     <p class="text-secondary small mb-0"
                        th:text="|글자 수 ${episode.characterCount}자|">글자 수</p>
                 </header>

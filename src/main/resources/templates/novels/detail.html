@@ -15,9 +15,9 @@
 
 <main class="container py-5">
     <div class="mb-4">
-        <a class="btn btn-back-list"
-           th:href="${fromWriter} ? @{/writer/novels} : @{/novels}"
-           th:text="${fromWriter} ? '← 내 작품' : '← 작품 목록'">← 목록</a>
+        <a th:replace="~{fragments/back-link :: backLink(
+            ${fromWriter} ? @{/writer/novels} : @{/novels},
+            ${fromWriter} ? '← 내 작품' : '← 작품 목록')}">← 목록</a>
     </div>
 
     <div th:if="${param.created}" class="alert alert-success"
@@ -62,7 +62,7 @@
                               class="badge part-badge"
                               th:text="${novel.latestCompletedPartLabel()}">1부 완결</span>
                         <span class="badge recommend-badge" data-recommend-count
-                              th:text="|추천 ${novel.recommendationCount}|">추천 0</span>
+                              th:text="|추천 ${novel.recommendationCount > 9999 ? '9999+' : novel.recommendationCount}|">추천 0</span>
                     </div>
                     <div class="d-flex flex-wrap gap-2 mt-2">
                         <span th:each="genreItem : ${novel.genres}"
@@ -102,7 +102,7 @@
                                 th:attr="aria-pressed=${recommended}"
                                 th:aria-label="${recommended} ? '추천 취소' : '추천하기'">
                             <span data-recommend-count
-                                  th:text="|추천 ${novel.recommendationCount}|">추천 0</span>
+                                  th:text="|추천 ${novel.recommendationCount > 9999 ? '9999+' : novel.recommendationCount}|">추천 0</span>
                             <svg class="recommend-thumb-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <path fill="currentColor"
                                       d="M2 10.5h3.2V21H2zm19.1 1.1c0-.7-.6-1.3-1.3-1.3h-5.1l.8-3.6.1-.6c0-.3-.1-.6-.3-.8l-.8-.8L9.8 9.2c-.3.3-.5.7-.5 1.1V19c0 .8.7 1.5 1.5 1.5h6.7c.5 0 1-.3 1.2-.8l2.3-5.4c.1-.2.1-.4.1-.6v-.1z"/>
@@ -113,7 +113,7 @@
                 <div th:if="${canManageContent}" class="d-flex flex-wrap gap-2 justify-content-lg-end writer-detail-actions">
                     <a class="btn btn-content-action btn-outline-dark"
                        th:href="@{/writer/novels/{id}/edit(id=${novel.id})}">기본 정보 수정</a>
-                    <a class="btn btn-content-action btn-outline-secondary"
+                    <a class="btn btn-content-action btn-outline-dark"
                        th:href="@{/writer/publishing(novelTitle=${novel.title})}">펀딩 관리</a>
                     <form th:action="@{/writer/novels/{id}/delete(id=${novel.id})}" method="post"
                           data-confirm-delete="작품과 모든 권(부)·회차를 영구 삭제합니다. 삭제 후에는 되돌릴 수 없습니다."
@@ -211,7 +211,6 @@
 </footer>
 <script th:src="@{/vendor/bootstrap/js/bootstrap.bundle.min.js}"></script>
 <script th:src="@{/js/novel-actions.js}"></script>
-<script th:src="@{/js/confirm-delete.js}"></script>
 <script th:if="${canManageContent}" th:src="@{/js/novel-detail-writer.js}"></script>
 <script th:if="${canManageContent}" th:src="@{/js/funding-part-modal.js}"></script>
 </body>

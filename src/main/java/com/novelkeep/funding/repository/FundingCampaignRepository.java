@@ -116,17 +116,6 @@ public interface FundingCampaignRepository extends JpaRepository<FundingCampaign
             """)
     List<FundingCampaign> findByStatusIn(@Param("statuses") Collection<FundingCampaignStatus> statuses);
 
-    @Query("""
-            select c from FundingCampaign c
-            join fetch c.storyPart p
-            join fetch p.novel n
-            join fetch n.author
-            where c.status in :statuses
-              and c.approvedAt is null
-            order by c.updatedAt desc
-            """)
-    List<FundingCampaign> findAwaitingApproval(@Param("statuses") Collection<FundingCampaignStatus> statuses);
-
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
             update FundingCampaign c

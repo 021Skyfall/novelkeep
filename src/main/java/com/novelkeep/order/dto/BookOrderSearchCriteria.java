@@ -7,7 +7,7 @@ import com.novelkeep.order.domain.BookOrderStatus;
 public class BookOrderSearchCriteria {
 
     public enum SortField {
-        ID("번호"),
+        ID("주문번호"),
         ORDERED("주문일"),
         STATUS("상태");
 

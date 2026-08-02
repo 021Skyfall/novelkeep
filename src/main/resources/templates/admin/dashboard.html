@@ -110,7 +110,7 @@
             <table class="table align-middle mb-0">
                 <thead class="table-light">
                 <tr>
-                    <th scope="col">묶음번호</th>
+                    <th scope="col">주문번호</th>
                     <th scope="col">작품</th>
                     <th scope="col">권</th>
                     <th scope="col" class="text-end">수량</th>
@@ -120,7 +120,7 @@
                 </thead>
                 <tbody>
                 <tr th:each="row : ${stats.recentOrders()}">
-                    <td th:text="${row.campaignId()}">1</td>
+                    <td th:text="${row.minOrderId()}">1</td>
                     <td th:text="${row.novelTitle()}">작품</td>
                     <td th:text="${row.partLabel()}">1부</td>
                     <td class="text-end" th:text="${row.totalQuantity()}">1</td>

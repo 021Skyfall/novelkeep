@@ -9,6 +9,8 @@
     var titleInput = panel.querySelector('[data-admin-title]');
     var fromInput = panel.querySelector('[data-admin-from]');
     var toInput = panel.querySelector('[data-admin-to]');
+    var rangeInput = panel.querySelector('[data-date-range-input]');
+    var rangePicker = null;
     var csvLink = panel.querySelector('[data-admin-export-csv]');
     var jsonLink = panel.querySelector('[data-admin-export-json]');
     var defaultApproval = 'AWAITING';
@@ -79,16 +81,24 @@
             signal: abortController.signal
         })
             .then(function (res) {
+                if (res.status === 401) {
+                    window.location.href = '/?roleRequired=true';
+                    throw new Error('auth');
+                }
                 if (!res.ok) {
                     throw new Error('search failed');
                 }
                 return res.text();
             })
             .then(function (html) {
+                if (/<!doctype html|<html[\s>]/i.test(String(html || '').trim())) {
+                    window.location.href = '/?roleRequired=true';
+                    return;
+                }
                 listHost.innerHTML = html;
             })
             .catch(function (err) {
-                if (err && err.name === 'AbortError') {
+                if (err && (err.name === 'AbortError' || err.message === 'auth')) {
                     return;
                 }
             })
@@ -114,11 +124,23 @@
             refresh();
         });
     }
-    if (fromInput) {
-        fromInput.addEventListener('change', refresh);
+    function syncRangeBounds() {
+        // flatpickr handles bounds; keep no-op for compatibility
     }
-    if (toInput) {
-        toInput.addEventListener('change', refresh);
+
+    if (window.NovelKeepDateRange) {
+        rangePicker = window.NovelKeepDateRange.bind(rangeInput, fromInput, toInput, refresh);
+    } else {
+        if (fromInput) {
+            fromInput.addEventListener('change', function () {
+                refresh();
+            });
+        }
+        if (toInput) {
+            toInput.addEventListener('change', function () {
+                refresh();
+            });
+        }
     }
 
     panel.querySelectorAll('[data-admin-approval]').forEach(function (btn) {
@@ -160,6 +182,9 @@
             }
             if (toInput) {
                 toInput.value = '';
+            }
+            if (rangePicker) {
+                rangePicker.clear();
             }
             approval = defaultApproval;
             status = '';

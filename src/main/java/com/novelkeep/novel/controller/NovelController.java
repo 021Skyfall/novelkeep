@@ -69,7 +69,7 @@ public class NovelController {
     }
 
     @GetMapping("/novels")
-    public String publicList(
+    public Object publicList(
             NovelSearchCriteria criteria,
             @RequestParam(required = false) Integer page,
             @SessionAttribute(name = SESSION_ROLE, required = false) ExperienceRole role,
@@ -78,6 +78,9 @@ public class NovelController {
             Model model
     ) {
         if (role == null || memberId == null) {
+            if (isPartialRequest(request)) {
+                return ResponseEntity.status(401).build();
+            }
             return "redirect:/?roleRequired=true";
         }
         if (page != null) {
@@ -213,7 +216,7 @@ public class NovelController {
     }
 
     @GetMapping("/writer/novels")
-    public String writerList(
+    public Object writerList(
             NovelSearchCriteria criteria,
             @RequestParam(required = false) Integer page,
             @SessionAttribute(name = SESSION_ROLE, required = false) ExperienceRole role,
@@ -222,6 +225,9 @@ public class NovelController {
             Model model
     ) {
         if (!canWrite(role) || memberId == null) {
+            if (isPartialRequest(request)) {
+                return ResponseEntity.status(401).build();
+            }
             return "redirect:/?roleRequired=true";
         }
         if (page != null) {

@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="utf-8">
@@ -15,8 +15,8 @@
 
 <main class="container py-5">
     <div class="mb-4 d-flex flex-wrap gap-2">
-        <a class="btn btn-back-list"
-           th:href="@{/novels/{id}(id=${novel.id}, from='writer')}">← 작품 상세</a>
+        <a th:replace="~{fragments/back-link :: backLink(
+            @{/novels/{id}(id=${novel.id}, from='writer')}, '← 작품 상세')}">← 작품 상세</a>
         <a class="btn btn-outline-dark"
            th:href="@{/writer/publishing}">내 펀딩 관리</a>
     </div>
@@ -80,18 +80,16 @@
                     <p class="text-secondary small mb-0"
                        th:text="|회차 ${part.episodes.size()}화 · 글자 수 ${part.totalCharacterCount()}자|">회차 정보</p>
                     <p th:if="${fundingLocked}" class="text-secondary small mb-0 mt-1">
-                        펀딩 진행 중 · 부·회차 수정·삭제·비공개 변경 불가
+                        펀딩 진행 중 · 회차 작성·수정·상태 변경은 가능하며, 삭제는 불가합니다.
                     </p>
                 </div>
                 <div class="d-flex flex-wrap gap-2 align-items-center">
-                    <a th:if="${!fundingLocked}"
-                       class="btn btn-content-action btn-dark"
+                    <a class="btn btn-content-action btn-dark"
                        th:href="@{/writer/parts/{id}/episodes/new(id=${part.id})}">회차 작성</a>
-                    <span th:if="${fundingLocked}" class="small text-secondary">회차 작성 불가</span>
                 </div>
             </div>
 
-            <form th:if="${novel.multiPart and !fundingLocked}"
+            <form th:if="${novel.multiPart}"
                   class="border rounded-3 p-3 mb-3 bg-body-tertiary"
                   data-part-edit-form
                   th:action="@{/writer/parts/{id}/edit(id=${part.id})}" method="post">
@@ -153,21 +151,21 @@
                         </td>
                         <td>
                             <span class="badge text-bg-light border"
-                                  th:text="${episode.status.displayName}">미공개</span>
+                                  th:text="${episode.status.displayName}">비공개</span>
                         </td>
                         <td th:text="|${episode.characterCount}자|">0자</td>
                         <td class="text-end">
-                            <div th:if="${!fundingLocked}" class="d-inline-flex flex-wrap gap-2 justify-content-end">
+                            <div class="d-inline-flex flex-wrap gap-2 justify-content-end">
                                 <a class="btn btn-content-action btn-outline-dark"
                                    th:href="@{/writer/episodes/{id}/edit(id=${episode.id})}">수정</a>
-                                <form th:action="@{/writer/episodes/{id}/delete(id=${episode.id})}" method="post"
+                                <form th:unless="${fundingLocked}"
+                                      th:action="@{/writer/episodes/{id}/delete(id=${episode.id})}" method="post"
                                       data-confirm-delete="이 회차의 제목과 본문을 삭제합니다. 삭제 후에는 되돌릴 수 없습니다."
                                       data-confirm-title="회차 삭제"
                                       data-confirm-text="예, 회차 삭제">
                                     <button class="btn btn-content-action btn-outline-danger" type="submit">삭제</button>
                                 </form>
                             </div>
-                            <span th:if="${fundingLocked}" class="small text-secondary">수정·삭제 불가</span>
                         </td>
                     </tr>
                     </tbody>
