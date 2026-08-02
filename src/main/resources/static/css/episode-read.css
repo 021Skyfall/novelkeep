@@ -70,19 +70,12 @@
 }
 
 .episode-rail-top {
-    position: fixed;
-    top: 5.75rem;
-    z-index: 40;
+    /* 알림 등 본문 위 요소와 겹치지 않도록 문서 흐름에 두고, 스크롤 시에만 헤더 아래 고정 */
+    position: sticky;
+    top: 9.5rem;
+    z-index: 1020;
     align-self: flex-start;
-    margin: 0;
-}
-
-.episode-side-prev .episode-rail-top {
-    left: max(0.75rem, calc((100vw - 58rem) / 2 - 0.35rem));
-}
-
-.episode-side-next .episode-rail-top {
-    right: max(0.75rem, calc((100vw - 58rem) / 2 - 0.35rem));
+    margin: 0 0 0.75rem;
 }
 
 .episode-side-btn {

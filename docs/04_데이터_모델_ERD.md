@@ -184,7 +184,7 @@ erDiagram
 - 인증이 아닌 데이터 소유자 구분을 위한 최소 회원 정보다.
 - `member_type`: 최고 권한을 나타내는 `READER`, `AUTHOR`, `ADMIN`
 - 비밀번호, 이메일, 로그인 토큰, 닉네임은 저장하지 않는다.
-- `UNIQUE(member_type)`으로 역할별 최대 1명을 보장하고, 앱 시작 시 역할별 1명을 목 데이터로 생성한다.
+- `UNIQUE(member_type)`으로 역할별 최대 1명을 보장하고, 앱 시작 시 역할별 1명을 데모 데이터로 생성한다.
 - 역할 선택에서는 미리 생성된 같은 회원을 재사용한다. 같은 실행 안에서 작품·추천 등 개인 데이터를 같은 소유자로 조회하기 위해서다.
 - 세션에는 `memberId`와 역할을 저장하며, 세션 역할은 해당 MEMBER의 `member_type`과 일치해야 한다.
 - 세션 역할은 데모 화면 분기용이며 실제 인증·인가 수단이 아니다.
@@ -196,7 +196,7 @@ erDiagram
 - 작품 기본 정보, 연재 상태와 공개 여부를 관리한다.
 - `author_id`로 작품 소유자를 구분하고 `pen_name`은 화면에 공개할 필명이다.
 - 연재 상태: `SERIALIZING`, `COMPLETED`
-- 공개 여부: `PUBLIC`, `PRIVATE` (새 작품 기본값 `PRIVATE`, 목 데이터는 두 상태를 모두 포함)
+- 공개 여부: `PUBLIC`, `PRIVATE` (새 작품 기본값 `PRIVATE`, 데모 데이터는 두 상태를 모두 포함)
 - 장르는 단일 컬럼이 아니라 `NOVEL_GENRE` 컬렉션으로 분리한다. 작품당 1~8개다.
 - 권 구성 상태와 권 수 컬럼은 두지 않는다. `STORY_PART` 행 개수를 조회해 1개면 한 권, 2개 이상이면 여러 권으로 표시한다.
 - `recommendation_count`: 추천순 조회용 비정규화 카운트다. 추천 토글 시 작품 수정일과 분리된 bulk update로 변경한다.
@@ -263,12 +263,12 @@ erDiagram
 ### FUNDING_CAMPAIGN — 소장본 펀딩
 
 - 특정 부(1권=1부 출판 단위)의 목표 **부수**, 모의 판매가와 펀딩 기간을 관리한다. `StoryPart`에 직접 연결한다.
-- 상태: `OPEN`, `SUCCESS`, `FAILED` (UI는 OPEN 직행. DRAFT 초안 경로는 쓰지 않음)
+- 상태: `IN_PROGRESS`(펀딩 중), `SUCCESS`, `FAILED` (UI는 펀딩 중 직행. DRAFT 초안 경로는 쓰지 않음)
 - `approved_at`: 운영자 승인 시각. 마감 직후는 승인 대기이며, 승인 시에만 주문 생성 또는 모의 환불.
 - `target_quantity`: 목표 부수(최소 10). `current_quantity`는 참여 합으로 갱신·표시한다.
-- 홈에는 `OPEN`이면서 기간 내·공개 작품인 캠페인을 최신순 최대 5건 노출한다.
-- 작가 OPEN·수정·취소·마감과 독자 참여·내 펀딩·주문·운영자 승인·대시보드까지 구현. Lv1~3 완료. OPEN 중 삭제만 잠금·기본 다크 테마 등 UX·정책 정리(2026-08-02).
-- 한 부에 OPEN은 동시에 1개. 종료 후 재개설 가능. 작품당 동시 OPEN 상한은 두지 않음(취소/불필요).
+- 홈에는 `IN_PROGRESS`이면서 기간 내·공개 작품인 캠페인을 최신순 최대 5건 노출한다.
+- 작가 펀딩·수정·취소·마감과 독자 참여·내 펀딩·주문·운영자 승인·대시보드까지 구현. Lv1~3 완료. 펀딩 중 삭제만 잠금·기본 다크 테마 등 UX·정책 정리(2026-08-02).
+- 한 부에 진행 중 펀딩은 동시에 1개. 종료 후 재개설 가능. 작품당 동시 진행 중 펀딩 상한은 두지 않음(취소/불필요).
 
 ### FUNDING_PARTICIPATION — 펀딩 참여
 
@@ -308,7 +308,7 @@ DB 제약조건으로 표현하기 어려운 아래 규칙은 Service에서 검�
 - `AUTHOR`와 `ADMIN` 회원은 작품을 만들 수 있다.
 - 모든 회원은 독자 기능으로 펀딩에 참여할 수 있다.
 - `ADMIN` 회원만 전체 주문 상태를 변경하고 운영 통계·내보내기를 사용할 수 있다.
-- 공개 콘텐츠 조회는 역할별 복제 없이 동일 원본을 반환한다. `NOVEL.visibility=PRIVATE`는 소유자와 관리자만 조회하고, `EPISODE.UNPUBLISHED`는 공개하지 않는다.
+- 공개 콘텐츠 조회는 역할별 복제 없이 동일 원본을 반환한다. `NOVEL.visibility=PRIVATE`는 소유자와 운영자만 조회하고, `EPISODE.UNPUBLISHED`는 공개하지 않는다.
 - 추천과 내 즐겨찾기는 `NOVEL.visibility=PUBLIC`인 작품에만 허용하고, 자신의 작품 추천은 차단한다.
 - 장르 검색은 선택 장르를 모두 포함한 작품만 반환한다(AND).
 - 책갈피 저장은 회차 열람 권한과 동일하게 검증한다. 물리 삭제 시에만 책갈피를 정리한다.
@@ -347,7 +347,7 @@ DB 제약조건으로 표현하기 어려운 아래 규칙은 Service에서 검�
 | EPISODE_BOOKMARK | `UNIQUE(member_id, novel_id)` | 이어읽기 저장·조회 |
 | STORY_PART | `(novel_id, part_number)` | 작품 상세 |
 | EPISODE | `(story_part_id, episode_number)` | 회차 목록·읽기 |
-| FUNDING_CAMPAIGN | `(status, end_at)` | 펀딩 중(OPEN) 목록 |
+| FUNDING_CAMPAIGN | `(status, end_at)` | 펀딩 중 목록 |
 | FUNDING_PARTICIPATION | `(member_id, created_at)` | 내 펀딩 |
 | BOOK_ORDER | `(status, ordered_at)` | 관리자 주문 관리·통계·내보내기 |
 
@@ -403,11 +403,11 @@ UNPUBLISHED ↔ PUBLISHED
 ### 펀딩
 
 ```text
-OPEN → SUCCESS
+펀딩 중 → SUCCESS
      └→ FAILED
 ```
 
-- UI는 OPEN 직행(DRAFT 초안 경로 없음). 취소 시 OPEN 종료 후 같은 부 재개설 가능.
+- UI는 펀딩 중 직행(DRAFT 초안 경로 없음). 취소 시 펀딩 중 종료 후 같은 부 재개설 가능.
 ### 모의 결제
 
 ```text
@@ -425,7 +425,7 @@ PENDING → PROCESSING → PRODUCTION_DONE → SHIP_READY → SHIPPING → DELIV
 ## 8. 삭제 정책
 
 - 펀딩 연결 전에는 소유 작가가 작품·부·회차를 삭제할 수 있다. 펀딩이 연결되면 이력 보존을 위해 삭제를 제한한다.
-- **OPEN 중**에는 해당 부·회차의 **삭제**만 막는다(작성·수정·공개/비공개·회차 생성·댓글은 허용).
+- **펀딩 중**에는 해당 부·회차의 **삭제**만 막는다(작성·수정·공개/비공개·회차 생성·댓글은 허용).
 - 펀딩 참여나 주문이 존재하면 이력 보존을 위해 삭제하지 않고 상태로 관리한다.
 - FK에는 무조건적인 연쇄 삭제를 설정하지 않는다.
 - 회원은 실제 탈퇴 기능이 없으므로 삭제하지 않는다.
@@ -444,14 +444,14 @@ PENDING → PROCESSING → PRODUCTION_DONE → SHIP_READY → SHIPPING → DELIV
 
 ### 펀딩 참여
 
-1. 펀딩이 `OPEN`이고 현재 시간이 기간 안인지 확인
+1. 펀딩이 `IN_PROGRESS`이고 현재 시간이 기간 안인지 확인
 2. 회원의 중복 참여 여부 확인
 3. 서버에서 모의 결제 금액 계산
 4. `PAID_MOCK` 참여 저장 · `currentQuantity` 증가
 
-### OPEN 중 환불(참여 취소)
+### 펀딩 중 환불(참여 취소)
 
-1. 캠페인이 `OPEN`인지 확인(성공 마감 이후 불가)
+1. 캠페인이 `IN_PROGRESS`인지 확인(성공 마감 이후 불가)
 2. 본인 `PAID_MOCK` 참여 건을 `REFUNDED_MOCK`으로 변경
 3. `currentQuantity` 감소
 
@@ -459,7 +459,7 @@ PENDING → PROCESSING → PRODUCTION_DONE → SHIP_READY → SHIPPING → DELIV
 
 1. 작가가 마감: 목표 부수·부 완결 확인 → `SUCCESS` 또는 `FAILED` (아직 주문/환불 없음, `approved_at` null)
 2. 운영자 승인: SUCCESS면 참여자마다 `PENDING` 주문, FAILED면 `REFUNDED_MOCK`
-3. 운영자 거절: 캠페인을 `OPEN`으로 되돌림
+3. 운영자 거절: 캠페인을 `IN_PROGRESS`으로 되돌림
 
 ### 주문 상태 변경
 
@@ -472,7 +472,7 @@ PENDING → PROCESSING → PRODUCTION_DONE → SHIP_READY → SHIPPING → DELIV
 
 - 작품의 여러 부 지원
 - 작가가 부 구분 사용 여부를 선택하지 않고, 기본 부 `본편` 자동 생성 후 작품 상세에서 부 추가·삭제로 구성한다
-- 부 상태 `UNPUBLISHED`는 소유자·관리자만 조회·열람에 포함된다. 독자에게는 해당 권과 그 안 회차가 미노출이다.
+- 부 상태 `UNPUBLISHED`는 소유자·운영자만 조회·열람에 포함된다. 독자에게는 해당 권과 그 안 회차가 미노출이다.
 - 회차 공개 상태 변경은 부·작품 `SERIALIZING`/`COMPLETED`를 자동으로 바꾸지 않는다. 부 완결 저장 시에만 회차 전부 공개 여부를 검증한다.
 - 한 부와 소장본 한 권의 1:1 출판 지원
 - 부 전체 회차를 권 수록 범위로 사용
@@ -482,8 +482,8 @@ PENDING → PROCESSING → PRODUCTION_DONE → SHIP_READY → SHIPPING → DELIV
 - 동일한 공개 콘텐츠 원본을 모든 역할이 공유
 - 공개 조회와 개인 소유 데이터의 분리
 - 리소스 ID와 작품 작성자 회원 ID를 결합한 소유권 검증
-- 공통 플랫폼 메인과 누적 권한 메뉴
+- 공통 플랫폼 메인(독자·작가)과 운영자 관리 메뉴
 - 번호가 포함된 부 완결 표시 (`1부 완결`, `2부 완결`)
 - 운영자 주문 상태 관리와 CSV·JSON 내보내기 (A-02, 캠페인 묶음 목록·상세·영수증), 펀딩 승인·CSV/JSON(`/admin/fundings`), 대시보드(`/admin`)
-- 작품·부·회차·펀딩·참여·주문 시드 구현 완료. **독자·작가·운영자 Lv1~Lv3 과제 범위 완료.**
+- 작품·부·회차·펀딩·참여·주문 데모 데이터 구현 완료. **독자·작가·운영자 Lv1~Lv3 과제 범위 완료.**
 - 진행률(2026-08-01): Phase1 · Lv1 · Lv2 · Lv3 → **전체 100%**
