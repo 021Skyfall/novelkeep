@@ -171,7 +171,7 @@ public final class NovelSpecifications {
         subquery.select(campaignRoot.get("id"));
         subquery.where(
                 cb.equal(campaignRoot.get("storyPart").get("novel").get("id"), root.get("id")),
-                cb.equal(campaignRoot.get("status"), FundingCampaignStatus.OPEN)
+                cb.equal(campaignRoot.get("status"), FundingCampaignStatus.IN_PROGRESS)
         );
         return cb.exists(subquery);
     }

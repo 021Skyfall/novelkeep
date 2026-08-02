@@ -83,7 +83,7 @@ public class WriterPublishingController {
                 fundingCampaignService.resolveLeastOrderStatusByCampaignId(campaigns));
         model.addAttribute("criteria", criteria);
             model.addAttribute("statusOptions", List.of(
-                    FundingCampaignStatus.OPEN,
+                    FundingCampaignStatus.IN_PROGRESS,
                     FundingCampaignStatus.SUCCESS,
                     FundingCampaignStatus.FAILED,
                     FundingCampaignStatus.CANCELLED

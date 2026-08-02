@@ -52,7 +52,7 @@ public record ReaderActivityRow(
                 : "본편";
         ReaderActivitySearchCriteria.Tab tab = resolveTab(participation, order);
         BookOrderStatus orderStatus = order == null ? null : order.getStatus();
-        boolean canRefund = campaign.getStatus() == FundingCampaignStatus.OPEN
+        boolean canRefund = campaign.getStatus() == FundingCampaignStatus.IN_PROGRESS
                 && participation.getPaymentStatus() == FundingPaymentStatus.PAID_MOCK;
         return new ReaderActivityRow(
                 participation.getId(),
@@ -119,7 +119,7 @@ public record ReaderActivityRow(
         if (campaign.getStatus() == FundingCampaignStatus.FAILED && campaign.isAwaitingApproval()) {
             return "실패 마감 · 운영자 승인 대기 중입니다. 승인 후 환불됩니다.";
         }
-        if (campaign.getStatus() == FundingCampaignStatus.OPEN) {
+        if (campaign.getStatus() == FundingCampaignStatus.IN_PROGRESS) {
             return "펀딩 중 · 결제 완료. 펀딩 중에는 환불할 수 있습니다.";
         }
         return "결제 완료";

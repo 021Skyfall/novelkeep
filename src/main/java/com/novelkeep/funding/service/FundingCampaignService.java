@@ -95,7 +95,7 @@ public class FundingCampaignService {
     public List<FundingCampaign> findOwnedCampaigns(Long memberId, WriterFundingSearchCriteria criteria) {
         List<FundingCampaign> campaigns = fundingCampaignRepository.findByAuthorId(memberId);
         EnumSet<FundingCampaignStatus> managed = EnumSet.of(
-                FundingCampaignStatus.OPEN,
+                FundingCampaignStatus.IN_PROGRESS,
                 FundingCampaignStatus.SUCCESS,
                 FundingCampaignStatus.FAILED,
                 FundingCampaignStatus.CANCELLED
@@ -288,7 +288,7 @@ public class FundingCampaignService {
             return result;
         }
         List<FundingCampaign> campaigns = fundingCampaignRepository.findByStatusAndNovelIdIn(
-                FundingCampaignStatus.OPEN,
+                FundingCampaignStatus.IN_PROGRESS,
                 novelIds
         );
         for (FundingCampaign campaign : campaigns) {
@@ -306,7 +306,7 @@ public class FundingCampaignService {
             return result;
         }
         List<FundingCampaign> campaigns = fundingCampaignRepository.findByStatusAndStoryPartIdIn(
-                FundingCampaignStatus.OPEN,
+                FundingCampaignStatus.IN_PROGRESS,
                 partIds
         );
         for (FundingCampaign campaign : campaigns) {
@@ -323,7 +323,7 @@ public class FundingCampaignService {
         if (novel.getVisibility() != NovelVisibility.PUBLIC) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "공개 작품에서만 펀딩을 시작할 수 있습니다.");
         }
-        if (fundingCampaignRepository.existsByStoryPartIdAndStatus(part.getId(), FundingCampaignStatus.OPEN)) {
+        if (fundingCampaignRepository.existsByStoryPartIdAndStatus(part.getId(), FundingCampaignStatus.IN_PROGRESS)) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "이 부에 이미 진행 중인 펀딩이 있습니다. 종료된 뒤에 다시 시작할 수 있습니다."
@@ -349,7 +349,7 @@ public class FundingCampaignService {
     @Transactional
     public FundingCampaign updateOpenCampaign(Long campaignId, Long memberId, WriterFundingForm form) {
         FundingCampaign campaign = requireOwnedCampaign(campaignId, memberId);
-        if (campaign.getStatus() != FundingCampaignStatus.OPEN) {
+        if (campaign.getStatus() != FundingCampaignStatus.IN_PROGRESS) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "진행 중인 펀딩만 수정할 수 있습니다.");
         }
         try {
@@ -363,7 +363,7 @@ public class FundingCampaignService {
     @Transactional
     public void cancel(Long campaignId, Long memberId) {
         FundingCampaign campaign = requireOwnedCampaign(campaignId, memberId);
-        if (campaign.getStatus() != FundingCampaignStatus.OPEN) {
+        if (campaign.getStatus() != FundingCampaignStatus.IN_PROGRESS) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "진행 중인 펀딩만 취소할 수 있습니다.");
         }
         List<FundingParticipation> participations = fundingParticipationRepository.findByCampaignId(campaignId);
@@ -445,7 +445,7 @@ public class FundingCampaignService {
         }
 
         LocalDateTime now = FundingGuide.nowKorea();
-        if (campaign.getStatus() != FundingCampaignStatus.OPEN) {
+        if (campaign.getStatus() != FundingCampaignStatus.IN_PROGRESS) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "진행 중인 펀딩에만 참여할 수 있습니다.");
         }
         if (!campaign.isWithinPeriod(now)) {
@@ -478,7 +478,7 @@ public class FundingCampaignService {
     @Transactional
     public FundingCloseResult closeCampaign(Long campaignId, Long memberId) {
         FundingCampaign campaign = requireOwnedCampaign(campaignId, memberId);
-        if (campaign.getStatus() != FundingCampaignStatus.OPEN) {
+        if (campaign.getStatus() != FundingCampaignStatus.IN_PROGRESS) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "진행 중인 펀딩만 마감할 수 있습니다.");
         }
         if (!campaign.canClose()) {
@@ -517,7 +517,7 @@ public class FundingCampaignService {
     }
 
     /**
-     * 진행 중(OPEN) 펀딩 참여 취소·환불. 성공 마감 이후에는 불가.
+     * 진행 중(펀딩 중) 참여 취소·환불. 성공 마감 이후에는 불가.
      */
     @Transactional
     public FundingCampaign cancelParticipation(Long campaignId, Long memberId) {
@@ -526,7 +526,7 @@ public class FundingCampaignService {
         }
         FundingCampaign campaign = fundingCampaignRepository.findDetailById(campaignId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-        if (campaign.getStatus() != FundingCampaignStatus.OPEN) {
+        if (campaign.getStatus() != FundingCampaignStatus.IN_PROGRESS) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "진행 중인 펀딩에서만 환불할 수 있습니다.");
         }
         FundingParticipation participation = fundingParticipationRepository

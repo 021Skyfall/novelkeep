@@ -53,7 +53,7 @@ public class AdminDashboardService {
 
     @Transactional(readOnly = true)
     public AdminDashboardStats load() {
-        long open = fundingCampaignRepository.countByStatus(FundingCampaignStatus.OPEN);
+        long fundingInProgress = fundingCampaignRepository.countByStatus(FundingCampaignStatus.IN_PROGRESS);
         long success = fundingCampaignRepository.countByStatus(FundingCampaignStatus.SUCCESS);
         long failed = fundingCampaignRepository.countByStatus(FundingCampaignStatus.FAILED);
         long closed = success + failed;
@@ -87,7 +87,7 @@ public class AdminDashboardService {
                         EpisodeStatus.PUBLISHED,
                         NovelVisibility.PUBLIC
                 ),
-                open,
+                fundingInProgress,
                 success,
                 failed,
                 paid == null ? BigDecimal.ZERO : paid,

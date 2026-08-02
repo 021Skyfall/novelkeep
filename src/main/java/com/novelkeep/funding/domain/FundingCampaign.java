@@ -102,7 +102,7 @@ public class FundingCampaign {
         FundingGuide.validateTarget(targetQuantity, priceAmount);
         FundingCampaign campaign = new FundingCampaign();
         campaign.storyPart = storyPart;
-        campaign.status = FundingCampaignStatus.OPEN;
+        campaign.status = FundingCampaignStatus.IN_PROGRESS;
         campaign.targetQuantity = targetQuantity;
         campaign.currentQuantity = Math.max(0, currentQuantity);
         campaign.priceAmount = priceAmount;
@@ -118,7 +118,7 @@ public class FundingCampaign {
     }
 
     public void updateWhileOpen(int targetQuantity, BigDecimal priceAmount, LocalDateTime endAt) {
-        if (status != FundingCampaignStatus.OPEN) {
+        if (status != FundingCampaignStatus.IN_PROGRESS) {
             throw new IllegalStateException("진행 중인 펀딩만 수정할 수 있습니다.");
         }
         FundingGuide.validateTarget(targetQuantity, priceAmount);
@@ -129,7 +129,7 @@ public class FundingCampaign {
     }
 
     public void updateEditable(int targetQuantity, BigDecimal priceAmount, LocalDateTime startAt, LocalDateTime endAt) {
-        if (status == FundingCampaignStatus.OPEN) {
+        if (status == FundingCampaignStatus.IN_PROGRESS) {
             updateWhileOpen(targetQuantity, priceAmount, endAt);
             return;
         }
@@ -150,7 +150,7 @@ public class FundingCampaign {
         }
         LocalDateTime now = FundingGuide.nowKorea();
         FundingGuide.validateEndSchedule(startAt.isAfter(now) ? now : startAt, endAt, now);
-        this.status = FundingCampaignStatus.OPEN;
+        this.status = FundingCampaignStatus.IN_PROGRESS;
         if (this.startAt.isAfter(now)) {
             this.startAt = now;
         }
@@ -205,7 +205,7 @@ public class FundingCampaign {
     }
 
     public boolean canClose() {
-        return status == FundingCampaignStatus.OPEN && currentQuantity > 0;
+        return status == FundingCampaignStatus.IN_PROGRESS && currentQuantity > 0;
     }
 
     public boolean isAwaitingApproval() {
@@ -232,11 +232,11 @@ public class FundingCampaign {
     }
 
     public boolean isOpenForJoin(LocalDateTime now) {
-        return status == FundingCampaignStatus.OPEN && isWithinPeriod(now);
+        return status == FundingCampaignStatus.IN_PROGRESS && isWithinPeriod(now);
     }
 
     public void recordParticipation(int quantity) {
-        if (status != FundingCampaignStatus.OPEN) {
+        if (status != FundingCampaignStatus.IN_PROGRESS) {
             throw new IllegalStateException("진행 중인 펀딩에만 참여할 수 있습니다.");
         }
         if (quantity < 1) {
@@ -246,7 +246,7 @@ public class FundingCampaign {
     }
 
     public void withdrawParticipation(int quantity) {
-        if (status != FundingCampaignStatus.OPEN) {
+        if (status != FundingCampaignStatus.IN_PROGRESS) {
             throw new IllegalStateException("진행 중인 펀딩에서만 참여를 취소할 수 있습니다.");
         }
         if (quantity < 1) {
@@ -256,7 +256,7 @@ public class FundingCampaign {
     }
 
     public void closeAsSuccess() {
-        if (status != FundingCampaignStatus.OPEN) {
+        if (status != FundingCampaignStatus.IN_PROGRESS) {
             throw new IllegalStateException("진행 중인 펀딩만 마감할 수 있습니다.");
         }
         this.status = FundingCampaignStatus.SUCCESS;
@@ -265,7 +265,7 @@ public class FundingCampaign {
     }
 
     public void closeAsFailed() {
-        if (status != FundingCampaignStatus.OPEN) {
+        if (status != FundingCampaignStatus.IN_PROGRESS) {
             throw new IllegalStateException("진행 중인 펀딩만 마감할 수 있습니다.");
         }
         this.status = FundingCampaignStatus.FAILED;
@@ -275,7 +275,7 @@ public class FundingCampaign {
 
     /** 수요 0 취소. 참여·환불 기록은 유지한다. */
     public void markCancelled() {
-        if (status != FundingCampaignStatus.OPEN) {
+        if (status != FundingCampaignStatus.IN_PROGRESS) {
             throw new IllegalStateException("진행 중인 펀딩만 취소할 수 있습니다.");
         }
         this.status = FundingCampaignStatus.CANCELLED;
@@ -301,7 +301,7 @@ public class FundingCampaign {
         if (this.approvedAt != null) {
             throw new IllegalStateException("이미 승인된 펀딩은 거절할 수 없습니다.");
         }
-        this.status = FundingCampaignStatus.OPEN;
+        this.status = FundingCampaignStatus.IN_PROGRESS;
         this.closedAt = null;
         this.approvedAt = null;
     }

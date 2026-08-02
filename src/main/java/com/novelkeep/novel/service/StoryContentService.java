@@ -338,7 +338,7 @@ public class StoryContentService {
     }
 
     public boolean hasOpenFunding(Long partId) {
-        return fundingCampaignRepository.existsByStoryPartIdAndStatus(partId, FundingCampaignStatus.OPEN);
+        return fundingCampaignRepository.existsByStoryPartIdAndStatus(partId, FundingCampaignStatus.IN_PROGRESS);
     }
 
     private void assertOpenFundingPartNotDeletable(Long partId) {

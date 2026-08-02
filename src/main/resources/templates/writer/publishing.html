@@ -126,7 +126,7 @@
                         <div class="d-flex flex-wrap justify-content-between gap-2 mb-3">
                             <div class="publishing-title-row">
                                 <span class="badge"
-                                      th:classappend="${campaign.status.name() == 'OPEN'} ? ' text-bg-dark' : (${campaign.status.name() == 'SUCCESS'} ? ' text-bg-success' : ' text-bg-danger')"
+                                      th:classappend="${campaign.status.name() == 'IN_PROGRESS'} ? ' text-bg-dark' : (${campaign.status.name() == 'SUCCESS'} ? ' text-bg-success' : ' text-bg-danger')"
                                       th:text="${campaign.status.displayName}">진행 중</span>
                                 <span th:if="${campaign.awaitingApproval}"
                                       class="badge text-bg-warning text-dark">승인 대기</span>
@@ -164,7 +164,7 @@
                                   th:text="|${campaign.currentQuantity}/${campaign.targetQuantity}부|">0/10부</span>
                         </div>
 
-                        <div th:if="${campaign.status.name() != 'OPEN'}" class="mb-3">
+                        <div th:if="${campaign.status.name() != 'IN_PROGRESS'}" class="mb-3">
                             <div class="small text-secondary mb-1">
                                 <span th:text="|시작 ${#temporals.format(campaign.startAt, 'yyyy-MM-dd HH:mm')}|">시작</span>
                                 <span class="mx-1" aria-hidden="true">~</span>
@@ -174,7 +174,7 @@
                                  th:text="|목표 ${campaign.targetQuantity}부 · ${#numbers.formatInteger(campaign.priceAmount, 1, 'COMMA')}원|">목표</div>
                         </div>
 
-                        <div th:if="${campaign.status.name() != 'OPEN'}"
+                        <div th:if="${campaign.status.name() != 'IN_PROGRESS'}"
                              class="publishing-status-bar publishing-status-bar-stack mb-0"
                              th:with="orderStatus=${orderStatusByCampaignId != null ? orderStatusByCampaignId.get(campaign.id) : null}">
                             <div th:if="${!campaign.approved and campaign.storyPart.publishedCharacterCount() > guideVolumeChars}"
@@ -206,7 +206,7 @@
                             </div>
                         </div>
 
-                        <form th:if="${campaign.status.name() == 'OPEN'}"
+                        <form th:if="${campaign.status.name() == 'IN_PROGRESS'}"
                               class="mb-0"
                               th:action="@{/writer/publishing/campaigns/{cid}(cid=${campaign.id})}"
                               method="post"

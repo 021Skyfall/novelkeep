@@ -71,7 +71,7 @@ public class HomeShowcaseService {
     @Transactional(readOnly = true)
     public List<FundingCampaign> openFundings() {
         List<FundingCampaign> campaigns = fundingCampaignRepository.findOpenPublicCampaigns(
-                FundingCampaignStatus.OPEN,
+                FundingCampaignStatus.IN_PROGRESS,
                 LocalDateTime.now(),
                 NovelVisibility.PUBLIC,
                 PageRequest.of(0, FUNDING_SHOWCASE_SIZE)

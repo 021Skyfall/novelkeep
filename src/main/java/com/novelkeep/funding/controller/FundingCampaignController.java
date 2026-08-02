@@ -286,7 +286,7 @@ public class FundingCampaignController {
         if (ownCampaign) {
             return "본인 작품의 펀딩에는 참여할 수 없습니다.";
         }
-        if (campaign.getStatus() != FundingCampaignStatus.OPEN) {
+        if (campaign.getStatus() != FundingCampaignStatus.IN_PROGRESS) {
             return "이 펀딩은 진행 중이 아닙니다.";
         }
         if (!openForJoin) {

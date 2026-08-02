@@ -40,7 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 체험용 목 데이터.
  * <p>
- * 펀딩 정책 반영: 공개 작품·공개 부·전 회차 공개인 부만 OPEN 가능,
+ * 펀딩 정책 반영: 공개 작품·공개 부·전 회차 공개인 부만 펀딩 시작 가능,
  * 부마다 별도 캠페인(동시 진행 가능), 시작 후 취소 없음, 목표 최소 10부,
  * 기간은 시작 후 최소 7일, 분량 안내(약 8~10만 자 / 10만 초과 시 문의).
  */
@@ -52,8 +52,8 @@ public class DemoDataInitializer implements ApplicationRunner {
     private static final int AWAITING_SUCCESS_COUNT = 4;
     private static final int AWAITING_FAIL_COUNT = 4;
     private static final int REFUND_DONE_COUNT = 3;
-    private static final int RESERVED_OPEN_SUCCESS = 4;
-    private static final int RESERVED_OPEN_FAIL = 3;
+    private static final int RESERVED_FUNDING_SUCCESS = 4;
+    private static final int RESERVED_FUNDING_FAIL = 3;
     private static final long RANDOM_SEED = 20260801L;
 
     private static final String[] TITLE_PREFIXES = {
@@ -136,7 +136,7 @@ public class DemoDataInitializer implements ApplicationRunner {
     }
 
     /**
-     * 작품 탐색(수정일 DESC) 상단에 노출되도록, 게이지가 거의 찬 OPEN 펀딩 2작품을 올려 둔다.
+     * 작품 탐색(수정일 DESC) 상단에 노출되도록, 게이지가 거의 찬 펀딩 2작품을 올려 둔다.
      * (추천 순위가 아니라 목록에서 먼저 보이는 항목 기준)
      */
     private void pinBrowseShowcaseNovels(
@@ -150,7 +150,7 @@ public class DemoDataInitializer implements ApplicationRunner {
         Set<Long> usedNovelIds = new LinkedHashSet<>();
 
         List<FundingCampaign> readyOpen = campaigns.stream()
-                .filter(c -> c.getStatus() == com.novelkeep.funding.domain.FundingCampaignStatus.OPEN)
+                .filter(c -> c.getStatus() == com.novelkeep.funding.domain.FundingCampaignStatus.IN_PROGRESS)
                 .filter(FundingCampaign::isSuccessReady)
                 .filter(c -> c.getStoryPart().getNovel().getVisibility() == NovelVisibility.PUBLIC)
                 .filter(c -> !fundingParticipationRepository.existsByCampaignIdAndMemberId(
@@ -174,7 +174,7 @@ public class DemoDataInitializer implements ApplicationRunner {
                 if (picked.size() >= 2) {
                     break;
                 }
-                if (campaign.getStatus() != com.novelkeep.funding.domain.FundingCampaignStatus.OPEN) {
+                if (campaign.getStatus() != com.novelkeep.funding.domain.FundingCampaignStatus.IN_PROGRESS) {
                     continue;
                 }
                 if (campaign.getStoryPart().getStatus() != StoryPartStatus.COMPLETED) {
@@ -298,8 +298,8 @@ public class DemoDataInitializer implements ApplicationRunner {
      * 역할별 즉시 테스트용 시드.
      * <ul>
      *   <li>운영자: 성공/실패 승인 대기, 주문 6단계, 환불 완료</li>
-     *   <li>작가: 성공·실패 마감용 OPEN, 수요 0 취소용 OPEN, 승인 대기/완료</li>
-     *   <li>체험 독자: 참여 중·주문·환불 탭 + 아직 참여 가능한 OPEN</li>
+     *   <li>작가: 성공·실패 마감용 펀딩 중, 수요 0 취소용 펀딩 중, 승인 대기/완료</li>
+     *   <li>체험 독자: 참여 중·주문·환불 탭 + 아직 참여 가능한 펀딩</li>
      * </ul>
      */
     private void seedParticipationsAndOrders(
@@ -314,7 +314,7 @@ public class DemoDataInitializer implements ApplicationRunner {
         List<BookOrder> orders = new ArrayList<>();
 
         List<FundingCampaign> openCampaigns = new ArrayList<>(campaigns.stream()
-                .filter(campaign -> campaign.getStatus() == com.novelkeep.funding.domain.FundingCampaignStatus.OPEN)
+                .filter(campaign -> campaign.getStatus() == com.novelkeep.funding.domain.FundingCampaignStatus.IN_PROGRESS)
                 .toList());
 
         int orderSeedIndex = 0;
@@ -372,7 +372,7 @@ public class DemoDataInitializer implements ApplicationRunner {
                     orderSeedIndex++;
                     continue;
                 }
-                if (reservedOpenSuccess < RESERVED_OPEN_SUCCESS) {
+                if (reservedOpenSuccess < RESERVED_FUNDING_SUCCESS) {
                     reservedOpenSuccess++;
                     continue;
                 }
@@ -401,7 +401,7 @@ public class DemoDataInitializer implements ApplicationRunner {
                 continue;
             }
 
-            if (reservedOpenFail < RESERVED_OPEN_FAIL) {
+            if (reservedOpenFail < RESERVED_FUNDING_FAIL) {
                 reservedOpenFail++;
                 continue;
             }
@@ -509,17 +509,17 @@ public class DemoDataInitializer implements ApplicationRunner {
             Random random
     ) {
         long readyOpen = openCampaigns.stream()
-                .filter(c -> c.getStatus() == com.novelkeep.funding.domain.FundingCampaignStatus.OPEN)
+                .filter(c -> c.getStatus() == com.novelkeep.funding.domain.FundingCampaignStatus.IN_PROGRESS)
                 .filter(FundingCampaign::isSuccessReady)
                 .count();
-        if (readyOpen >= RESERVED_OPEN_SUCCESS) {
+        if (readyOpen >= RESERVED_FUNDING_SUCCESS) {
             return;
         }
         for (FundingCampaign campaign : openCampaigns) {
-            if (readyOpen >= RESERVED_OPEN_SUCCESS) {
+            if (readyOpen >= RESERVED_FUNDING_SUCCESS) {
                 return;
             }
-            if (campaign.getStatus() != com.novelkeep.funding.domain.FundingCampaignStatus.OPEN) {
+            if (campaign.getStatus() != com.novelkeep.funding.domain.FundingCampaignStatus.IN_PROGRESS) {
                 continue;
             }
             if (campaign.getStoryPart().getStatus() != StoryPartStatus.COMPLETED) {
@@ -545,17 +545,17 @@ public class DemoDataInitializer implements ApplicationRunner {
             Random random
     ) {
         long failReadyOpen = openCampaigns.stream()
-                .filter(c -> c.getStatus() == com.novelkeep.funding.domain.FundingCampaignStatus.OPEN)
+                .filter(c -> c.getStatus() == com.novelkeep.funding.domain.FundingCampaignStatus.IN_PROGRESS)
                 .filter(c -> c.getCurrentQuantity() > 0 && !c.isSuccessReady())
                 .count();
-        if (failReadyOpen >= RESERVED_OPEN_FAIL) {
+        if (failReadyOpen >= RESERVED_FUNDING_FAIL) {
             return;
         }
         for (FundingCampaign campaign : openCampaigns) {
-            if (failReadyOpen >= RESERVED_OPEN_FAIL) {
+            if (failReadyOpen >= RESERVED_FUNDING_FAIL) {
                 return;
             }
-            if (campaign.getStatus() != com.novelkeep.funding.domain.FundingCampaignStatus.OPEN) {
+            if (campaign.getStatus() != com.novelkeep.funding.domain.FundingCampaignStatus.IN_PROGRESS) {
                 continue;
             }
             if (campaign.getCurrentQuantity() > 0) {
@@ -573,7 +573,7 @@ public class DemoDataInitializer implements ApplicationRunner {
     }
 
     /**
-     * 체험 독자 전용: 내 펀딩·주문 전체/참여중/주문/환불 + 추가 참여 가능 OPEN.
+     * 체험 독자 전용: 내 펀딩·주문 전체/참여중/주문/환불 + 추가 참여 가능 펀딩.
      */
     private void seedExperienceReaderScenarios(
             Member experienceReader,
@@ -594,7 +594,7 @@ public class DemoDataInitializer implements ApplicationRunner {
         };
 
         for (FundingCampaign campaign : openCampaigns) {
-            if (campaign.getStatus() != com.novelkeep.funding.domain.FundingCampaignStatus.OPEN) {
+            if (campaign.getStatus() != com.novelkeep.funding.domain.FundingCampaignStatus.IN_PROGRESS) {
                 continue;
             }
             if (hasMemberParticipation(participations, campaign, experienceReader)) {
@@ -615,7 +615,7 @@ public class DemoDataInitializer implements ApplicationRunner {
                 continue;
             }
 
-            // 주문 3건: 빈 OPEN(완결부)을 성공·승인으로 전환 (캠페인 내 상태는 동일하게 맞춤)
+            // 주문 3건: 빈 펀딩 중(완결부)을 성공·승인으로 전환 (캠페인 내 상태는 동일하게 맞춤)
             if (orderSeed < readerOrderStatuses.length
                     && campaign.getStoryPart().getStatus() == StoryPartStatus.COMPLETED
                     && campaign.getCurrentQuantity() == 0
@@ -738,7 +738,7 @@ public class DemoDataInitializer implements ApplicationRunner {
 
     /**
      * 시나리오 분포 (50작품 기준 대략치)
-     * - PRIVATE: 비공개 작품(펀딩 OPEN 없음)
+     * - PRIVATE: 비공개 작품(진행 중 펀딩 없음)
      * - COMPLETED 다부: 완결·전 회차 공개 → 펀딩 후보
      * - SERIALIZING 다부: 1부 완결(펀딩 가능) + 연재부(비공개 회차 섞임, 펀딩 불가) + 비공개부
      * - SERIALIZING 단권: 일부는 전 회차 공개(펀딩 가능), 일부는 비공개 회차 있음(펀딩 불가)
